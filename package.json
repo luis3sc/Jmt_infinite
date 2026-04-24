@@ -1,0 +1,40 @@
+{
+  "name": "jmt-marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "latest",
+    "@tailwindcss/postcss": "^4.2.4",
+    "clsx": "latest",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "latest",
+    "mapbox-gl": "^3.22.0",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-map-gl": "^8.1.1",
+    "tailwind-merge": "latest",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@types/mapbox-gl": "^3.4.1",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "postcss": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
+  }
+}

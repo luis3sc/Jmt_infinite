@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@config "../../tailwind.config.ts";
+
+@theme {
+  --color-background: hsl(224 51% 11%); /* #0e162b */
+  --color-foreground: hsl(0 0% 98%);
+  
+  --color-card: hsl(224 51% 15%);
+  --color-card-foreground: hsl(0 0% 98%);
+  
+  --color-primary: hsl(101 45% 47%); /* #62ae40 */
+  --color-primary-foreground: hsl(0 0% 100%);
+  
+  --color-muted: hsl(224 51% 20%);
+  --color-muted-foreground: hsl(215 20% 65%);
+  
+  --color-border: hsl(224 51% 25%);
+  --color-input: hsl(224 51% 20%);
+  --color-ring: hsl(101 45% 47%);
+  
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+@layer base {
+  :root {
+    --background: 224 51% 11%;
+    --foreground: 0 0% 98%;
+    --card: 224 51% 15%;
+    --card-foreground: 0 0% 98%;
+    --primary: 101 45% 47%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 224 51% 20%;
+    --muted-foreground: 215 20% 65%;
+    --border: 224 51% 25%;
+    --input: 224 51% 20%;
+    --ring: 101 45% 47%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
