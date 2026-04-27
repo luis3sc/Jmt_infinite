@@ -77,14 +77,14 @@ export default function OrderSuccessPage() {
       <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-md mx-auto w-full">
         {/* Icon & Title */}
         <motion.div 
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           className="mb-8 flex flex-col items-center"
         >
-          <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(98,174,64,0.2)]">
-            <CheckCircle2 size={48} className="text-primary" />
+          <div className="w-16 h-16 bg-[#62ae40] rounded-2xl flex items-center justify-center mb-6 shadow-[0_10px_30px_rgba(98,174,64,0.3)]">
+            <CheckCircle2 size={36} className="text-white" />
           </div>
-          <h1 className="text-3xl font-black uppercase tracking-tight text-center">
+          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-center text-white">
             Pago Realizado
           </h1>
         </motion.div>
@@ -94,11 +94,11 @@ export default function OrderSuccessPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="w-full aspect-video bg-[#131b2f] border border-slate-800/60 rounded-2xl mb-6 flex items-center justify-center relative overflow-hidden group"
+          className="w-full aspect-video bg-[#0d1326] border border-white/5 rounded-2xl mb-6 flex items-center justify-center relative overflow-hidden group shadow-2xl"
         >
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50" />
           <div className="text-center z-10">
-            <p className="text-4xl font-black text-slate-800 uppercase tracking-[0.2em] select-none opacity-20">Mapa</p>
+            <p className="text-3xl font-black text-white/5 uppercase tracking-[0.25em] select-none">Mapa</p>
           </div>
         </motion.div>
 
@@ -107,11 +107,13 @@ export default function OrderSuccessPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="w-full border border-slate-800/60 rounded-lg p-6 mb-8 text-center"
+          className="w-full border border-white/10 rounded-xl p-5 mb-8 text-center bg-white/5 backdrop-blur-md"
         >
-          <p className="text-sm text-slate-300 font-medium leading-relaxed">
-            Especificaciones de video<br />
-            Formato MP4 - 7 segundos - 1280X720 - Maximo 50mb
+          <p className="text-[11px] md:text-xs text-slate-300 font-bold uppercase tracking-widest mb-1.5 opacity-60">
+            Especificaciones de video
+          </p>
+          <p className="text-xs md:text-sm text-white font-medium">
+            Formato MP4 - 7 segundos - 1280X720 - Máximo 50mb
           </p>
         </motion.div>
 
@@ -120,13 +122,13 @@ export default function OrderSuccessPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="flex gap-3 mb-8 w-full group cursor-pointer"
+          className="flex gap-4 mb-10 w-full group cursor-pointer items-start"
           onClick={() => setAccepted(!accepted)}
         >
-          <div className={`w-6 h-6 rounded-md border flex-shrink-0 flex items-center justify-center transition-all ${accepted ? 'bg-primary border-primary shadow-[0_0_10px_rgba(98,174,64,0.3)]' : 'border-slate-700 bg-slate-800/50'}`}>
+          <div className={`w-6 h-6 rounded-md border flex-shrink-0 flex items-center justify-center transition-all duration-300 ${accepted ? 'bg-primary border-primary shadow-[0_0_15px_rgba(98,174,64,0.4)]' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
             {accepted && <Check size={14} className="text-white" strokeWidth={4} />}
           </div>
-          <p className="text-[11px] text-slate-400 font-medium leading-normal group-hover:text-slate-300 transition-colors">
+          <p className="text-[11px] md:text-xs text-slate-400 font-medium leading-relaxed group-hover:text-slate-200 transition-colors">
             Este primero debe de ser aceptado y valido para empezar la campaña
           </p>
         </motion.div>
@@ -136,14 +138,14 @@ export default function OrderSuccessPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          whileHover={accepted ? { scale: 1.02 } : {}}
+          whileHover={accepted ? { scale: 1.02, backgroundColor: '#73c34d' } : {}}
           whileTap={accepted ? { scale: 0.98 } : {}}
           disabled={!accepted}
-          className={`w-full py-4 rounded-xl font-black uppercase tracking-widest text-sm transition-all shadow-xl ${accepted 
-            ? 'bg-primary text-white hover:bg-primary/90 shadow-primary/20' 
-            : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'}`}
+          className={`w-full py-4.5 rounded-xl font-black uppercase tracking-[0.15em] text-sm transition-all shadow-2xl ${accepted 
+            ? 'bg-[#62ae40] text-white shadow-primary/20' 
+            : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'}`}
         >
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-3">
             <Upload size={18} />
             <span>Enviar contenido</span>
           </div>
@@ -154,24 +156,24 @@ export default function OrderSuccessPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-12 text-center"
+          className="mt-14 text-center"
         >
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-4">
-            No cuentas con el video ahora, realiza esto despues:
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-5 opacity-70">
+            No cuentas con el video ahora, realiza esto después:
           </p>
           <button 
             onClick={copyToClipboard}
-            className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-bold text-sm mx-auto"
+            className="group flex items-center gap-3 text-[#62ae40] hover:text-[#73c34d] transition-all font-black text-sm mx-auto py-2 px-4 rounded-full bg-primary/5 hover:bg-primary/10 border border-primary/10"
           >
             {copied ? (
               <div className="flex items-center gap-2 text-green-400">
-                <Check size={16} />
-                <span>¡Enlace copiado!</span>
+                <Check size={16} strokeWidth={3} />
+                <span className="uppercase tracking-wider">¡Copiado!</span>
               </div>
             ) : (
               <>
-                <Copy size={16} />
-                <span>Copiar enlace seguro</span>
+                <div className="w-2 h-4 bg-primary rounded-sm group-hover:scale-y-110 transition-transform" />
+                <span className="uppercase tracking-wider">Copiar enlace seguro</span>
               </>
             )}
           </button>
