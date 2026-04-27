@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ShoppingBag, Calendar, MapPin, ChevronRight, Package, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import AuthButton from '@/components/layout/AuthButton'
@@ -58,7 +59,33 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#0a0f1d] text-white flex flex-col">
-      <TopBar right={<AuthButton />} />
+      <TopBar 
+        left={
+          <div className="flex items-center gap-3">
+            <Link 
+              href="/map"
+              className="p-1.5 bg-slate-800/40 rounded-xl hover:bg-slate-800/80 hover:scale-105 active:scale-95 transition-all md:mr-2 border border-white/5"
+              title="Volver al Mapa"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
+              </svg>
+            </Link>
+            <Link href="/" className="transition-opacity hover:opacity-80 flex items-center shrink-0">
+              <div className="relative w-28 md:w-32 h-8 md:h-10">
+                <Image
+                  src="/assets/images/jmtinfinite_logo.svg"
+                  alt="JMT Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </Link>
+          </div>
+        }
+        right={<AuthButton />} 
+      />
 
       <div className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 pt-24 md:pt-28">
         <header className="mb-10">

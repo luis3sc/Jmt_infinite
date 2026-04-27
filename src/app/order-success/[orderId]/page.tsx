@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { CheckCircle2, Copy, Share2, Upload, Map as MapIcon, Check, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
+import { CheckCircle2, Copy, Share2, Upload, Map as MapIcon, Check, ExternalLink, ShoppingBag } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import TopBar from '@/components/layout/TopBar'
@@ -163,7 +164,7 @@ export default function OrderSuccessPage() {
           </p>
           <button 
             onClick={copyToClipboard}
-            className="group flex items-center gap-3 text-[#62ae40] hover:text-[#73c34d] transition-all font-black text-sm mx-auto py-2 px-4 rounded-full bg-primary/5 hover:bg-primary/10 border border-primary/10"
+            className="group flex items-center gap-3 text-[#62ae40] hover:text-[#73c34d] transition-all font-black text-sm mx-auto py-2 px-4 rounded-full bg-primary/5 hover:bg-primary/10 border border-primary/10 mb-6"
           >
             {copied ? (
               <div className="flex items-center gap-2 text-green-400">
@@ -177,6 +178,14 @@ export default function OrderSuccessPage() {
               </>
             )}
           </button>
+
+          <Link 
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-6 py-3 text-[#62ae40]/80 hover:text-[#62ae40] transition-all font-black text-[10px] uppercase tracking-[0.2em] border border-primary/10 hover:border-primary/30 rounded-xl bg-primary/5 mx-auto"
+          >
+            <ShoppingBag size={14} />
+            <span>Ver mi historial de pedidos</span>
+          </Link>
         </motion.div>
       </div>
     </main>

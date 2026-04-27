@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { User, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { User, LogOut, LayoutDashboard, ChevronDown, ShoppingBag } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -60,7 +60,7 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
         className="flex flex-col items-center justify-center w-16 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors"
       >
         <User size={20} className={user ? "text-primary" : ""} />
-        <span className="text-[10px] font-medium">{user ? "Perfil" : "Ingresar"}</span>
+        <span className="text-[10px] font-medium">{user ? "Mis Pedidos" : "Ingresar"}</span>
       </Link>
     );
   }
@@ -105,6 +105,17 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
               </div>
               
               <div className="p-2.5 space-y-1.5">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-xl transition-all group"
+                >
+                  <div className="p-2 bg-slate-800 rounded-lg group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+                    <ShoppingBag size={18} />
+                  </div>
+                  Mis Pedidos
+                </Link>
+
                 <Link
                   href="/dashboard"
                   onClick={() => setIsOpen(false)}
