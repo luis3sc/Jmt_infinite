@@ -30,11 +30,38 @@ export default function CheckoutPage() {
   const [paymentTab, setPaymentTab] = useState<'card' | 'qr'>('card')
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [confirmedUserId, setConfirmedUserId] = useState<string | null>(null)
+  const [user, setUser] = useState<any>(null)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
 
 
-  // Prevent hydration errors by only rendering cart data after mount
+  // Prevent hydration errors and check for session
   useEffect(() => {
     setIsMounted(true)
+    const initSession = async () => {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        setUser(session.user)
+        setEmail(session.user.email || '')
+        
+        // Fetch profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+        
+        if (profile) {
+          setFullName(profile.full_name || '')
+          setPhone(profile.phone || '')
+          setDocNumber(profile.document_number || '')
+          setDocType(profile.document_type || 'DNI')
+          setReceiptType(profile.receipt_type || 'boleta')
+        }
+      }
+      setIsInitialLoading(false)
+    }
+    initSession()
   }, [])
 
   // If cart is empty and component is mounted, we might want to redirect back
@@ -44,8 +71,8 @@ export default function CheckoutPage() {
     e.preventDefault()
     
     // Validaciones previas
-    if (!phone || phone.trim() === '' || phone.length < 9) {
-      alert("Por favor, ingresa un número de teléfono válido.")
+    if (!phone || phone.trim() === '' || phone.replace(/\D/g, '').length < 9) {
+      alert("Por favor, ingresa un número de teléfono válido (al menos 9 dígitos).")
       const phoneInput = document.querySelector('.react-international-phone-input') as HTMLInputElement;
       if (phoneInput) phoneInput.focus();
       return
@@ -56,8 +83,8 @@ export default function CheckoutPage() {
       return
     }
 
-    if (!docNumber || docNumber.trim() === '') {
-      alert("Por favor, ingresa tu número de documento.")
+    if (!docNumber || docNumber.trim() === '' || docNumber.length < 8) {
+      alert(`Por favor, ingresa un ${docType} válido.`)
       return
     }
 
@@ -91,6 +118,9 @@ export default function CheckoutPage() {
                 data: {
                   full_name: fullName,
                   phone: phone,
+                  document_number: docNumber,
+                  document_type: docType,
+                  receipt_type: receiptType
                 }
               }
             })
@@ -129,6 +159,9 @@ export default function CheckoutPage() {
           email: email,
           full_name: fullName,
           phone: phone,
+          document_number: docNumber,
+          document_type: docType,
+          receipt_type: receiptType,
           updated_at: new Date().toISOString(),
         })
 
@@ -261,34 +294,54 @@ export default function CheckoutPage() {
           </div>
 
 
-          <form id="checkout-form" onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
-            <div>
-              <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                Correo Electrónico
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-              />
+          {isInitialLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <p className="text-slate-400 text-sm animate-pulse uppercase tracking-widest font-bold">Cargando tus datos...</p>
             </div>
+          ) : (
+            <form id="checkout-form" onSubmit={handleSubmit} className="space-y-5">
+              {user ? (
+                <div className="bg-[#131b2f] border border-primary/20 rounded-2xl p-4 flex items-center gap-4 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-primary font-black uppercase tracking-widest">Sesión Iniciada</p>
+                    <p className="text-sm text-white font-medium">{email}</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Email */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                      Correo Electrónico
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    />
+                  </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                Contraseña
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-              />
-            </div>
+                  {/* Password */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                      Contraseña
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    />
+                  </div>
+                </>
+              )}
 
             {/* Tipo de Comprobante (Toggle) */}
             <div className="grid grid-cols-2 gap-3 pt-2 pb-2">
@@ -371,6 +424,7 @@ export default function CheckoutPage() {
               </label>
               <PhoneInput
                 defaultCountry="pe"
+                className="react-international-phone-input-container"
                 value={phone}
                 onChange={(phone, { country }) => {
                   const format = country.format;
@@ -416,7 +470,8 @@ export default function CheckoutPage() {
               />
             </div>
           </form>
-        </div>
+        )}
+      </div>
 
         {/* SECCIÓN DERECHA: RESUMEN Y PAGO (Desktop) */}
         <div className="hidden md:flex md:w-[400px] lg:w-[480px] bg-[#0d1326] border-l border-slate-800/50 p-8 flex-col shrink-0">
