@@ -59,7 +59,7 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
         href={user ? "/dashboard" : "/login"}
         className="flex flex-col items-center justify-center w-16 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors"
       >
-        <User size={20} className={user ? "text-[#62ae40]" : ""} />
+        <User size={20} className={user ? "text-primary" : ""} />
         <span className="text-[10px] font-medium">{user ? "Perfil" : "Ingresar"}</span>
       </Link>
     );
@@ -71,9 +71,9 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 pl-2 pr-3 py-1.5 md:pl-3 md:pr-4 md:py-2 bg-[#62ae40]/10 border border-[#62ae40]/20 text-[#62ae40] rounded-xl transition-all hover:bg-[#62ae40]/20 group"
+        className="flex items-center gap-2 pl-2 pr-3 py-1.5 md:pl-3 md:pr-4 md:py-2 bg-primary/10 border border-primary/20 text-primary rounded-xl transition-all hover:bg-primary/20 group"
       >
-        <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-[#62ae40] flex items-center justify-center text-white shadow-sm overflow-hidden flex-shrink-0">
+        <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-primary flex items-center justify-center text-white shadow-sm overflow-hidden flex-shrink-0">
           <User size={16} />
         </div>
         <div className="flex flex-col items-start">
@@ -100,7 +100,7 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
               className="absolute right-0 mt-3 w-64 bg-[#0d1326] border border-slate-800/60 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-xl"
             >
               <div className="px-5 py-4 border-b border-slate-800/60 bg-slate-900/40">
-                <p className="text-[10px] font-black text-[#62ae40] uppercase tracking-widest mb-1">Bienvenido</p>
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Bienvenido</p>
                 <p className="text-sm font-bold text-white truncate">{user.email}</p>
               </div>
               
@@ -110,7 +110,7 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-xl transition-all group"
                 >
-                  <div className="p-2 bg-slate-800 rounded-lg group-hover:bg-[#62ae40]/20 group-hover:text-[#62ae40] transition-colors">
+                  <div className="p-2 bg-slate-800 rounded-lg group-hover:bg-primary/20 group-hover:text-primary transition-colors">
                     <LayoutDashboard size={18} />
                   </div>
                   Panel de Control
@@ -136,16 +136,16 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
         <Link
           href="/login"
-          className="flex items-center gap-2 px-3.5 py-2 md:px-5 md:py-2.5 text-xs md:text-sm font-black text-white bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/50 rounded-xl transition-all shadow-sm group"
+          className="flex items-center gap-2 px-3.5 py-2 md:px-5 md:py-2.5 text-xs md:text-sm font-black text-white bg-slate-800/40 hover:bg-primary border border-slate-700/50 hover:border-primary rounded-xl transition-all shadow-sm group"
         >
-          <User size={16} className="text-[#62ae40] group-hover:scale-110 transition-transform" />
+          <User size={16} className="text-primary group-hover:text-white group-hover:scale-110 transition-all" />
           <span>INGRESAR</span>
         </Link>
       </motion.div>
       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="hidden sm:block">
         <Link
           href="/signup"
-          className="px-5 py-2.5 text-sm font-black bg-[#62ae40] text-white hover:bg-[#529b32] rounded-xl transition-all shadow-[0_4px_15px_-3px_rgba(98,174,64,0.4)] uppercase tracking-tight"
+          className="px-5 py-2.5 text-sm font-black border border-primary text-primary bg-transparent hover:bg-primary hover:text-white rounded-xl transition-all shadow-[0_0_15px_hsl(var(--primary)/0.1)] uppercase tracking-tight"
         >
           Crear Cuenta
         </Link>

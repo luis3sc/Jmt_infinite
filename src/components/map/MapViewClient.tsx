@@ -170,10 +170,8 @@ export function MapViewClient() {
   const applyFilters = async () => {
     setActiveFilters(filters);
 
-    // On mobile, close it. On desktop, we can leave it open
-    if (window.innerWidth < 768) {
-      setIsFilterOpen(false);
-    }
+    // Close the modal on all screen sizes
+    setIsFilterOpen(false);
 
     // manually trigger fetch to update with other filters
     if (mapRef.current) {
@@ -193,18 +191,16 @@ export function MapViewClient() {
   };
 
   const FilterContent = () => (
-    <div className="flex flex-col gap-6 p-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-foreground flex items-center gap-2"><Filter size={18} /> Filtros</h3>
-        <button onClick={resetFilters} className="text-xs text-muted-foreground underline hover:text-foreground">Limpiar</button>
-      </div>
-
-      <div className="space-y-3">
-        <label className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Tipo de Medio</label>
+    <div className="flex flex-col gap-8 p-6">
+      <div className="space-y-4">
+        <div className="flex justify-between items-end">
+          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Tipo de Medio</label>
+          <button onClick={resetFilters} className="text-[10px] font-bold text-primary uppercase tracking-wider hover:underline">Limpiar Todo</button>
+        </div>
         <select
           value={filters.mediaType}
           onChange={e => setFilters({ ...filters, mediaType: e.target.value })}
-          className="w-full bg-card border border-border rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+          className="w-full bg-muted/50 border border-border rounded-2xl px-5 py-4 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
         >
           <option value="">Todos los tipos</option>
           {filterOptions.mediaTypes.map(m => (
@@ -213,27 +209,25 @@ export function MapViewClient() {
         </select>
       </div>
 
-
-      <div className="space-y-3">
-        <label className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Rango de Precio Diario (S/)</label>
-        <div className="flex items-center gap-2">
+      <div className="space-y-4">
+        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Rango de Inversión Diaria</label>
+        <div className="grid grid-cols-2 gap-4">
           <select
             value={filters.minPrice || ''}
             onChange={e => setFilters({ ...filters, minPrice: e.target.value ? Number(e.target.value) : null })}
-            className="w-full bg-card border border-border rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+            className="w-full bg-muted/50 border border-border rounded-2xl px-5 py-4 text-sm font-bold text-foreground focus:outline-none appearance-none cursor-pointer"
           >
-            <option value="">Min</option>
+            <option value="">Mínimo</option>
             {filterOptions.prices.map(p => (
               <option key={`min-${p}`} value={p}>S/ {p}</option>
             ))}
           </select>
-          <span className="text-muted-foreground">-</span>
           <select
             value={filters.maxPrice || ''}
             onChange={e => setFilters({ ...filters, maxPrice: e.target.value ? Number(e.target.value) : null })}
-            className="w-full bg-card border border-border rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+            className="w-full bg-muted/50 border border-border rounded-2xl px-5 py-4 text-sm font-bold text-foreground focus:outline-none appearance-none cursor-pointer"
           >
-            <option value="">Max</option>
+            <option value="">Máximo</option>
             {filterOptions.prices.map(p => (
               <option key={`max-${p}`} value={p}>S/ {p}</option>
             ))}
@@ -241,23 +235,23 @@ export function MapViewClient() {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <label className="text-xs font-bold uppercase text-muted-foreground tracking-widest">Alcance Mínimo (Audiencia)</label>
+      <div className="space-y-4">
+        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Alcance Potencial (Audiencia)</label>
         <select
           value={filters.audience || ''}
           onChange={e => setFilters({ ...filters, audience: e.target.value ? Number(e.target.value) : null })}
-          className="w-full bg-card border border-border rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+          className="w-full bg-muted/50 border border-border rounded-2xl px-5 py-4 text-sm font-bold text-foreground focus:outline-none appearance-none cursor-pointer"
         >
           <option value="">Cualquier alcance</option>
           {filterOptions.audiences.map(a => (
-            <option key={a} value={a}>{a.toLocaleString()}+</option>
+            <option key={a} value={a}>{a.toLocaleString()}+ impactos</option>
           ))}
         </select>
       </div>
 
       <button
         onClick={applyFilters}
-        className="w-full bg-[#62ae40] text-white py-3 rounded-xl font-bold mt-4 hover:bg-[#62ae40]/90 transition-all active:scale-95 shadow-md"
+        className="w-full bg-primary text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] mt-2 hover:bg-primary/90 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)] active:scale-95"
       >
         Aplicar Filtros
       </button>
@@ -517,15 +511,22 @@ export function MapViewClient() {
     fetchStructuresInBounds(currentBoundsRef.current, currentPage + 1);
   }, [isLoadingMore, hasMore, currentPage, fetchStructuresInBounds]);
 
-  const getDisplayPrice = (dailyPrice: number) => {
-    return numberOfDays > 0 ? dailyPrice * numberOfDays : dailyPrice;
+  const getDailyDisplayPrice = (dailyPrice: number) => {
+    return Math.round(dailyPrice * 1.18 * 100) / 100;
   };
 
-  const calculateLowestPrice = (structure: Structure) => {
+  const getDisplayPrice = (dailyPrice: number) => {
+    const basePrice = numberOfDays > 0 ? dailyPrice * numberOfDays : dailyPrice;
+    return Math.round(basePrice * 1.18 * 100) / 100; // Round to 2 decimals
+  };
+
+  const calculateDisplayPrice = (structure: Structure) => {
     if (!structure.panels || structure.panels.length === 0) return getDisplayPrice(150);
     const prices = structure.panels.map((p) => p.daily_price || 150);
-    return getDisplayPrice(Math.min(...prices));
+    const lowestNet = Math.min(...prices);
+    return getDisplayPrice(lowestNet);
   };
+
 
   const handleSelectStructure = (structure: Structure) => {
     setSelectedStructure(structure);
@@ -562,7 +563,7 @@ export function MapViewClient() {
             startDate: start,
             endDate: newEnd,
             days: 1,
-            totalPrice: item.dailyPrice * 1
+            totalPrice: item.dailyPrice * 1 * 1.18
           });
         }
         return;
@@ -574,7 +575,7 @@ export function MapViewClient() {
           startDate: start,
           endDate: end,
           days: diff,
-          totalPrice: item.dailyPrice * diff
+          totalPrice: Math.round(item.dailyPrice * diff * 1.18 * 100) / 100
         });
       }
     } catch (error) {
@@ -609,7 +610,7 @@ export function MapViewClient() {
               className={cn(
                 "hidden md:flex px-4 py-2 rounded-2xl transition-all flex items-center gap-2 text-sm font-medium border active:scale-95",
                 isFilterOpen 
-                  ? "bg-[#62ae40] text-white border-[#62ae40] shadow-[0_0_15px_rgba(98,174,64,0.3)]" 
+                  ? "bg-primary text-white border-primary shadow-[0_0_15px_hsl(var(--primary)/0.1)]" 
                   : "bg-card/60 backdrop-blur-md border-white/5 text-foreground hover:bg-muted"
               )}
             >
@@ -667,7 +668,7 @@ export function MapViewClient() {
             {(isLoading || isLoadingMore) && (
               <div className="mt-2 h-0.5 w-full bg-border overflow-hidden rounded-full">
                 <motion.div
-                  className="h-full bg-[#62ae40]"
+                  className="h-full bg-primary"
                   animate={{ x: ["-100%", "100%"] }}
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                 />
@@ -722,8 +723,10 @@ export function MapViewClient() {
                 {structures.map((s) => (
                   <div
                     key={s.id}
-                    className={`bg-card border rounded-2xl overflow-hidden cursor-pointer transition-all hover:border-primary/50 flex flex-row h-[130px]
-                    ${selectedStructure?.id === s.id ? "border-primary ring-1 ring-primary" : "border-border"}`}
+                    className={`rounded-2xl overflow-hidden cursor-pointer transition-all flex flex-row h-[130px] border
+                    ${selectedStructure?.id === s.id 
+                      ? "bg-[#0e162b] text-white border-primary shadow-sm" 
+                      : "bg-[#0e162b] text-white border-white/10 hover:border-primary/40"}`}
                     onClick={() => {
                       handleSelectStructure(s);
                       setActiveTab("map");
@@ -744,18 +747,21 @@ export function MapViewClient() {
                     <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
                       <div>
                         <div className="flex justify-between items-start mb-1 gap-2">
-                          <h3 className="font-semibold text-foreground truncate text-sm" title={s.address}>{s.address}</h3>
-                          <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground whitespace-nowrap shrink-0">{s.code}</span>
+                          <h3 className={`font-semibold truncate text-sm ${selectedStructure?.id === s.id ? "text-primary" : "text-foreground"}`} title={s.address}>{s.address}</h3>
+                          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded whitespace-nowrap shrink-0 ${selectedStructure?.id === s.id ? "bg-primary/20 text-primary border border-primary/30" : "bg-muted text-muted-foreground"}`}>{s.code}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">{s.district}</p>
+                        <p className={`text-xs truncate ${selectedStructure?.id === s.id ? "text-white/60" : "text-muted-foreground"}`}>{s.district}</p>
                       </div>
 
                       <div className="flex justify-between items-end pt-2 border-t border-border/50">
                         <div>
-                          <p className="text-[10px] text-muted-foreground leading-none mb-1">Desde</p>
-                          <p className="font-bold text-primary text-sm leading-none">S/ {calculateLowestPrice(s)} <span className="text-[10px] font-normal text-muted-foreground">{numberOfDays > 0 ? "" : "/día"}</span></p>
+                          <p className={`text-[10px] leading-none mb-1 ${selectedStructure?.id === s.id ? "text-white/40" : "text-muted-foreground"}`}>Desde</p>
+                          <p className={`font-bold text-sm leading-none ${selectedStructure?.id === s.id ? "text-primary" : "text-primary"}`}>
+                            S/ {calculateDisplayPrice(s).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
+                            <span className={`text-[10px] font-normal ${selectedStructure?.id === s.id ? "text-white/40" : "text-muted-foreground"}`}>{numberOfDays > 0 ? "" : "/día"}</span>
+                          </p>
                         </div>
-                        <button className="bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground px-3 py-1.5 rounded-xl text-xs font-medium transition-colors whitespace-nowrap">
+                        <button className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20`}>
                           Ver
                         </button>
                       </div>
@@ -768,13 +774,13 @@ export function MapViewClient() {
                   <div className="py-4 flex justify-center">
                     {isLoadingMore ? (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Loader2 size={14} className="animate-spin text-[#62ae40]" />
+                        <Loader2 size={14} className="animate-spin text-primary" />
                         <span>Cargando más paneles...</span>
                       </div>
                     ) : (
                       <button
                         onClick={handleLoadMore}
-                        className="text-xs text-[#62ae40] font-semibold hover:underline"
+                        className="text-xs text-primary font-semibold hover:underline"
                       >
                         Cargar más
                       </button>
@@ -826,16 +832,17 @@ export function MapViewClient() {
                 }}
               >
                 <div
-                  className={`flex items-center justify-center cursor-pointer transition-transform hover:scale-110 
-                ${selectedStructure?.id === structure.id ? "scale-125 z-10" : "z-0"}`}
+                  className={`flex items-center justify-center cursor-pointer transition-all duration-300 group
+                ${selectedStructure?.id === structure.id ? "scale-125 z-10" : "hover:scale-110 z-0"}`}
                 >
-                  <div className={`px-3 py-1.5 rounded-full shadow-lg font-bold text-sm whitespace-nowrap
+                  <div className={`px-3 py-1.5 rounded-full shadow-lg font-bold text-sm whitespace-nowrap transition-all duration-300 border-2
                   ${selectedStructure?.id === structure.id
-                      ? "bg-foreground text-background border-2 border-primary"
-                      : "bg-primary text-primary-foreground"}
+                      ? "bg-primary text-white border-white shadow-[0_0_20px_rgba(98,174,64,0.5)]"
+                      : "bg-[#0e162b] text-white border-primary group-hover:bg-primary group-hover:text-white group-hover:border-white group-hover:shadow-[0_0_20px_rgba(98,174,64,0.5)]"}
                 `}>
-                    S/ {calculateLowestPrice(structure)}
+                    S/ {calculateDisplayPrice(structure).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
+
                 </div>
               </Marker>
             ))}
@@ -853,48 +860,80 @@ export function MapViewClient() {
         </div>
 
 
-        {/* DESKTOP FILTER PANEL */}
-        <div
-          className={`hidden md:flex flex-col bg-background border-l border-border transition-all duration-300 ease-in-out z-20 
-        ${isFilterOpen ? "w-[300px] lg:w-[350px]" : "w-0 overflow-hidden border-none"}`}
-        >
-          <div className="w-[300px] lg:w-[350px] h-full overflow-y-auto">
-            <FilterContent />
-          </div>
-        </div>
 
-        {/* MOBILE FILTER MODAL */}
+
+        {/* UNIFIED FILTER MODAL (Centered) */}
         <AnimatePresence>
           {isFilterOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: "100%" }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="md:hidden fixed inset-0 z-[200] bg-background flex flex-col"
-            >
-              <div className="p-4 border-b border-border flex justify-between items-center bg-card">
-                <h2 className="text-lg font-bold text-foreground">Filtros</h2>
-                <button
-                  onClick={() => setIsFilterOpen(false)}
-                  className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground"
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsFilterOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200]"
+              />
+
+              {/* Modal Container */}
+              <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 pointer-events-none">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                  className="pointer-events-auto w-full max-w-[420px] bg-card border border-border rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden"
                 >
-                  <X size={20} />
-                </button>
+                  <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-primary/10 rounded-2xl text-primary">
+                        <Filter size={22} />
+                      </div>
+                      <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Filtros</h2>
+                    </div>
+                    <button
+                      onClick={() => setIsFilterOpen(false)}
+                      className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    <FilterContent />
+                  </div>
+                </motion.div>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                <FilterContent />
-              </div>
-            </motion.div>
+            </>
           )}
         </AnimatePresence>
 
         {/* SIDE PANEL / MODAL (Mobile full-screen, Desktop right-side) */}
-        {selectedStructure && (
-          <div className="fixed inset-0 md:inset-y-0 md:right-0 md:left-auto md:w-[480px] z-[100] bg-[#0e162b] text-white flex flex-col overflow-hidden animate-in slide-in-from-bottom-full md:slide-in-from-right-full duration-300 shadow-2xl md:border-l md:border-white/10">
+        <AnimatePresence>
+          {selectedStructure && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedStructure(null)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-md z-[90]"
+              />
+
+
+              <motion.div
+                initial={{ x: "100%", opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: "100%", opacity: 0 }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="fixed inset-0 md:inset-y-0 md:right-0 md:left-auto md:w-[480px] z-[100] bg-[#0e162b] text-white flex flex-col overflow-hidden shadow-2xl md:border-l md:border-white/10"
+              >
             {(() => {
               const activePanel = selectedStructure.panels[activePanelIndex] || selectedStructure.panels[0];
               if (!activePanel) return null;
+
+              // Base daily price (net)
+              const finalDailyPrice = Number(activePanel.daily_price || 150);
 
               return (
                 <>
@@ -938,7 +977,7 @@ export function MapViewClient() {
                               key={p.id}
                               onClick={() => setActivePanelIndex(idx)}
                               className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-300 whitespace-nowrap px-4 ${activePanelIndex === idx
-                                  ? 'bg-[#62ae40] text-white shadow-[0_0_20px_rgba(98,174,64,0.4)]'
+                                  ? 'bg-primary text-white shadow-[0_0_20px_hsl(var(--primary)/0.4)]'
                                   : 'text-white/60 hover:text-white hover:bg-white/10'
                                 }`}
                             >
@@ -957,7 +996,7 @@ export function MapViewClient() {
                       {/* Tags & Title */}
                       <div className="space-y-3">
                         <div className="flex flex-wrap gap-2">
-                          <span className="bg-[#62ae40]/20 text-[#62ae40] px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-[#62ae40]/30">
+                          <span className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-primary/30">
                             {activePanel.media_type || "Estática"}
                           </span>
                           <span className="bg-white/5 text-white/70 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-white/10">
@@ -970,7 +1009,7 @@ export function MapViewClient() {
                         </h2>
 
                         <div className="flex flex-col gap-2">
-                          <div className="flex items-center gap-2 text-[#62ae40] font-medium text-sm">
+                          <div className="flex items-center gap-2 text-primary font-medium text-sm">
                             <MapPin size={16} />
                             <span>{selectedStructure.district}</span>
                           </div>
@@ -987,11 +1026,16 @@ export function MapViewClient() {
                         <div className="space-y-1">
                           <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">{numberOfDays > 0 ? `Inversión total (${numberOfDays} días)` : "Inversión diaria"}</span>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-black text-white tracking-tighter">S/ {getDisplayPrice(activePanel.daily_price || 150)}</span>
-                            <span className="text-white/40 text-sm font-medium">.00</span>
+                            <span className="text-4xl font-black text-white tracking-tighter">S/ {Math.floor(getDisplayPrice(finalDailyPrice)).toLocaleString()}</span>
+                            <div className="flex flex-col">
+                              <span className="text-white/40 text-[10px] font-bold uppercase leading-none">
+                                .{(getDisplayPrice(finalDailyPrice) % 1).toFixed(2).split('.')[1]}
+                              </span>
+                              <span className="text-primary text-[8px] font-black uppercase leading-none mt-1">Incl. IGV</span>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-[10px] font-bold text-[#62ae40] bg-[#62ae40]/10 px-2 py-1 rounded-md">
+                        <div className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
                           DISPONIBLE
                         </div>
                       </div>
@@ -999,8 +1043,8 @@ export function MapViewClient() {
                       {/* Stats Grid */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3 transition-colors hover:bg-white/10">
-                          <div className="p-2 bg-[#62ae40]/10 rounded-xl w-fit">
-                            <Users size={18} className="text-[#62ae40]" />
+                          <div className="p-2 bg-primary/10 rounded-xl w-fit">
+                            <Users size={18} className="text-primary" />
                           </div>
                           <div className="space-y-0.5">
                             <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Alcance</span>
@@ -1011,8 +1055,8 @@ export function MapViewClient() {
                         </div>
 
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3 transition-colors hover:bg-white/10">
-                          <div className="p-2 bg-[#62ae40]/10 rounded-xl w-fit">
-                            <Maximize size={18} className="text-[#62ae40]" />
+                          <div className="p-2 bg-primary/10 rounded-xl w-fit">
+                            <Maximize size={18} className="text-primary" />
                           </div>
                           <div className="space-y-0.5">
                             <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Medidas</span>
@@ -1028,7 +1072,7 @@ export function MapViewClient() {
                         {activePanel.traffic_view && (
                           <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
                             <div className="flex items-center gap-2 mb-3">
-                              <Navigation size={18} className="text-[#62ae40]" />
+                              <Navigation size={18} className="text-primary" />
                               <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Visibilidad</h4>
                             </div>
                             <p className="text-sm text-white/90 font-medium leading-relaxed">
@@ -1039,7 +1083,7 @@ export function MapViewClient() {
 
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
                           <div className="flex items-center gap-2 mb-3">
-                            <List size={18} className="text-[#62ae40]" />
+                            <List size={18} className="text-primary" />
                             <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Especificaciones</h4>
                           </div>
                           <div className="grid grid-cols-1 gap-3">
@@ -1067,38 +1111,38 @@ export function MapViewClient() {
                   {/* Fixed Bottom Action Bar */}
                   <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0e162b] via-[#0e162b] to-transparent pt-12 z-40">
                     {(() => {
-                      const isInCart = cartItems.some(i => i.panelId === activePanel.id);
+                      const currentPanel = activePanel;
+                      const panelDailyPrice = Number(currentPanel.daily_price || 150);
+                      const isInCart = cartItems.some(i => i.panelId === currentPanel.id);
                       return (
                         <motion.button
                           whileTap={{ scale: 0.97 }}
                           className={`w-full py-5 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-2xl overflow-hidden
                             ${isInCart
                               ? "bg-white/10 text-white border border-white/20 hover:bg-white/20 shadow-none"
-                              : "bg-[#62ae40] hover:bg-[#62ae40]/90 text-white shadow-[0_10px_30px_-10px_rgba(98,174,64,0.5)]"
+                              : "bg-primary hover:bg-primary/90 text-white shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)]"
                             }`}
                           onClick={() => {
                             if (isInCart) {
                               setIsCartOpen(true);
                               return;
                             }
-                            const finalDailyPrice = activePanel.daily_price || 150;
-
                             addCartItem({
-                              panelId: activePanel.id,
+                              panelId: currentPanel.id,
                               structureId: selectedStructure.id,
-                              panelCode: activePanel.panel_code || selectedStructure.code,
+                              panelCode: currentPanel.panel_code || selectedStructure.code,
                               address: selectedStructure.address,
                               district: selectedStructure.district,
-                              photoUrl: activePanel.photo_url || "",
-                              dailyPrice: finalDailyPrice,
+                              photoUrl: currentPanel.photo_url || "",
+                              dailyPrice: panelDailyPrice,
                               startDate: activeStartDate,
                               endDate: activeEndDate,
                               days: numberOfDays > 0 ? numberOfDays : 1,
-                              totalPrice: finalDailyPrice * (numberOfDays > 0 ? numberOfDays : 1),
-                              format: activePanel.format || "",
-                              mediaType: activePanel.media_type || ""
+                              totalPrice: Math.round(panelDailyPrice * (numberOfDays > 0 ? numberOfDays : 1) * 1.18 * 100) / 100,
+                              format: currentPanel.format || "",
+                              mediaType: currentPanel.media_type || ""
                             });
-                            triggerToast(`¡Panel ${activePanel.panel_code || selectedStructure.code} añadido!`);
+                            triggerToast(`¡Panel ${currentPanel.panel_code || selectedStructure.code} añadido!`);
                           }}
                         >
                           <AnimatePresence mode="wait">
@@ -1110,7 +1154,7 @@ export function MapViewClient() {
                                 exit={{ y: -20, opacity: 0 }}
                                 className="flex items-center gap-3"
                               >
-                                <CheckCircle2 size={22} className="text-[#62ae40]" />
+                                <CheckCircle2 size={22} className="text-primary" />
                                 <span>Ir al Carrito</span>
                               </motion.div>
                             ) : (
@@ -1133,8 +1177,10 @@ export function MapViewClient() {
                 </>
               );
             })()}
-          </div>
-        )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
       </div> {/* CLOSE MAIN CONTENT AREA */}
 
@@ -1146,7 +1192,7 @@ export function MapViewClient() {
             <div className="relative w-full shadow-2xl rounded-2xl bg-card border border-border">
               <button
                 onClick={executeSearch}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#62ae40] z-10 p-1.5 hover:bg-[#62ae40]/10 rounded-full transition-all active:scale-90"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-primary z-10 p-1.5 hover:bg-primary/10 rounded-full transition-all active:scale-90"
               >
                 <Search size={20} strokeWidth={2.5} />
               </button>
@@ -1156,7 +1202,7 @@ export function MapViewClient() {
                 onChange={(e) => handleLocationSearch(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Buscar ubicaciones..."
-                className="w-full pl-11 pr-12 py-3.5 bg-transparent rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#62ae40]/50"
+                className="w-full pl-11 pr-12 py-3.5 bg-transparent rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               {/* Filter button removed from mobile search as requested */}
               {showSuggestions && suggestions.length > 0 && (
@@ -1180,7 +1226,7 @@ export function MapViewClient() {
             <button
               onClick={() => setActiveTab("map")}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors
-                ${activeTab === "map" ? "text-[#62ae40]" : "text-muted-foreground hover:text-foreground"}`}
+                ${activeTab === "map" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
             >
               <MapIcon size={20} />
               <span className="text-[10px] font-medium">Mapa</span>
@@ -1189,7 +1235,7 @@ export function MapViewClient() {
             <button
               onClick={() => setActiveTab("list")}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors
-                ${activeTab === "list" ? "text-[#62ae40]" : "text-muted-foreground hover:text-foreground"}`}
+                ${activeTab === "list" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
             >
               <List size={20} />
               <span className="text-[10px] font-medium">Tarjetas</span>
@@ -1197,7 +1243,7 @@ export function MapViewClient() {
 
             <button
               onClick={() => setIsFilterOpen(true)}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors ${isFilterOpen ? 'text-[#62ae40]' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors ${isFilterOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <Filter size={20} />
               <span className="text-[10px] font-medium">Filtros</span>
@@ -1210,7 +1256,7 @@ export function MapViewClient() {
               <ShoppingCart size={20} />
               <span className="text-[10px] font-medium">Carrito</span>
               {cartItemCount > 0 && (
-                <span className="absolute top-1 right-3 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#62ae40] text-[8px] font-bold text-white">
+                <span className="absolute top-1 right-3 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white">
                   {cartItemCount}
                 </span>
               )}
@@ -1231,8 +1277,9 @@ export function MapViewClient() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsCartOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200]"
+              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200]"
             />
+
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1247,11 +1294,11 @@ export function MapViewClient() {
                   {/* Header */}
                   <div className="p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[#62ae40]/10 rounded-full">
-                        <ShoppingCart size={20} className="text-[#62ae40]" />
+                      <div className="p-2 bg-primary/10 rounded-full">
+                        <ShoppingCart size={20} className="text-primary" />
                       </div>
                       <h2 className="text-lg font-bold text-foreground tracking-tight">Tu Carrito</h2>
-                      <span className="bg-[#62ae40] text-white text-xs font-bold px-2 py-0.5 rounded-full">{cartItemCount}</span>
+                      <span className="bg-primary text-white text-xs font-bold px-2 py-0.5 rounded-full">{cartItemCount}</span>
                     </div>
                     <button
                       onClick={() => setIsCartOpen(false)}
@@ -1269,8 +1316,8 @@ export function MapViewClient() {
                         animate={{ opacity: 1, scale: 1 }}
                         className="h-full flex flex-col items-center justify-center text-center p-8 space-y-6"
                       >
-                        <div className="w-24 h-24 bg-[#62ae40]/10 rounded-full flex items-center justify-center mb-2">
-                          <CheckCircle2 size={48} className="text-[#62ae40]" />
+                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-2">
+                          <CheckCircle2 size={48} className="text-primary" />
                         </div>
                         <div className="space-y-2">
                           <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">¡Pedido Recibido!</h3>
@@ -1294,7 +1341,7 @@ export function MapViewClient() {
                     ) : cartItems.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-8">
                         <div className="relative">
-                          <div className="absolute inset-0 bg-[#62ae40]/20 blur-3xl rounded-full animate-pulse" />
+                          <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
                           <div className="relative w-28 h-28 bg-muted rounded-full flex items-center justify-center border border-border/50 shadow-2xl">
                             <ShoppingCart size={40} className="text-muted-foreground/30" />
                           </div>
@@ -1307,7 +1354,7 @@ export function MapViewClient() {
                         </div>
                         <button
                           onClick={() => setIsCartOpen(false)}
-                          className="bg-[#62ae40] text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-[0_15px_30px_-10px_rgba(98,174,64,0.5)]"
+                          className="bg-primary text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-[0_15px_30px_-10px_hsl(var(--primary)/0.5)]"
                         >
                           Explorar Ubicaciones
                         </button>
@@ -1344,12 +1391,12 @@ export function MapViewClient() {
                                 </button>
                               </div>
                               <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <MapPin size={10} className="text-[#62ae40] shrink-0" />
+                                <MapPin size={10} className="text-primary shrink-0" />
                                 <span className="truncate">{item.district}</span>
                               </p>
                               <div className="pt-2 border-t border-border/30 flex items-center justify-between">
                                 <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{item.panelCode}</span>
-                                <p className="font-bold text-sm text-[#62ae40]">S/ {item.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                                <p className="font-bold text-sm text-primary">S/ {item.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
                               </div>
 
                               {/* Date Range */}
@@ -1357,7 +1404,7 @@ export function MapViewClient() {
                                 <div className="grid grid-cols-2 gap-2">
                                   <div className="relative group flex flex-col gap-1 p-2 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-border/50">
                                     <label className="text-[9px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                      <Calendar size={10} className="text-[#62ae40]" />
+                                      <Calendar size={10} className="text-primary" />
                                       Inicio
                                     </label>
                                     <div className="text-xs font-bold text-foreground truncate">
@@ -1380,7 +1427,7 @@ export function MapViewClient() {
                                   </div>
                                   <div className="relative group flex flex-col gap-1 p-2 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-border/50">
                                     <label className="text-[9px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                      <Calendar size={10} className="text-[#62ae40]" />
+                                      <Calendar size={10} className="text-primary" />
                                       Fin
                                     </label>
                                     <div className="text-xs font-bold text-foreground truncate">
@@ -1403,7 +1450,7 @@ export function MapViewClient() {
                                   </div>
                                 </div>
                                 <div className="mt-2 flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#62ae40]/10 rounded-full text-[10px] font-black text-[#62ae40] uppercase tracking-tight">
+                                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-full text-[10px] font-black text-primary uppercase tracking-tight">
                                     <Clock size={10} />
                                     <span>{item.days} días</span>
                                   </div>
@@ -1424,10 +1471,10 @@ export function MapViewClient() {
                         <div className="flex flex-col">
                           <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-0.5">Total (Inc. IGV)</span>
                           <div className="flex items-baseline gap-0.5">
-                            <span className="text-xl font-black text-[#62ae40] tracking-tighter">
+                            <span className="text-xl font-black text-primary tracking-tighter">
                               S/ {Math.floor(cartTotal).toLocaleString()}
                             </span>
-                            <span className="text-sm font-black text-[#62ae40] opacity-60">
+                            <span className="text-sm font-black text-primary opacity-60">
                               .{(cartTotal % 1).toFixed(2).split('.')[1]}
                             </span>
                           </div>
@@ -1439,7 +1486,7 @@ export function MapViewClient() {
                             router.push('/checkout');
                             setTimeout(() => setIsCheckingOut(false), 1000);
                           }}
-                          className="flex-1 bg-[#62ae40] text-white px-4 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 shadow-md ml-4"
+                          className="flex-1 bg-primary text-white px-4 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 shadow-md ml-4"
                         >
                           {isCheckingOut ? (
                             <Loader2 size={16} className="animate-spin" />
@@ -1470,7 +1517,7 @@ export function MapViewClient() {
                             <p className="font-bold text-sm text-foreground truncate uppercase tracking-tight">{item.panelCode}</p>
                             <p className="text-xs text-muted-foreground truncate font-medium">{item.address}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] font-black text-[#62ae40] bg-[#62ae40]/10 px-1.5 py-0.5 rounded uppercase">{item.days} días</span>
+                              <span className="text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase">{item.days} días</span>
                               <p className="text-[10px] text-muted-foreground font-bold tracking-tight">{item.startDate} al {item.endDate}</p>
                             </div>
                           </div>
@@ -1493,15 +1540,15 @@ export function MapViewClient() {
                           <div>
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em] mb-1">Inversión Total</p>
                             <div className="flex items-baseline gap-0.5">
-                              <p className="text-2xl font-black text-[#62ae40] tracking-tighter">
-                                S/ {Math.floor(cartTotal).toLocaleString()}
+                              <p className="text-2xl font-black text-primary tracking-tighter">
+                                S/ {Number(cartTotal.toFixed(2).split('.')[0]).toLocaleString()}
                               </p>
-                              <p className="text-base font-black text-[#62ae40] opacity-60">
-                                .{(cartTotal % 1).toFixed(2).split('.')[1]}
+                              <p className="text-base font-black text-primary opacity-60">
+                                .{cartTotal.toFixed(2).split('.')[1]}
                               </p>
                             </div>
                           </div>
-                          <div className="bg-[#62ae40]/10 text-[#62ae40] px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-[#62ae40]/20">
+                          <div className="bg-primary/10 text-primary px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-primary/20">
                             <CreditCard size={10} />
                             Cotización
                           </div>
@@ -1514,7 +1561,7 @@ export function MapViewClient() {
                           router.push('/checkout');
                           setTimeout(() => setIsCheckingOut(false), 1000);
                         }}
-                        className="w-full bg-[#62ae40] hover:bg-[#62ae40]/90 text-white py-4 rounded-2xl font-black text-sm transition-all shadow-[0_15px_30px_-10px_rgba(98,174,64,0.5)] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
+                        className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-2xl font-black text-sm transition-all shadow-[0_15px_30px_-10px_hsl(var(--primary)/0.5)] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
                       >
                         {isCheckingOut ? (
                           <>
@@ -1549,7 +1596,7 @@ export function MapViewClient() {
             exit={{ opacity: 0, scale: 0.9 }}
             className="fixed bottom-24 md:bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-foreground text-background px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-border min-w-[300px]"
           >
-            <div className="bg-[#62ae40] p-1 rounded-full">
+            <div className="bg-primary p-1 rounded-full">
               <CheckCircle2 size={18} className="text-white" />
             </div>
             <div className="flex-1">
@@ -1560,7 +1607,7 @@ export function MapViewClient() {
                 setIsCartOpen(true);
                 setShowToast({ show: false, message: "" });
               }}
-              className="bg-[#62ae40] text-white text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg hover:bg-[#62ae40]/90 transition-colors shadow-lg shadow-[#62ae40]/20"
+              className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
             >
               Ver Carrito
             </button>
@@ -1579,7 +1626,7 @@ export function MapViewClient() {
           >
             <button
               onClick={() => setIsCartOpen(true)}
-              className="flex items-center gap-4 px-10 py-5 bg-[#62ae40] hover:bg-[#62ae40]/90 text-white rounded-2xl shadow-[0_20px_50px_-10px_rgba(98,174,64,0.7)] font-bold text-lg transition-all hover:scale-105 active:scale-95 group"
+              className="flex items-center gap-4 px-10 py-5 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-[0_20px_50px_-10px_hsl(var(--primary)/0.7)] font-bold text-lg transition-all hover:scale-105 active:scale-95 group"
             >
               <div className="bg-white/20 p-2 rounded-xl group-hover:bg-white/30 transition-colors">
                 <ShoppingCart size={24} />
@@ -1601,11 +1648,11 @@ export function MapViewClient() {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(98, 174, 64, 0.1);
+          background: hsl(var(--primary)/0.1);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(98, 174, 64, 0.3);
+          background: hsl(var(--primary)/0.1);
         }
       `}</style>
     </div>

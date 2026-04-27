@@ -48,3 +48,74 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+/* Custom styles for react-international-phone */
+.react-international-phone-input-container {
+  width: 100%;
+  background-color: #131b2f !important;
+  border: 1px solid rgba(30, 41, 59, 0.6) !important;
+  border-radius: 0.5rem !important; /* rounded-lg */
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.react-international-phone-input-container:focus-within {
+  border-color: hsl(var(--primary)) !important;
+  box-shadow: 0 0 0 1px hsl(var(--primary)) !important; /* focus:ring-1 */
+}
+
+.react-international-phone-input {
+  width: 100% !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: white !important;
+  font-size: 0.875rem !important; /* text-sm */
+  padding: 0.75rem 1rem 0.75rem 0.5rem !important; /* py-3, adjusted left padding */
+  height: auto !important;
+  outline: none !important;
+}
+
+.react-international-phone-input::placeholder {
+  color: #64748b !important;
+  opacity: 1;
+}
+
+.react-international-phone-country-selector-button {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0.75rem 0.5rem 0.75rem 1rem !important; /* py-3, adjusted right padding */
+  height: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.react-international-phone-country-selector-button:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.react-international-phone-country-selector-dropdown {
+  background-color: #131b2f !important;
+  border: 1px solid rgba(30, 41, 59, 0.6) !important;
+  border-radius: 0.5rem !important;
+  color: white !important;
+  z-index: 50 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.react-international-phone-country-selector-list-item {
+  background-color: transparent !important;
+  color: #94a3b8 !important;
+  padding: 8px 12px !important;
+}
+
+.react-international-phone-country-selector-list-item:hover {
+  background-color: hsl(var(--primary)) !important;
+  color: white !important;
+}
+
+.react-international-phone-country-selector-list-item--selected {
+  background-color: hsl(var(--primary)) !important;
+  color: white !important;
+}

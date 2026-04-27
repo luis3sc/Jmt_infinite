@@ -57,7 +57,7 @@ export function SearchForm() {
           ¿Dónde quieres anunciarte?
         </label>
         <div className="relative group">
-          <MapPin weight="fill" className="absolute left-4 top-1/2 -translate-y-1/2 text-[#62ae40]" size={20} />
+          <MapPin weight="fill" className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={20} />
           <input
             id="location"
             type="text"
@@ -101,7 +101,7 @@ export function SearchForm() {
           <div className="relative group">
             <CalendarBlank 
               weight="fill" 
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#62ae40] pointer-events-none z-10" 
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none z-10" 
               size={20} 
             />
             <input
@@ -123,7 +123,7 @@ export function SearchForm() {
           <div className="relative group">
             <CalendarBlank 
               weight="fill" 
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#62ae40] pointer-events-none z-10" 
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none z-10" 
               size={20} 
             />
             <input

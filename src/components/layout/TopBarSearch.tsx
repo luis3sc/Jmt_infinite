@@ -36,10 +36,10 @@ export default function TopBarSearch({
   };
 
   return (
-    <div className="flex items-center bg-card/60 backdrop-blur-sm border border-border rounded-2xl p-1.5 shadow-sm hover:shadow-lg hover:border-[#62ae40]/40 transition-all duration-300">
+    <div className="flex items-center bg-card/60 backdrop-blur-sm border border-border rounded-2xl p-1.5 shadow-sm hover:shadow-lg hover:border-primary/40 transition-all duration-300">
       {/* Location Search */}
       <div className="relative w-[180px] lg:w-[280px]">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#62ae40]" />
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" />
         <input
           type="text"
           value={searchQuery || ""}
@@ -67,7 +67,7 @@ export default function TopBarSearch({
 
       {/* Date Range Picker */}
       <div className="hidden sm:flex items-center gap-2 lg:gap-3 px-2 lg:px-3">
-        <Calendar size={16} className="text-[#62ae40] flex-shrink-0" />
+        <Calendar size={16} className="text-primary flex-shrink-0" />
 
         <div
           className="flex items-center gap-1 lg:gap-2 cursor-pointer group"
@@ -76,7 +76,7 @@ export default function TopBarSearch({
             if (input && 'showPicker' in input) (input as any).showPicker();
           }}
         >
-          <span className="text-[9px] lg:text-[10px] uppercase font-black text-[#62ae40] tracking-tighter group-hover:opacity-80 transition-opacity">Desde</span>
+          <span className="text-[9px] lg:text-[10px] uppercase font-black text-primary tracking-tighter group-hover:opacity-80 transition-opacity">Desde</span>
           <input
             type="date"
             value={startDate}
@@ -98,7 +98,7 @@ export default function TopBarSearch({
             if (input && 'showPicker' in input) (input as any).showPicker();
           }}
         >
-          <span className="text-[9px] lg:text-[10px] uppercase font-black text-[#62ae40] tracking-tighter group-hover:opacity-80 transition-opacity">Hasta</span>
+          <span className="text-[9px] lg:text-[10px] uppercase font-black text-primary tracking-tighter group-hover:opacity-80 transition-opacity">Hasta</span>
           <input
             type="date"
             value={endDate}
@@ -115,7 +115,7 @@ export default function TopBarSearch({
       {/* Search Button */}
       <button
         onClick={onSearch}
-        className="ml-1 lg:ml-2 bg-[#62ae40] text-white px-4 lg:px-6 py-2 rounded-xl text-xs lg:text-sm font-bold hover:bg-[#62ae40]/90 transition-all active:scale-95 shadow-sm shadow-[#62ae40]/20"
+        className="ml-1 lg:ml-2 bg-primary text-white px-4 lg:px-6 py-2 rounded-xl text-xs lg:text-sm font-bold hover:bg-primary/90 transition-all active:scale-95 shadow-sm shadow-primary/20"
       >
         Buscar
       </button>
