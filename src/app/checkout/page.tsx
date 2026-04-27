@@ -182,14 +182,59 @@ export default function CheckoutPage() {
     }
   }
 
+  const handleProceedToPayment = async () => {
+    if (user) {
+      // Validaciones para usuario logueado
+      if (!phone || phone.trim() === '' || phone.replace(/\D/g, '').length < 9) {
+        alert("Por favor, completa tu número de teléfono en 'Cambiar datos'.")
+        return
+      }
+      if (!fullName || fullName.trim() === '') {
+        alert("Por favor, completa tu nombre en 'Cambiar datos'.")
+        return
+      }
+      if (!docNumber || docNumber.trim() === '') {
+        alert("Por favor, completa tu número de documento en 'Cambiar datos'.")
+        return
+      }
+      
+      // Si todo está bien, mostrar modal
+      setConfirmedUserId(user.id)
+      setShowPaymentModal(true)
+    } else {
+      // Disparar submit del formulario para invitados
+      const form = document.getElementById('checkout-form') as HTMLFormElement
+      if (form) {
+        form.requestSubmit()
+      }
+    }
+  }
+
   const handleConfirmPayment = async () => {
     if (!confirmedUserId) return
     setPaymentLoading(true)
     const supabase = createClient()
     try {
+      // 1. Crear el Pedido (Order)
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: confirmedUserId,
+          total_amount: cartTotal,
+          status: 'PENDING_UPLOAD'
+        })
+        .select()
+        .single()
+
+      if (orderError) throw orderError
+
+      const orderId = orderData.id
+
+      // 2. Crear las Reservas (Bookings) vinculadas al Pedido
       if (cartItems.length > 0) {
         const bookings = cartItems.map(item => ({
           user_id: confirmedUserId,
+          order_id: orderId, // Vincular al pedido
           panel_id: item.panelId,
           client_name: fullName,
           start_date: item.startDate,
@@ -200,8 +245,12 @@ export default function CheckoutPage() {
         const { error: bookingError } = await supabase.from('bookings').insert(bookings)
         if (bookingError) throw bookingError
       }
+      
+      // 3. Limpiar carrito
+      useCartStore.getState().clearCart()
+
       setShowPaymentModal(false)
-      router.push('/?reserva=ok')
+      router.push(`/order-success/${orderId}`)
     } catch (err: any) {
       console.error(err)
       alert(err.message || 'Error al procesar el pago')
@@ -300,19 +349,64 @@ export default function CheckoutPage() {
               <p className="text-slate-400 text-sm animate-pulse uppercase tracking-widest font-bold">Cargando tus datos...</p>
             </div>
           ) : (
-            <form id="checkout-form" onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-6">
               {user ? (
-                <div className="bg-[#131b2f] border border-primary/20 rounded-2xl p-4 flex items-center gap-4 mb-2">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                    <CheckCircle2 size={20} />
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  {/* Banner Sesión Iniciada */}
+                  <div className="bg-primary/10 border border-primary/20 rounded-2xl p-5 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary shadow-[0_0_20px_rgba(98,174,64,0.3)]">
+                      <CheckCircle2 size={24} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-0.5">Sesión Activa</p>
+                      <p className="text-base text-white font-bold">{email}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] text-primary font-black uppercase tracking-widest">Sesión Iniciada</p>
-                    <p className="text-sm text-white font-medium">{email}</p>
+
+                  {/* Resumen de Datos de Facturación */}
+                  <div className="bg-[#131b2f] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+                      <h3 className="text-xs font-black text-white uppercase tracking-widest">Datos de Facturación</h3>
+                      <button 
+                        type="button"
+                        onClick={() => setUser(null)} // Trick to show the form again if they want to "edit" or change account
+                        className="text-[10px] font-bold text-primary hover:text-primary/80 uppercase tracking-widest transition-colors"
+                      >
+                        Cambiar datos
+                      </button>
+                    </div>
+                    
+                    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Nombre / Razón Social</p>
+                        <p className="text-sm text-white font-semibold">{fullName || 'No registrado'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Documento ({docType})</p>
+                        <p className="text-sm text-white font-semibold">{docNumber || 'No registrado'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Teléfono de contacto</p>
+                        <p className="text-sm text-white font-semibold">{phone || 'No registrado'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Comprobante</p>
+                        <p className="text-sm text-white font-semibold capitalize">{receiptType}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                      <Lock size={16} />
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      Tus datos están protegidos. Al confirmar el pago, se generará tu comprobante electrónico automáticamente.
+                    </p>
                   </div>
                 </div>
               ) : (
-                <>
+                <form id="checkout-form" onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   {/* Email */}
                   <div>
                     <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
@@ -340,136 +434,136 @@ export default function CheckoutPage() {
                       className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     />
                   </div>
-                </>
+
+                  {/* Tipo de Comprobante (Toggle) */}
+                  <div className="grid grid-cols-2 gap-3 pt-2 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => setReceiptType('boleta')}
+                      className={`py-3 rounded-lg text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'boleta'
+                          ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
+                          : 'bg-[#131b2f] text-slate-400 border-slate-800/60 hover:bg-slate-800/40'
+                        }`}
+                    >
+                      Boleta
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReceiptType('factura')}
+                      className={`py-3 rounded-lg text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'factura'
+                          ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
+                          : 'bg-[#131b2f] text-slate-400 border-slate-800/60 hover:bg-slate-800/40'
+                        }`}
+                    >
+                      Factura
+                    </button>
+                  </div>
+
+                  {/* Documento */}
+                  <div className="flex gap-3">
+                    <div className="w-1/3 md:w-1/4">
+                      <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                        Tipo
+                      </label>
+                      <select
+                        value={docType}
+                        onChange={(e) => setDocType(e.target.value)}
+                        className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-3 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none"
+                      >
+                        {receiptType === 'factura' ? (
+                          <option value="RUC">RUC</option>
+                        ) : (
+                          <>
+                            <option value="DNI">DNI</option>
+                            <option value="CE">CE</option>
+                            <option value="PASAPORTE">Pasaporte</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                        {receiptType === 'factura' ? 'Número de RUC' : `Número de ${docType}`}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={docNumber}
+                        onChange={(e) => setDocNumber(e.target.value)}
+                        className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Nombres y Apellidos / Razón Social */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                      {receiptType === 'factura' ? 'Razón Social' : 'Nombres y Apellidos'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    />
+                  </div>
+
+                  {/* Teléfono */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 flex justify-between">
+                      <span>Teléfono <span className="text-primary">*</span></span>
+                    </label>
+                    <PhoneInput
+                      defaultCountry="pe"
+                      className="react-international-phone-input-container"
+                      value={phone}
+                      onChange={(phone, { country }) => {
+                        const format = country.format;
+                        const mask = (typeof format === 'string' ? format : format?.default || '') as string;
+
+                        const countryLimits: Record<string, number> = {
+                          pe: 9, ar: 10, bo: 8, br: 11, cl: 9, co: 10, cr: 8, cu: 8, do: 10, ec: 9,
+                          sv: 8, gt: 8, hn: 8, mx: 10, ni: 8, pa: 8, py: 9, uy: 9, ve: 10,
+                          us: 10, ca: 10, es: 9, pr: 10, bz: 7
+                        };
+
+                        const maxDigits = countryLimits[country.iso2] || (mask.split('.').length - 1) || 15;
+
+                        const dialCode = country.dialCode;
+                        const dialCodeWithPlus = `+${dialCode}`;
+                        const rawNumber = phone.startsWith(dialCodeWithPlus)
+                          ? phone.slice(dialCodeWithPlus.length).replace(/\D/g, '')
+                          : phone.replace(/\D/g, '');
+
+                        if (rawNumber.length <= maxDigits) {
+                          setPhone(phone);
+                        }
+                      }}
+                      countries={defaultCountries.filter((c) =>
+                        ['pe', 'ar', 'bo', 'br', 'cl', 'co', 'cr', 'cu', 'do', 'ec',
+                          'sv', 'gt', 'hn', 'mx', 'ni', 'pa', 'py', 'uy', 've',
+                          'us', 'ca', 'es', 'pr', 'bz'].includes(c[1])
+                      )}
+                      preferredCountries={['pe', 'mx', 'es', 'us']}
+                      forceDialCode={true}
+                      charAfterDialCode=""
+                      inputClassName="react-international-phone-input"
+                      inputProps={{
+                        placeholder: '999999999',
+                        required: true,
+                      }}
+                      countrySelectorStyleProps={{
+                        buttonClassName: 'react-international-phone-country-selector-button',
+                        dropdownStyleProps: {
+                          className: 'react-international-phone-country-selector-dropdown',
+                        },
+                      }}
+                    />
+                  </div>
+                </form>
               )}
-
-            {/* Tipo de Comprobante (Toggle) */}
-            <div className="grid grid-cols-2 gap-3 pt-2 pb-2">
-              <button
-                type="button"
-                onClick={() => setReceiptType('boleta')}
-                className={`py-3 rounded-lg text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'boleta'
-                    ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                    : 'bg-[#131b2f] text-slate-400 border-slate-800/60 hover:bg-slate-800/40'
-                  }`}
-              >
-                Boleta
-              </button>
-              <button
-                type="button"
-                onClick={() => setReceiptType('factura')}
-                className={`py-3 rounded-lg text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'factura'
-                    ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                    : 'bg-[#131b2f] text-slate-400 border-slate-800/60 hover:bg-slate-800/40'
-                  }`}
-              >
-                Factura
-              </button>
             </div>
-
-            {/* Documento */}
-            <div className="flex gap-3">
-              <div className="w-1/3 md:w-1/4">
-                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                  Tipo
-                </label>
-                <select
-                  value={docType}
-                  onChange={(e) => setDocType(e.target.value)}
-                  className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-3 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none"
-                >
-                  {receiptType === 'factura' ? (
-                    <option value="RUC">RUC</option>
-                  ) : (
-                    <>
-                      <option value="DNI">DNI</option>
-                      <option value="CE">CE</option>
-                      <option value="PASAPORTE">Pasaporte</option>
-                    </>
-                  )}
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                  {receiptType === 'factura' ? 'Número de RUC' : `Número de ${docType}`}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={docNumber}
-                  onChange={(e) => setDocNumber(e.target.value)}
-                  className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Nombres y Apellidos / Razón Social */}
-            <div>
-              <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                {receiptType === 'factura' ? 'Razón Social' : 'Nombres y Apellidos'}
-              </label>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-              />
-            </div>
-
-            {/* Teléfono */}
-            <div>
-              <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 flex justify-between">
-                <span>Teléfono <span className="text-primary">*</span></span>
-              </label>
-              <PhoneInput
-                defaultCountry="pe"
-                className="react-international-phone-input-container"
-                value={phone}
-                onChange={(phone, { country }) => {
-                  const format = country.format;
-                  const mask = (typeof format === 'string' ? format : format?.default || '') as string;
-
-                  const countryLimits: Record<string, number> = {
-                    pe: 9, ar: 10, bo: 8, br: 11, cl: 9, co: 10, cr: 8, cu: 8, do: 10, ec: 9,
-                    sv: 8, gt: 8, hn: 8, mx: 10, ni: 8, pa: 8, py: 9, uy: 9, ve: 10,
-                    us: 10, ca: 10, es: 9, pr: 10, bz: 7
-                  };
-
-                  const maxDigits = countryLimits[country.iso2] || (mask.split('.').length - 1) || 15;
-
-                  const dialCode = country.dialCode;
-                  const dialCodeWithPlus = `+${dialCode}`;
-                  const rawNumber = phone.startsWith(dialCodeWithPlus)
-                    ? phone.slice(dialCodeWithPlus.length).replace(/\D/g, '')
-                    : phone.replace(/\D/g, '');
-
-                  if (rawNumber.length <= maxDigits) {
-                    setPhone(phone);
-                  }
-                }}
-                countries={defaultCountries.filter((c) =>
-                  ['pe', 'ar', 'bo', 'br', 'cl', 'co', 'cr', 'cu', 'do', 'ec',
-                    'sv', 'gt', 'hn', 'mx', 'ni', 'pa', 'py', 'uy', 've',
-                    'us', 'ca', 'es', 'pr', 'bz'].includes(c[1])
-                )}
-                preferredCountries={['pe', 'mx', 'es', 'us']}
-                forceDialCode={true}
-                charAfterDialCode=""
-                inputClassName="react-international-phone-input"
-                inputProps={{
-                  placeholder: '999999999',
-                  required: true,
-                }}
-                countrySelectorStyleProps={{
-                  buttonClassName: 'react-international-phone-country-selector-button',
-                  dropdownStyleProps: {
-                    className: 'react-international-phone-country-selector-dropdown',
-                  },
-                }}
-              />
-            </div>
-          </form>
         )}
       </div>
 
@@ -526,8 +620,8 @@ export default function CheckoutPage() {
             </div>
 
             <button
-              type="submit"
-              form="checkout-form"
+              type="button"
+              onClick={handleProceedToPayment}
               disabled={loading || cartItems.length === 0}
               className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-xl font-black text-base uppercase tracking-widest transition-all shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.98] flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -566,8 +660,8 @@ export default function CheckoutPage() {
 
 
             <button
-              type="submit"
-              form="checkout-form"
+              type="button"
+              onClick={handleProceedToPayment}
               disabled={loading || cartItems.length === 0}
               className="flex-1 max-w-[200px] h-12 bg-primary text-white text-[11px] font-black uppercase tracking-[0.15em] rounded-xl shadow-[0_8px_20px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.96] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
