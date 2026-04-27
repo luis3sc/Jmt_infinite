@@ -72,9 +72,7 @@ export default function OrderSuccessPage() {
 
   return (
     <main className="min-h-screen bg-[#0a0f1d] text-white flex flex-col">
-      <TopBar>
-        <AuthButton />
-      </TopBar>
+      <TopBar right={<AuthButton />} />
 
       <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-md mx-auto w-full">
         {/* Icon & Title */}
