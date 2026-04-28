@@ -2,192 +2,271 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { CheckCircle2, Copy, Share2, Upload, Map as MapIcon, Check, ExternalLink, ShoppingBag } from 'lucide-react'
+import { CheckCircle2, Send, Rocket, ShieldCheck, Clock, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { createClient } from '@/lib/supabase/client'
 import TopBar from '@/components/layout/TopBar'
 import AuthButton from '@/components/layout/AuthButton'
 
+import { createClient } from '@/lib/supabase/client'
+
+// Modulares componentes
+import { UploadDropzone } from '@/components/upload/UploadDropzone'
+import { UploadFallback } from '@/components/upload/UploadFallback'
+import { UploadLoading } from '@/components/upload/UploadLoading'
+import { UploadSuccess } from '@/components/upload/UploadSuccess'
+
 export default function OrderSuccessPage() {
   const params = useParams()
-  const orderId = params.orderId as string
-  const [loading, setLoading] = useState(true)
-  const [order, setOrder] = useState<any>(null)
-  const [accepted, setAccepted] = useState(false)
-  const [copied, setCopied] = useState(false)
   const router = useRouter()
+  const orderId = params.orderId as string
+  const [file, setFile] = useState<File | null>(null)
+  const [order, setOrder] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success'>('idle')
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   useEffect(() => {
     const fetchOrder = async () => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          bookings (
-            id,
-            panel_id,
-            panels (
-              panel_code,
-              structure_id,
-              structures (
-                address,
-                district
-              )
-            )
-          )
-        `)
-        .eq('id', orderId)
-        .single()
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', orderId)
+          .single()
 
-      if (error) {
-        console.error(error)
-        // router.push('/')
-      } else {
-        setOrder(data)
+        if (data) {
+          setOrder(data)
+          // If video is already sent or in validation, show success state (preview)
+          if (data.status === 'VIDEO_SENT' || data.status === 'PENDING_VALIDATION' || data.video_url) {
+            setUploadStatus('success')
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching order:', err)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
-    if (orderId) fetchOrder()
+    if (orderId) {
+      fetchOrder()
+    }
   }, [orderId])
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(window.location.href)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleUpload = async () => {
+    if (!file) return
+
+    setUploadStatus('uploading')
+    setUploadProgress(0)
+
+    // Simulate progress while uploading
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) return 90
+        return prev + Math.random() * 8
+      })
+    }, 400)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('orderId', orderId)
+
+      const res = await fetch('/api/upload-video', {
+        method: 'POST',
+        body: formData,
+      })
+
+      clearInterval(progressInterval)
+
+      const data = await res.json()
+
+      if (!res.ok || data.error) {
+        console.error('Upload error:', data.error)
+        alert(data.error || 'Ocurrió un error al subir el video. Por favor intenta nuevamente.')
+        setUploadStatus('idle')
+        return
+      }
+
+      // Update local order state with new video URL
+      setOrder((prev: any) => ({
+        ...prev,
+        video_url: data.videoUrl,
+        status: 'VIDEO_SENT'
+      }))
+
+      setUploadProgress(100)
+      setTimeout(() => {
+        setUploadStatus('success')
+      }, 500)
+
+    } catch (err) {
+      clearInterval(progressInterval)
+      console.error('Upload Error:', err)
+      alert('Ocurrió un error inesperado al subir el video.')
+      setUploadStatus('idle')
+    }
   }
+
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div 
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full"
-        />
+        <Loader />
       </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0f1d] text-white flex flex-col">
-      <TopBar right={<AuthButton />} />
+    <main className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30 pt-16 md:pt-24 overflow-x-hidden">
+      <TopBar
+        right={<AuthButton />}
+      />
 
-      <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-md mx-auto w-full">
-        {/* Icon & Title */}
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="mb-8 flex flex-col items-center"
+      {/* Decorative Background */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-[40%] left-[20%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col p-4 md:p-8 lg:p-12 relative z-10">
+        {/* Botón Volver - Standardized with Checkout */}
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="w-fit flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted transition-all active:scale-95 group text-xs md:text-sm font-semibold mb-4 md:mb-8"
         >
-          <div className="w-16 h-16 bg-[#62ae40] rounded-2xl flex items-center justify-center mb-6 shadow-[0_10px_30px_rgba(98,174,64,0.3)]">
-            <CheckCircle2 size={36} className="text-white" />
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-center text-white">
-            Pago Realizado
-          </h1>
-        </motion.div>
+          <ArrowLeft size={16} className="text-primary group-hover:-translate-x-1 transition-transform" />
+          <span className="text-muted-foreground group-hover:text-foreground">Volver</span>
+        </button>
 
-        {/* Map Placeholder / Info Area */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="w-full aspect-video bg-[#0d1326] border border-white/5 rounded-2xl mb-6 flex items-center justify-center relative overflow-hidden group shadow-2xl"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50" />
-          <div className="text-center z-10">
-            <p className="text-3xl font-black text-white/5 uppercase tracking-[0.25em] select-none">Mapa</p>
-          </div>
-        </motion.div>
+        <AnimatePresence mode="wait">
+          {uploadStatus === 'idle' && (
+            <motion.div
+              key="idle"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="flex flex-col lg:grid lg:grid-cols-12 gap-8 w-full"
+            >
+              {/* LEFT SECTION: Upload Video */}
+              <section className="lg:col-span-8 flex flex-col bg-card/40 backdrop-blur-xl border border-border/50 rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-12 shadow-2xl relative overflow-hidden">
+                <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/5 rounded-full blur-[80px]" />
 
-        {/* Video Specs */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="w-full border border-white/10 rounded-xl p-5 mb-8 text-center bg-white/5 backdrop-blur-md"
-        >
-          <p className="text-[11px] md:text-xs text-slate-300 font-bold uppercase tracking-widest mb-1.5 opacity-60">
-            Especificaciones de video
-          </p>
-          <p className="text-xs md:text-sm text-white font-medium">
-            Formato MP4 - 7 segundos - 1280X720 - Máximo 50mb
-          </p>
-        </motion.div>
+                <div className="relative z-10 space-y-2 md:space-y-4 mb-6 md:mb-10">
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] border border-primary/20"
+                  >
+                    <Rocket size={10} />
+                    Pedido #{orderId?.slice(0, 8).toUpperCase()}
+                  </motion.div>
 
-        {/* Acceptance Checkbox */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="flex gap-4 mb-10 w-full group cursor-pointer items-start"
-          onClick={() => setAccepted(!accepted)}
-        >
-          <div className={`w-6 h-6 rounded-md border flex-shrink-0 flex items-center justify-center transition-all duration-300 ${accepted ? 'bg-primary border-primary shadow-[0_0_15px_rgba(98,174,64,0.4)]' : 'border-white/10 bg-white/5 hover:border-white/20'}`}>
-            {accepted && <Check size={14} className="text-white" strokeWidth={4} />}
-          </div>
-          <p className="text-[11px] md:text-xs text-slate-400 font-medium leading-relaxed group-hover:text-slate-200 transition-colors">
-            Este primero debe de ser aceptado y valido para empezar la campaña
-          </p>
-        </motion.div>
+                  <h1 className="text-3xl md:text-5xl font-black tracking-tighter leading-tight">
+                    SUBE TU <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60 italic">MATERIAL</span>
+                  </h1>
+                  <p className="text-sm md:text-lg text-muted-foreground max-w-md font-medium leading-relaxed opacity-80">
+                    Finaliza tu campaña subiendo el video publicitario.
+                  </p>
+                </div>
 
-        {/* Action Button */}
-        <motion.button
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          whileHover={accepted ? { scale: 1.02, backgroundColor: '#73c34d' } : {}}
-          whileTap={accepted ? { scale: 0.98 } : {}}
-          disabled={!accepted}
-          className={`w-full py-4.5 rounded-xl font-black uppercase tracking-[0.15em] text-sm transition-all shadow-2xl ${accepted 
-            ? 'bg-[#62ae40] text-white shadow-primary/20' 
-            : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'}`}
-        >
-          <div className="flex items-center justify-center gap-3">
-            <Upload size={18} />
-            <span>Enviar contenido</span>
-          </div>
-        </motion.button>
+                <div className="flex flex-wrap gap-2 mb-6 md:mb-10">
+                  {[
+                    { label: 'Resolución', val: '720x1280', icon: ShieldCheck },
+                    { label: 'Duración', val: '7 Seg', icon: Clock },
+                    { label: 'Formato', val: 'MP4', icon: CheckCircle2 },
+                    { label: 'Peso Máx', val: '50MB', icon: ShieldCheck }
+                  ].map((spec, i) => (
+                    <div key={i} className="bg-background/40 border border-border/40 px-3 py-2 rounded-xl flex items-center gap-2 flex-1 min-w-[120px] md:min-w-0">
+                      <spec.icon size={12} className="text-primary/60" />
+                      <div className="flex flex-col">
+                        <span className="text-[8px] uppercase tracking-wider font-bold text-muted-foreground/60">{spec.label}</span>
+                        <span className="text-[10px] md:text-xs font-black">{spec.val}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-        {/* Footer Link */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-14 text-center"
-        >
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-5 opacity-70">
-            No cuentas con el video ahora, realiza esto después:
-          </p>
-          <button 
-            onClick={copyToClipboard}
-            className="group flex items-center gap-3 text-[#62ae40] hover:text-[#73c34d] transition-all font-black text-sm mx-auto py-2 px-4 rounded-full bg-primary/5 hover:bg-primary/10 border border-primary/10 mb-6"
-          >
-            {copied ? (
-              <div className="flex items-center gap-2 text-green-400">
-                <Check size={16} strokeWidth={3} />
-                <span className="uppercase tracking-wider">¡Copiado!</span>
-              </div>
-            ) : (
-              <>
-                <div className="w-2 h-4 bg-primary rounded-sm group-hover:scale-y-110 transition-transform" />
-                <span className="uppercase tracking-wider">Copiar enlace seguro</span>
-              </>
-            )}
-          </button>
+                <UploadDropzone
+                  file={file}
+                  setFile={setFile}
+                />
 
-          <Link 
-            href="/dashboard"
-            className="inline-flex items-center gap-2 px-6 py-3 text-[#62ae40]/80 hover:text-[#62ae40] transition-all font-black text-[10px] uppercase tracking-[0.2em] border border-primary/10 hover:border-primary/30 rounded-xl bg-primary/5 mx-auto"
-          >
-            <ShoppingBag size={14} />
-            <span>Ver mi historial de pedidos</span>
-          </Link>
-        </motion.div>
+                <div className="pt-6 md:pt-8 flex flex-col sm:flex-row items-center gap-4">
+                  <motion.button
+                    whileHover={file ? { scale: 1.01 } : {}}
+                    whileTap={file ? { scale: 0.98 } : {}}
+                    disabled={!file}
+                    onClick={handleUpload}
+                    className={`w-full sm:w-fit flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl backdrop-blur-sm border transition-all active:scale-95 group text-sm font-bold shadow-sm
+                      ${file
+                        ? 'bg-card/50 border-border hover:bg-muted hover:border-primary/20 text-foreground cursor-pointer'
+                        : 'bg-muted/20 border-border/20 text-muted-foreground cursor-not-allowed opacity-50'
+                      }`}
+                  >
+                    <Send size={18} className={file ? "text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" : ""} />
+                    <span>Enviar Material</span>
+                  </motion.button>
+
+                </div>
+              </section>
+
+              {/* RIGHT SECTION: Fallback/Share */}
+              <aside className="lg:col-span-4 h-full">
+                <UploadFallback orderId={orderId} />
+              </aside>
+            </motion.div>
+          )}
+
+          {/* LOADING STATE */}
+          {uploadStatus === 'uploading' && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full flex items-center justify-center min-h-[500px]"
+            >
+              <UploadLoading progress={uploadProgress} />
+            </motion.div>
+          )}
+
+          {/* SUCCESS STATE */}
+          {uploadStatus === 'success' && (
+            <motion.div
+              key="success"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="w-full"
+            >
+              <UploadSuccess
+                videoUrl={order?.video_url}
+                orderId={orderId}
+                status={order?.status}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </div>
     </main>
+  )
+}
+
+function Loader() {
+  return (
+    <div className="relative">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+        className="w-16 h-16 border-4 border-primary/10 border-t-primary rounded-full"
+      />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-2 h-2 bg-primary rounded-full animate-ping" />
+      </div>
+    </div>
   )
 }

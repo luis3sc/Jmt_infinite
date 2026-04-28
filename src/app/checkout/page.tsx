@@ -32,6 +32,7 @@ export default function CheckoutPage() {
   const [confirmedUserId, setConfirmedUserId] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [profileExists, setProfileExists] = useState(false)
 
 
   // Prevent hydration errors and check for session
@@ -39,174 +40,223 @@ export default function CheckoutPage() {
     setIsMounted(true)
     const initSession = async () => {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        setUser(session.user)
-        setEmail(session.user.email || '')
-        
-        // Fetch profile
+      
+      // Utilizamos getUser() en lugar de getSession() para forzar la validación con el servidor.
+      // Si eliminaste al usuario de auth.users, el token en localStorage será inválido,
+      // esto dará error y automáticamente limpiaremos el localStorage (signOut).
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        // Limpiamos la sesión "fantasma" que quedó en localStorage
+        await supabase.auth.signOut()
+        setUser(null)
+        setIsInitialLoading(false)
+        return
+      }
+      
+      setUser(user)
+      setEmail(user.email || '')
+      
+      // Pre-llenar datos del perfil si existen y validar si el perfil existe en DB
+      try {
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', session.user.id)
-          .single()
-        
+          .eq('id', user.id)
+          .maybeSingle()
+
         if (profile) {
+          setProfileExists(true)
           setFullName(profile.full_name || '')
-          setPhone(profile.phone || '')
-          setDocNumber(profile.document_number || '')
-          setDocType(profile.document_type || 'DNI')
-          setReceiptType(profile.receipt_type || 'boleta')
+          if (profile.document_type) setDocType(profile.document_type)
+          if (profile.receipt_type) setReceiptType(profile.receipt_type as 'boleta' | 'factura')
+          // NO pre-llenar DNI y teléfono por solicitud del usuario
+        } else {
+          // El perfil no existe en DB (puede haberse eliminado manualmente de 'profiles')
+          setProfileExists(false)
+          console.warn('Perfil no encontrado en DB para el usuario autenticado. Se creará al confirmar.')
+          
+          // NOTA: El usuario aún existe en auth.users, por lo que la sesión es válida.
+          // Si quisieras que el usuario sea desconectado también cuando borras su perfil,
+          // se podría agregar un signOut() aquí, pero es mejor solo recrear el perfil.
         }
+      } catch (err) {
+        console.warn("No se pudo cargar el perfil:", err)
       }
+      
       setIsInitialLoading(false)
     }
+
     initSession()
+
+    // Suscribirse a cambios de autenticación para sincronización en tiempo real
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user)
+      } else {
+        setUser(null)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
+
+  // Sincronizar docType cuando cambie receiptType
+  useEffect(() => {
+    if (receiptType === 'factura') {
+      setDocType('RUC')
+    } else if (docType === 'RUC') {
+      setDocType('DNI')
+    }
+  }, [receiptType])
 
   // If cart is empty and component is mounted, we might want to redirect back
   // but for now let's just let it be or show a message.
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    if (e) e.preventDefault()
     
-    // Validaciones previas
-    if (!phone || phone.trim() === '' || phone.replace(/\D/g, '').length < 9) {
-      alert("Por favor, ingresa un número de teléfono válido (al menos 9 dígitos).")
-      const phoneInput = document.querySelector('.react-international-phone-input') as HTMLInputElement;
-      if (phoneInput) phoneInput.focus();
-      return
-    }
-
-    if (!fullName || fullName.trim() === '') {
-      alert("Por favor, ingresa tu nombre completo.")
-      return
-    }
-
-    if (!docNumber || docNumber.trim() === '' || docNumber.length < 8) {
-      alert(`Por favor, ingresa un ${docType} válido.`)
-      return
-    }
-
+    if (loading) return
     setLoading(true)
-    const supabase = createClient()
 
     try {
-      // 1. Verificar si el usuario está autenticado
-      const { data: { session } } = await supabase.auth.getSession()
-      let userId = session?.user?.id
+      const supabase = createClient()
 
-      if (!userId) {
-        // 2. Si no está autenticado, intentar primero INICIAR SESIÓN
-        // Esto evita disparar correos de confirmación si el usuario ya existe, 
-        // lo cual ayuda a evitar el "email rate limit exceeded".
+      // Validaciones manuales robustas para evitar bloqueos silenciosos
+      if (!fullName || fullName.trim() === '') {
+        alert("Por favor, ingresa tu nombre completo o razón social.")
+        setLoading(false)
+        return
+      }
+
+      if (!docNumber || docNumber.trim() === '') {
+        alert(`Por favor, ingresa tu número de ${docType}.`)
+        setLoading(false)
+        return
+      }
+
+      if (!phone || phone.trim() === '' || phone.replace(/\D/g, '').length < 9) {
+        alert("Por favor, ingresa un número de teléfono válido (al menos 9 dígitos).")
+        setLoading(false)
+        return
+      }
+
+      let userId: string | null = null
+      let userEmail: string = email
+
+      // 1. Manejo de autenticación
+      // getUser() SIEMPRE valida contra el servidor (no usa cache local)
+      // Esto detecta sesiones stale cuando el usuario fue borrado de auth.users
+      const { data: { user: serverUser }, error: getUserError } = await supabase.auth.getUser()
+
+      if (serverUser && !getUserError) {
+        // Sesión válida confirmada por el servidor
+        userId = serverUser.id
+        userEmail = serverUser.email || email
+      } else {
+        // No hay sesión válida — limpiar sesión local stale si existe
+        if (getUserError) {
+          await supabase.auth.signOut()
+        }
+
+        if (!email || !password) {
+          alert("Por favor, completa tu correo y contraseña para continuar.")
+          setLoading(false)
+          return
+        }
+
+        // Intentar login con las credenciales ingresadas
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
 
-        if (signInError) {
-          // Si el error es "Invalid login credentials", podría ser un usuario nuevo
-          if (signInError.message.toLowerCase().includes('invalid login credentials') || 
-              signInError.message.toLowerCase().includes('not found')) {
-            
-            // Intentar registrarlo como usuario nuevo
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                data: {
-                  full_name: fullName,
-                  phone: phone,
-                  document_number: docNumber,
-                  document_type: docType,
-                  receipt_type: receiptType
-                }
-              }
-            })
+        if (!signInError && signInData.user) {
+          // Login exitoso — usuario existente
+          userId = signInData.user.id
+          userEmail = signInData.user.email || email
+          setUser(signInData.user)
 
-            if (signUpError) {
-              // Manejo específico para el límite de tasa (Rate Limit)
-              if (signUpError.status === 429 || signUpError.message.toLowerCase().includes('rate limit')) {
-                throw new Error("Límite de intentos excedido. Por favor, espera unos minutos o verifica la configuración de Supabase (Auth -> Rate Limits).")
-              }
-              throw signUpError
-            }
-            
-            userId = signUpData.user?.id
-          } else {
-            // Manejo específico para el límite de tasa en el sign-in
-            if (signInError.status === 429 || signInError.message.toLowerCase().includes('rate limit')) {
-              throw new Error("Límite de intentos excedido. Por favor, espera unos minutos.")
-            }
-            throw signInError
+        } else if (signInError?.status === 429 || signInError?.message.toLowerCase().includes('rate limit')) {
+          throw new Error("Límite de intentos excedido. Por favor, espera unos minutos.")
+
+        } else if (signInError?.message.includes('Invalid login credentials')) {
+          // Credenciales inválidas → el email podría no existir, intentar registrar
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { full_name: fullName } }
+          })
+
+          if (!signUpError && signUpData.user) {
+            // Registro nuevo exitoso
+            userId = signUpData.user.id
+            userEmail = signUpData.user.email || email
+            setUser(signUpData.user)
+
+          } else if (
+            signUpError?.message.toLowerCase().includes('already registered') ||
+            signUpError?.message.toLowerCase().includes('user already registered')
+          ) {
+            // El email ya existe con otra contraseña
+            throw new Error(
+              "Ya existe una cuenta con este correo. Verifica tu contraseña o " +
+              "usa 'Olvidé mi contraseña' desde el botón de la barra superior."
+            )
+          } else if (signUpError) {
+            throw signUpError
           }
-        } else {
-          userId = signInData.user?.id
+        } else if (signInError) {
+          throw signInError
         }
       }
 
-      if (!userId) throw new Error("No se pudo identificar al usuario. Si te acabas de registrar, revisa tu correo para confirmar la cuenta.")
-
-      // 3. Refrescar la sesión para garantizar que auth.uid() esté disponible en RLS
-      await supabase.auth.refreshSession()
-
-      // 4. Crear o actualizar perfil en la tabla 'profiles'
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          email: email,
-          full_name: fullName,
-          phone: phone,
-          document_number: docNumber,
-          document_type: docType,
-          receipt_type: receiptType,
-          updated_at: new Date().toISOString(),
-        })
-
-      if (profileError) {
-        // Error 42501 = RLS violation. No es crítico para la reserva, solo lo logueamos.
-        console.warn("Advertencia al guardar perfil:", profileError.message)
+      if (!userId) {
+        throw new Error(
+          "No se pudo identificar al usuario. " +
+          "Si acabas de registrarte, revisa tu correo para confirmar la cuenta."
+        )
       }
 
-      // 4. Guardar userId y mostrar modal de pago
+      // 2. Sincronizar perfil con la función RPC SECURITY DEFINER
+      // Esta función bypasea RLS completamente — funciona aunque el perfil
+      // haya sido eliminado manualmente de la tabla profiles
+      const { error: rpcError } = await supabase.rpc('sync_user_profile', {
+        p_user_id: userId,
+        p_email: userEmail,
+        p_full_name: fullName,
+        p_phone: phone,
+        p_document_number: docNumber,
+        p_document_type: docType,
+        p_receipt_type: receiptType,
+      })
+
+      if (rpcError) {
+        console.error("Error al sincronizar perfil (no fatal):", rpcError.message)
+      } else {
+        setProfileExists(true)
+      }
+
+      // 5. Mostrar modal de pago
       setConfirmedUserId(userId)
       setShowPaymentModal(true)
 
     } catch (err: any) {
       console.error(err)
-      alert(err.message || "Ocurrió un error durante el proceso")
+      alert(err.message || "Ocurrió un error durante el proceso. Por favor revisa los datos e intenta nuevamente.")
     } finally {
       setLoading(false)
     }
   }
 
   const handleProceedToPayment = async () => {
-    if (user) {
-      // Validaciones para usuario logueado
-      if (!phone || phone.trim() === '' || phone.replace(/\D/g, '').length < 9) {
-        alert("Por favor, completa tu número de teléfono en 'Cambiar datos'.")
-        return
-      }
-      if (!fullName || fullName.trim() === '') {
-        alert("Por favor, completa tu nombre en 'Cambiar datos'.")
-        return
-      }
-      if (!docNumber || docNumber.trim() === '') {
-        alert("Por favor, completa tu número de documento en 'Cambiar datos'.")
-        return
-      }
-      
-      // Si todo está bien, mostrar modal
-      setConfirmedUserId(user.id)
-      setShowPaymentModal(true)
-    } else {
-      // Disparar submit del formulario para invitados
-      const form = document.getElementById('checkout-form') as HTMLFormElement
-      if (form) {
-        form.requestSubmit()
-      }
+    // Siempre disparar el submit del formulario (handleSubmit valida y detecta sesión)
+    const form = document.getElementById('checkout-form') as HTMLFormElement
+    if (form) {
+      form.requestSubmit()
     }
   }
 
@@ -236,14 +286,17 @@ export default function CheckoutPage() {
           user_id: confirmedUserId,
           order_id: orderId, // Vincular al pedido
           panel_id: item.panelId,
-          client_name: fullName,
-          start_date: item.startDate,
-          end_date: item.endDate,
-          amount: item.totalPrice,
+          client_name: fullName || 'Cliente',
+          start_date: item.startDate || new Date().toISOString().split('T')[0],
+          end_date: item.endDate || new Date().toISOString().split('T')[0],
+          amount: item.totalPrice || 0,
           status: 'CONFIRMED'
         }))
         const { error: bookingError } = await supabase.from('bookings').insert(bookings)
-        if (bookingError) throw bookingError
+        if (bookingError) {
+          console.error('Error inserting bookings:', bookingError)
+          throw new Error(`Error al registrar las pantallas: ${bookingError.message}`)
+        }
       }
       
       // 3. Limpiar carrito
@@ -279,20 +332,20 @@ export default function CheckoutPage() {
           {/* Botón Volver */}
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted hover:border-primary/20 transition-all active:scale-95 group text-sm font-semibold mb-8"
+            className="w-fit flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted hover:border-primary/20 transition-all active:scale-95 group text-sm font-semibold mb-8"
           >
             <ArrowLeft size={18} className="text-primary group-hover:-translate-x-1 transition-transform" />
             <span className="text-muted-foreground group-hover:text-foreground">Volver</span>
           </button>
 
           {/* RESUMEN COLLAPSABLE (Solo Mobile) */}
-          <div className="md:hidden mb-8 border border-white/10 rounded-2xl bg-[#0d1326] overflow-hidden">
+          <div className="md:hidden mb-8 border border-white/10 rounded-lg bg-[#0d1326] overflow-hidden">
             <button
               onClick={() => setShowSummary(!showSummary)}
               className="w-full flex items-center justify-between p-4 bg-[#131b2f]"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-xl">
+                <div className="p-2 bg-primary/10 rounded-lg">
                   <ShoppingCart size={18} className="text-primary" />
                 </div>
                 <div className="text-left">
@@ -350,81 +403,37 @@ export default function CheckoutPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {user ? (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  {/* Banner Sesión Iniciada */}
-                  <div className="bg-primary/10 border border-primary/20 rounded-2xl p-5 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary shadow-[0_0_20px_rgba(98,174,64,0.3)]">
-                      <CheckCircle2 size={24} />
-                    </div>
+              <form id="checkout-form" onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {user && (
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center gap-3 mb-2">
+                    <CheckCircle2 size={20} className="text-primary" />
                     <div>
                       <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-0.5">Sesión Activa</p>
-                      <p className="text-base text-white font-bold">{email}</p>
+                      <p className="text-sm text-white font-bold">{email}</p>
                     </div>
                   </div>
+                )}
 
-                  {/* Resumen de Datos de Facturación */}
-                  <div className="bg-[#131b2f] border border-white/5 rounded-2xl overflow-hidden shadow-xl">
-                    <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
-                      <h3 className="text-xs font-black text-white uppercase tracking-widest">Datos de Facturación</h3>
-                      <button 
-                        type="button"
-                        onClick={() => setUser(null)} // Trick to show the form again if they want to "edit" or change account
-                        className="text-[10px] font-bold text-primary hover:text-primary/80 uppercase tracking-widest transition-colors"
-                      >
-                        Cambiar datos
-                      </button>
-                    </div>
-                    
-                    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Nombre / Razón Social</p>
-                        <p className="text-sm text-white font-semibold">{fullName || 'No registrado'}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Documento ({docType})</p>
-                        <p className="text-sm text-white font-semibold">{docNumber || 'No registrado'}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Teléfono de contacto</p>
-                        <p className="text-sm text-white font-semibold">{phone || 'No registrado'}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Comprobante</p>
-                        <p className="text-sm text-white font-semibold capitalize">{receiptType}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
-                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
-                      <Lock size={16} />
-                    </div>
-                    <p className="text-[10px] text-slate-400 leading-relaxed">
-                      Tus datos están protegidos. Al confirmar el pago, se generará tu comprobante electrónico automáticamente.
-                    </p>
-                  </div>
+                {/* Email */}
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                    Correo Electrónico
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={!!user}
+                    className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all disabled:opacity-50"
+                  />
                 </div>
-              ) : (
-                <form id="checkout-form" onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  {/* Email */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                      Correo Electrónico
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                    />
-                  </div>
 
-                  {/* Password */}
+                {/* Password */}
+                {!user && (
                   <div>
                     <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                      Contraseña
+                      Contraseña (para crear o acceder a tu cuenta)
                     </label>
                     <input
                       type="password"
@@ -434,135 +443,164 @@ export default function CheckoutPage() {
                       className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     />
                   </div>
+                )}
 
-                  {/* Tipo de Comprobante (Toggle) */}
-                  <div className="grid grid-cols-2 gap-3 pt-2 pb-2">
-                    <button
-                      type="button"
-                      onClick={() => setReceiptType('boleta')}
-                      className={`py-3 rounded-lg text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'boleta'
-                          ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                          : 'bg-[#131b2f] text-slate-400 border-slate-800/60 hover:bg-slate-800/40'
-                        }`}
-                    >
-                      Boleta
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setReceiptType('factura')}
-                      className={`py-3 rounded-lg text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'factura'
-                          ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                          : 'bg-[#131b2f] text-slate-400 border-slate-800/60 hover:bg-slate-800/40'
-                        }`}
-                    >
-                      Factura
-                    </button>
-                  </div>
+                {/* Tipo de Comprobante (Toggle) */}
+                <div className="grid grid-cols-2 gap-3 pt-2 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => setReceiptType('boleta')}
+                    className={`py-3 rounded-lg text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'boleta'
+                        ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
+                        : 'bg-[#131b2f] text-slate-400 border-slate-800/60 hover:bg-slate-800/40'
+                      }`}
+                  >
+                    Boleta
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReceiptType('factura')}
+                    className={`py-3 rounded-lg text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'factura'
+                        ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
+                        : 'bg-[#131b2f] text-slate-400 border-slate-800/60 hover:bg-slate-800/40'
+                      }`}
+                  >
+                    Factura
+                  </button>
+                </div>
 
-                  {/* Documento */}
-                  <div className="flex gap-3">
-                    <div className="w-1/3 md:w-1/4">
-                      <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                        Tipo
-                      </label>
-                      <select
-                        value={docType}
-                        onChange={(e) => setDocType(e.target.value)}
-                        className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-3 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none"
-                      >
-                        {receiptType === 'factura' ? (
-                          <option value="RUC">RUC</option>
-                        ) : (
-                          <>
-                            <option value="DNI">DNI</option>
-                            <option value="CE">CE</option>
-                            <option value="PASAPORTE">Pasaporte</option>
-                          </>
-                        )}
-                      </select>
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                        {receiptType === 'factura' ? 'Número de RUC' : `Número de ${docType}`}
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={docNumber}
-                        onChange={(e) => setDocNumber(e.target.value)}
-                        className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Nombres y Apellidos / Razón Social */}
-                  <div>
+                {/* Documento */}
+                <div className="flex gap-3">
+                  <div className="w-1/3 md:w-1/4">
                     <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
-                      {receiptType === 'factura' ? 'Razón Social' : 'Nombres y Apellidos'}
+                      Tipo
+                    </label>
+                    <select
+                      value={docType}
+                      onChange={(e) => setDocType(e.target.value)}
+                      className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-3 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none"
+                    >
+                      {receiptType === 'factura' ? (
+                        <option value="RUC">RUC</option>
+                      ) : (
+                        <>
+                          <option value="DNI">DNI</option>
+                          <option value="CE">CE</option>
+                          <option value="PASAPORTE">Pasaporte</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                      {receiptType === 'factura' ? 'Número de RUC' : `Número de ${docType}`}
                     </label>
                     <input
                       type="text"
                       required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
+                      value={docNumber}
+                      onChange={(e) => setDocNumber(e.target.value)}
                       className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     />
                   </div>
+                </div>
 
-                  {/* Teléfono */}
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 flex justify-between">
-                      <span>Teléfono <span className="text-primary">*</span></span>
-                    </label>
-                    <PhoneInput
-                      defaultCountry="pe"
-                      className="react-international-phone-input-container"
-                      value={phone}
-                      onChange={(phone, { country }) => {
-                        const format = country.format;
-                        const mask = (typeof format === 'string' ? format : format?.default || '') as string;
+                {/* Nombres y Apellidos / Razón Social */}
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                    {receiptType === 'factura' ? 'Razón Social' : 'Nombres y Apellidos'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  />
+                </div>
 
-                        const countryLimits: Record<string, number> = {
-                          pe: 9, ar: 10, bo: 8, br: 11, cl: 9, co: 10, cr: 8, cu: 8, do: 10, ec: 9,
-                          sv: 8, gt: 8, hn: 8, mx: 10, ni: 8, pa: 8, py: 9, uy: 9, ve: 10,
-                          us: 10, ca: 10, es: 9, pr: 10, bz: 7
-                        };
+                {/* Teléfono */}
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 flex justify-between">
+                    <span>Teléfono <span className="text-primary">*</span></span>
+                  </label>
+                  <style dangerouslySetInnerHTML={{__html: `
+                    .custom-phone-input {
+                      width: 100%;
+                    }
+                    .custom-phone-input .react-international-phone-input {
+                      width: 100%;
+                      background-color: #131b2f;
+                      border: 1px solid rgba(30, 41, 59, 0.6);
+                      border-left: none;
+                      border-radius: 0 0.5rem 0.5rem 0;
+                      padding: 0.75rem 1rem;
+                      color: white;
+                      transition: all 0.2s;
+                    }
+                    .custom-phone-input .react-international-phone-input:focus {
+                      outline: none;
+                      border-color: hsl(var(--primary));
+                      box-shadow: 0 0 0 1px hsl(var(--primary));
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-button {
+                      background-color: #131b2f;
+                      border: 1px solid rgba(30, 41, 59, 0.6);
+                      border-radius: 0.5rem 0 0 0.5rem;
+                      padding: 0 0.75rem;
+                      height: auto;
+                      color: white;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-dropdown {
+                      background-color: #131b2f;
+                      border: 1px solid rgba(30, 41, 59, 0.6);
+                      color: white;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-dropdown__list-item {
+                      color: #000;
+                    }
+                  `}} />
+                  <PhoneInput
+                    defaultCountry="pe"
+                    className="custom-phone-input"
+                    value={phone}
+                    onChange={(phone, { country }) => {
+                      const format = country.format;
+                      const mask = (typeof format === 'string' ? format : format?.default || '') as string;
 
-                        const maxDigits = countryLimits[country.iso2] || (mask.split('.').length - 1) || 15;
+                      const countryLimits: Record<string, number> = {
+                        pe: 9, ar: 10, bo: 8, br: 11, cl: 9, co: 10, cr: 8, cu: 8, do: 10, ec: 9,
+                        sv: 8, gt: 8, hn: 8, mx: 10, ni: 8, pa: 8, py: 9, uy: 9, ve: 10,
+                        us: 10, ca: 10, es: 9, pr: 10, bz: 7
+                      };
 
-                        const dialCode = country.dialCode;
-                        const dialCodeWithPlus = `+${dialCode}`;
-                        const rawNumber = phone.startsWith(dialCodeWithPlus)
-                          ? phone.slice(dialCodeWithPlus.length).replace(/\D/g, '')
-                          : phone.replace(/\D/g, '');
+                      const maxDigits = countryLimits[country.iso2] || (mask.split('.').length - 1) || 15;
 
-                        if (rawNumber.length <= maxDigits) {
-                          setPhone(phone);
-                        }
-                      }}
-                      countries={defaultCountries.filter((c) =>
-                        ['pe', 'ar', 'bo', 'br', 'cl', 'co', 'cr', 'cu', 'do', 'ec',
-                          'sv', 'gt', 'hn', 'mx', 'ni', 'pa', 'py', 'uy', 've',
-                          'us', 'ca', 'es', 'pr', 'bz'].includes(c[1])
-                      )}
-                      preferredCountries={['pe', 'mx', 'es', 'us']}
-                      forceDialCode={true}
-                      charAfterDialCode=""
-                      inputClassName="react-international-phone-input"
-                      inputProps={{
-                        placeholder: '999999999',
-                        required: true,
-                      }}
-                      countrySelectorStyleProps={{
-                        buttonClassName: 'react-international-phone-country-selector-button',
-                        dropdownStyleProps: {
-                          className: 'react-international-phone-country-selector-dropdown',
-                        },
-                      }}
-                    />
-                  </div>
-                </form>
-              )}
+                      const dialCode = country.dialCode;
+                      const dialCodeWithPlus = `+${dialCode}`;
+                      const rawNumber = phone.startsWith(dialCodeWithPlus)
+                        ? phone.slice(dialCodeWithPlus.length).replace(/\D/g, '')
+                        : phone.replace(/\D/g, '');
+
+                      if (rawNumber.length <= maxDigits) {
+                        setPhone(phone);
+                      }
+                    }}
+                    countries={defaultCountries.filter((c) =>
+                      ['pe', 'ar', 'bo', 'br', 'cl', 'co', 'cr', 'cu', 'do', 'ec',
+                        'sv', 'gt', 'hn', 'mx', 'ni', 'pa', 'py', 'uy', 've',
+                        'us', 'ca', 'es', 'pr', 'bz'].includes(c[1])
+                    )}
+                    preferredCountries={['pe', 'mx', 'es', 'us']}
+                    forceDialCode={true}
+                    charAfterDialCode=""
+                    inputProps={{
+                      placeholder: '999999999',
+                      required: true,
+                    }}
+                  />
+                </div>
+              </form>
             </div>
         )}
       </div>
@@ -623,7 +661,7 @@ export default function CheckoutPage() {
               type="button"
               onClick={handleProceedToPayment}
               disabled={loading || cartItems.length === 0}
-              className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-xl font-black text-base uppercase tracking-widest transition-all shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.98] flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-lg font-black text-base uppercase tracking-widest transition-all shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.98] flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -647,34 +685,34 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0a0f1c]/95 backdrop-blur-2xl border-t border-white/10 px-5 py-4 z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.7)] pb-[env(safe-area-inset-bottom)]">
-          <div className="max-w-md mx-auto flex items-center justify-between gap-4">
-            <div className="flex items-baseline gap-2 min-w-0">
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Total:</span>
-              <div className="flex items-baseline gap-0.5 text-xl font-black text-primary tracking-tighter">
-                <span className="text-sm mr-0.5">S/</span>
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0a0f1c]/95 backdrop-blur-2xl border-t border-white/10 z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.7)]">
+          <div className="px-5 py-3 max-w-md mx-auto flex items-center justify-between gap-3">
+            <div className="flex flex-col justify-center min-w-0">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Total a pagar</span>
+              <div className="flex items-baseline gap-0.5 text-xl font-black text-primary tracking-tighter leading-none">
+                <span className="text-xs mr-0.5 font-bold">S/</span>
                 <span>{Number(cartTotal.toFixed(2).split('.')[0]).toLocaleString()}</span>
                 <span className="text-xs opacity-80">.{cartTotal.toFixed(2).split('.')[1]}</span>
               </div>
             </div>
 
-
             <button
               type="button"
               onClick={handleProceedToPayment}
               disabled={loading || cartItems.length === 0}
-              className="flex-1 max-w-[200px] h-12 bg-primary text-white text-[11px] font-black uppercase tracking-[0.15em] rounded-xl shadow-[0_8px_20px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.96] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="shrink-0 h-11 min-w-[160px] px-6 bg-primary text-white text-[11px] font-black uppercase tracking-[0.15em] rounded-lg shadow-[0_8px_20px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.96] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={16} />
               ) : (
                 <>
                   <span>Pagar</span>
-                  <ArrowRight size={16} />
+                  <ArrowRight size={14} />
                 </>
               )}
             </button>
           </div>
+          <div className="h-[env(safe-area-inset-bottom)]" />
         </div>
 
       </div>
@@ -686,7 +724,7 @@ export default function CheckoutPage() {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowPaymentModal(false)} />
 
           {/* Modal */}
-          <div className="relative w-full sm:max-w-md bg-[#0d1326] sm:rounded-3xl rounded-t-3xl border border-white/10 shadow-[0_40px_80px_-10px_rgba(0,0,0,0.8)] overflow-hidden animate-in slide-in-from-bottom duration-300">
+          <div className="relative w-full sm:max-w-md bg-[#0d1326] sm:rounded-lg rounded-t-3xl border border-white/10 shadow-[0_40px_80px_-10px_rgba(0,0,0,0.8)] overflow-hidden animate-in slide-in-from-bottom duration-300">
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/5">
@@ -694,13 +732,13 @@ export default function CheckoutPage() {
                 <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Paso final</p>
                 <h2 className="text-lg font-black text-white">Elige tu método de pago</h2>
               </div>
-              <button onClick={() => setShowPaymentModal(false)} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
+              <button onClick={() => setShowPaymentModal(false)} className="p-2 rounded-lg hover:bg-white/5 transition-colors">
                 <X size={18} className="text-slate-400" />
               </button>
             </div>
 
             {/* Total */}
-            <div className="mx-6 mt-4 mb-4 bg-primary/10 border border-primary/20 rounded-2xl px-5 py-3 flex items-center justify-between">
+            <div className="mx-6 mt-4 mb-4 bg-primary/10 border border-primary/20 rounded-lg px-5 py-3 flex items-center justify-between">
               <p className="text-xs text-primary font-bold uppercase tracking-widest">Total a pagar</p>
               <p className="text-2xl font-black text-primary">
                 S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
@@ -711,7 +749,7 @@ export default function CheckoutPage() {
             <div className="flex gap-2 px-6 mb-4">
               <button
                 onClick={() => setPaymentTab('card')}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                   paymentTab === 'card' ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-white/5 text-slate-400 hover:bg-white/10'
                 }`}
               >
@@ -719,7 +757,7 @@ export default function CheckoutPage() {
               </button>
               <button
                 onClick={() => setPaymentTab('qr')}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                   paymentTab === 'qr' ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-white/5 text-slate-400 hover:bg-white/10'
                 }`}
               >
@@ -732,7 +770,7 @@ export default function CheckoutPage() {
               {paymentTab === 'card' ? (
                 <div className="space-y-3">
                   {/* Mock card visual */}
-                  <div className="relative h-[120px] rounded-2xl bg-gradient-to-br from-[#1a3a6e] to-[#0d1f3c] border border-white/10 p-4 overflow-hidden mb-4">
+                  <div className="relative h-[120px] rounded-lg bg-gradient-to-br from-[#1a3a6e] to-[#0d1f3c] border border-white/10 p-4 overflow-hidden mb-4">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -translate-y-8 translate-x-8" />
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full translate-y-8 -translate-x-8" />
                     <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-2">Culqi · Pago Seguro</p>
@@ -763,7 +801,7 @@ export default function CheckoutPage() {
               ) : (
                 <div className="flex flex-col items-center py-2">
                   {/* QR SVG placeholder */}
-                  <div className="w-44 h-44 bg-white rounded-2xl p-3 mb-4">
+                  <div className="w-44 h-44 bg-white rounded-lg p-3 mb-4">
                     <svg viewBox="0 0 200 200" className="w-full h-full">
                       {/* Simple QR pattern mockup */}
                       {[0,1,2,3,4,5,6].map(r => [0,1,2,3,4,5,6].map(c => {
@@ -777,7 +815,7 @@ export default function CheckoutPage() {
                   </div>
                   <p className="text-xs font-bold text-white mb-1">Escanea con Yape o Plin</p>
                   <p className="text-[10px] text-slate-400 text-center">Apunta la cámara al QR y completa el pago de <span className="text-primary font-bold">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span></p>
-                  <div className="mt-4 bg-[#131b2f] border border-white/5 rounded-xl px-4 py-2 text-center">
+                  <div className="mt-4 bg-[#131b2f] border border-white/5 rounded-lg px-4 py-2 text-center">
                     <p className="text-[10px] text-slate-500">Número de cuenta demo</p>
                     <p className="text-sm font-mono font-bold text-white">9 999 999 999</p>
                   </div>
@@ -788,7 +826,7 @@ export default function CheckoutPage() {
               <button
                 onClick={handleConfirmPayment}
                 disabled={paymentLoading}
-                className="w-full mt-5 bg-primary hover:bg-primary/90 text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full mt-5 bg-primary hover:bg-primary/90 text-white py-4 rounded-lg font-black text-sm uppercase tracking-widest transition-all shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {paymentLoading ? (
                   <><Loader2 size={18} className="animate-spin" /> Procesando...</>

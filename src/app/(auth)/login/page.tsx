@@ -34,7 +34,7 @@ export default function LoginPage() {
           <div className="mb-8 flex justify-start">
             <button 
               onClick={() => router.back()}
-              className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted hover:border-primary/20 transition-all active:scale-95 group text-sm font-semibold"
+              className="w-fit flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted hover:border-primary/20 transition-all active:scale-95 group text-sm font-semibold"
             >
               <ArrowLeft size={18} className="text-primary group-hover:-translate-x-1 transition-transform" />
               <span className="text-muted-foreground group-hover:text-foreground">Volver</span>

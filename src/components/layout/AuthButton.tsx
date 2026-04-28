@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { User, LogOut, LayoutDashboard, ChevronDown, ShoppingBag } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
   const router = useRouter();
 
   useEffect(() => {
+    const supabase = createClient();
+
     const getInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
@@ -36,6 +38,7 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
   }, []);
 
   const handleLogout = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     setIsOpen(false);
     router.refresh();

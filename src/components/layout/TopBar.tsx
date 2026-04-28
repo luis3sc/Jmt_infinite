@@ -11,8 +11,6 @@ interface TopBarProps {
   right?: React.ReactNode;
   className?: string;
   isFixed?: boolean;
-  showBackButton?: boolean;
-  onBack?: () => void;
 }
 
 export default function TopBar({
@@ -21,22 +19,9 @@ export default function TopBar({
   right,
   className,
   isFixed = true,
-  showBackButton = false,
-  onBack,
 }: TopBarProps) {
   const defaultLeft = (
     <div className="flex items-center gap-3">
-      {showBackButton && (
-        <button 
-          onClick={onBack}
-          className="p-1.5 bg-slate-800/40 rounded-xl hover:bg-slate-800/80 hover:scale-105 active:scale-95 transition-all md:mr-2 border border-white/5"
-          title="Volver"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-            <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
-          </svg>
-        </button>
-      )}
       <Link href="/" className="transition-opacity hover:opacity-80 flex items-center shrink-0">
         <div className="relative w-28 md:w-32 h-8 md:h-10">
           <Image

@@ -66,12 +66,15 @@ export function MapViewClient() {
   const today = new Date().toISOString().split('T')[0];
   const defaultEnd = addDays(new Date(), 30).toISOString().split('T')[0];
 
+  const initialStart = fromParam || new Date().toISOString().split('T')[0];
+  const initialEnd = toParam || addDays(new Date(), 30).toISOString().split('T')[0];
+
   // Staged states for active search (only update when "Buscar" is clicked)
-  const [activeStartDate, setActiveStartDate] = useState(fromParam || today);
-  const [activeEndDate, setActiveEndDate] = useState(toParam || defaultEnd);
+  const [activeStartDate, setActiveStartDate] = useState(initialStart);
+  const [activeEndDate, setActiveEndDate] = useState(initialEnd);
   const [pendingLocation, setPendingLocation] = useState<{ lng: number, lat: number } | null>(null);
-  const [startDate, setStartDate] = useState(fromParam || today);
-  const [endDate, setEndDate] = useState(toParam || defaultEnd);
+  const [startDate, setStartDate] = useState(initialStart);
+  const [endDate, setEndDate] = useState(initialEnd);
 
   // The automatic sync useEffect for dates is removed in favor of the "Buscar" button
   // to avoid redundant URL updates and follow the user's request for manual search trigger.
@@ -92,7 +95,7 @@ export function MapViewClient() {
   const removeCartItem = useCartStore((state) => state.removeItem);
   const updateCartItem = useCartStore((state) => state.updateItem);
   const cartItemCount = useCartStore((state) => state.getTotalItems());
-  const cartTotal = useCartStore((state) => state.getTotalPrice());
+  const cartTotal = useCartStore((state) => state.items.reduce((total, item) => total + item.totalPrice, 0));
 
   const triggerToast = (message: string) => {
     setShowToast({ show: true, message });
@@ -105,6 +108,29 @@ export function MapViewClient() {
   const [structures, setStructures] = useState<Structure[]>([]);
   const [selectedStructure, setSelectedStructure] = useState<Structure | null>(null);
   const [activePanelIndex, setActivePanelIndex] = useState(0);
+
+  // Derivations moved up for reliable scoping
+  const currentActivePanel = selectedStructure?.panels?.[activePanelIndex];
+  const currentFinalDailyPrice = currentActivePanel?.daily_price || 150;
+  const currentIsInCart = currentActivePanel ? cartItems.some(i => i.panelId === currentActivePanel.id) : false;
+
+  // Helpers moved to top for visibility
+  const getDailyDisplayPrice = (dailyPrice: number) => {
+    return Math.round(dailyPrice * 1.18 * 100) / 100;
+  };
+
+  const getDisplayPrice = (dailyPrice: number) => {
+    const basePrice = numberOfDays > 0 ? dailyPrice * numberOfDays : dailyPrice;
+    return Math.round(basePrice * 1.18 * 100) / 100; // Round to 2 decimals
+  };
+
+  const calculateDisplayPrice = (structure: Structure) => {
+    if (!structure.panels || structure.panels.length === 0) return getDisplayPrice(150);
+    const prices = structure.panels.map((p) => p.daily_price || 150);
+    const lowestNet = Math.min(...prices);
+    return getDisplayPrice(lowestNet);
+  };
+
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
@@ -511,21 +537,7 @@ export function MapViewClient() {
     fetchStructuresInBounds(currentBoundsRef.current, currentPage + 1);
   }, [isLoadingMore, hasMore, currentPage, fetchStructuresInBounds]);
 
-  const getDailyDisplayPrice = (dailyPrice: number) => {
-    return Math.round(dailyPrice * 1.18 * 100) / 100;
-  };
-
-  const getDisplayPrice = (dailyPrice: number) => {
-    const basePrice = numberOfDays > 0 ? dailyPrice * numberOfDays : dailyPrice;
-    return Math.round(basePrice * 1.18 * 100) / 100; // Round to 2 decimals
-  };
-
-  const calculateDisplayPrice = (structure: Structure) => {
-    if (!structure.panels || structure.panels.length === 0) return getDisplayPrice(150);
-    const prices = structure.panels.map((p) => p.daily_price || 150);
-    const lowestNet = Math.min(...prices);
-    return getDisplayPrice(lowestNet);
-  };
+  // Helpers moved to top for visibility
 
 
   const handleSelectStructure = (structure: Structure) => {
@@ -583,10 +595,13 @@ export function MapViewClient() {
     }
   };
 
+
+  // Derived state for the active selection
+
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background">
 
-      {/* TOP NAVBAR (Consolidated using TopBar component) */}
+      {/* TOP NAVBAR */}
       <TopBar
         isFixed={false}
         center={
@@ -909,7 +924,7 @@ export function MapViewClient() {
 
         {/* SIDE PANEL / MODAL (Mobile full-screen, Desktop right-side) */}
         <AnimatePresence>
-          {selectedStructure && (
+          {selectedStructure && currentActivePanel && (
             <>
               {/* Backdrop */}
               <motion.div
@@ -920,7 +935,6 @@ export function MapViewClient() {
                 className="fixed inset-0 bg-black/60 backdrop-blur-md z-[90]"
               />
 
-
               <motion.div
                 initial={{ x: "100%", opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -928,255 +942,176 @@ export function MapViewClient() {
                 transition={{ type: "spring", damping: 30, stiffness: 300 }}
                 className="fixed inset-0 md:inset-y-0 md:right-0 md:left-auto md:w-[480px] z-[100] bg-[#0e162b] text-white flex flex-col overflow-hidden shadow-2xl md:border-l md:border-white/10"
               >
-            {(() => {
-              const activePanel = selectedStructure.panels[activePanelIndex] || selectedStructure.panels[0];
-              if (!activePanel) return null;
+                {/* Header with Close Button */}
+                <div className="absolute top-0 left-0 right-0 z-30 flex justify-between items-center p-4">
+                  <div className="text-white font-bold tracking-tight shadow-sm px-4 py-1.5 bg-black/40 rounded-full text-xs backdrop-blur-md border border-white/10">
+                    {currentActivePanel.panel_code || selectedStructure.code}
+                  </div>
+                  <button
+                    onClick={() => setSelectedStructure(null)}
+                    className="bg-black/50 backdrop-blur-md p-2.5 rounded-full text-white hover:bg-black/70 transition-all hover:scale-110 active:scale-95 border border-white/10"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
 
-              // Base daily price (net)
-              const finalDailyPrice = Number(activePanel.daily_price || 150);
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto overscroll-contain no-scrollbar">
+                  <div className="relative h-[45vh] w-full bg-[#1a233a] shrink-0">
+                    {currentActivePanel.photo_url ? (
+                      <Image src={currentActivePanel.photo_url} alt={selectedStructure.address} fill className="object-cover" priority />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center w-full h-full text-white/30 bg-[#1a233a]">
+                        <MapIcon size={48} className="mb-2 opacity-20" />
+                        <span className="text-sm font-medium">Vista no disponible</span>
+                      </div>
+                    )}
 
-              return (
-                <>
-                  {/* Header with Close Button - Semi-transparent glass effect */}
-                  <div className="absolute top-0 left-0 right-0 z-30 flex justify-between items-center p-4">
-                    <div className="text-white font-bold tracking-tight shadow-sm px-4 py-1.5 bg-black/40 rounded-full text-xs backdrop-blur-md border border-white/10">
-                      {activePanel.panel_code || selectedStructure.code}
-                    </div>
-                    <button
-                      onClick={() => setSelectedStructure(null)}
-                      className="bg-black/50 backdrop-blur-md p-2.5 rounded-full text-white hover:bg-black/70 transition-all hover:scale-110 active:scale-95 border border-white/10"
-                    >
-                      <X size={20} />
-                    </button>
+                    {selectedStructure.panels.length > 1 && (
+                      <div className="absolute bottom-6 left-6 right-6 flex bg-black/60 backdrop-blur-xl p-1.5 rounded-2xl gap-2 z-20 border border-white/10 shadow-2xl">
+                        {selectedStructure.panels.map((p, idx) => (
+                          <button
+                            key={p.id}
+                            onClick={() => setActivePanelIndex(idx)}
+                            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-300 whitespace-nowrap px-4 ${activePanelIndex === idx
+                              ? 'bg-primary text-white shadow-[0_0_20px_hsl(var(--primary)/0.4)]'
+                              : 'text-white/60 hover:text-white hover:bg-white/10'
+                            }`}
+                          >
+                            Cara {p.face || (idx === 0 ? 'A' : 'B')}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0e162b] to-transparent z-10" />
                   </div>
 
-                  {/* Scrollable Content Container */}
-                  <div className="flex-1 overflow-y-auto overscroll-contain no-scrollbar">
-                    {/* Photo Area */}
-                    <div className="relative h-[45vh] w-full bg-[#1a233a] shrink-0">
-                      {activePanel.photo_url ? (
-                        <Image
-                          src={activePanel.photo_url}
-                          alt={selectedStructure.address}
-                          fill
-                          className="object-cover"
-                          priority
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center w-full h-full text-white/30 bg-[#1a233a]">
-                          <MapIcon size={48} className="mb-2 opacity-20" />
-                          <span className="text-sm font-medium">Vista no disponible</span>
+                  <div className="px-6 py-4 space-y-6">
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-primary/30">
+                          {currentActivePanel.media_type || "Estática"}
+                        </span>
+                        <span className="bg-white/5 text-white/70 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-white/10">
+                          {currentActivePanel.format || "Panel"}
+                        </span>
+                      </div>
+                      <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-tight tracking-tight">{selectedStructure.address}</h2>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-primary font-medium text-sm">
+                          <MapPin size={16} />
+                          <span>{selectedStructure.district}</span>
                         </div>
-                      )}
-
-                      {/* Face Selector Overlay (if 2+ panels) */}
-                      {selectedStructure.panels.length > 1 && (
-                        <div className="absolute bottom-6 left-6 right-6 flex bg-black/60 backdrop-blur-xl p-1.5 rounded-2xl gap-2 z-20 border border-white/10 shadow-2xl">
-                          {selectedStructure.panels.map((p, idx) => (
-                            <button
-                              key={p.id}
-                              onClick={() => setActivePanelIndex(idx)}
-                              className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-300 whitespace-nowrap px-4 ${activePanelIndex === idx
-                                  ? 'bg-primary text-white shadow-[0_0_20px_hsl(var(--primary)/0.4)]'
-                                  : 'text-white/60 hover:text-white hover:bg-white/10'
-                                }`}
-                            >
-                              Cara {p.face || (idx === 0 ? 'A' : 'B')}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Gradient Overlay for better text legibility */}
-                      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0e162b] to-transparent z-10" />
+                        {selectedStructure.reference && <p className="text-white/50 text-sm italic">Ref: {selectedStructure.reference}</p>}
+                      </div>
                     </div>
 
-                    {/* Details Area */}
-                    <div className="px-6 py-4 space-y-6">
-                      {/* Tags & Title */}
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap gap-2">
-                          <span className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-primary/30">
-                            {activePanel.media_type || "Estática"}
-                          </span>
-                          <span className="bg-white/5 text-white/70 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-white/10">
-                            {activePanel.format || "Panel"}
-                          </span>
-                        </div>
-
-                        <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-tight tracking-tight">
-                          {selectedStructure.address}
-                        </h2>
-
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center gap-2 text-primary font-medium text-sm">
-                            <MapPin size={16} />
-                            <span>{selectedStructure.district}</span>
-                          </div>
-                          {selectedStructure.reference && (
-                            <p className="text-white/50 text-sm italic">
-                              Ref: {selectedStructure.reference}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Price Card - Prominent inside scroll */}
-                      <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-3xl p-6 flex justify-between items-end shadow-inner">
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">{numberOfDays > 0 ? `Inversión total (${numberOfDays} días)` : "Inversión diaria"}</span>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-black text-white tracking-tighter">S/ {Math.floor(getDisplayPrice(finalDailyPrice)).toLocaleString()}</span>
-                            <div className="flex flex-col">
-                              <span className="text-white/40 text-[10px] font-bold uppercase leading-none">
-                                .{(getDisplayPrice(finalDailyPrice) % 1).toFixed(2).split('.')[1]}
-                              </span>
-                              <span className="text-primary text-[8px] font-black uppercase leading-none mt-1">Incl. IGV</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
-                          DISPONIBLE
-                        </div>
-                      </div>
-
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3 transition-colors hover:bg-white/10">
-                          <div className="p-2 bg-primary/10 rounded-xl w-fit">
-                            <Users size={18} className="text-primary" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Alcance</span>
-                            <p className="font-bold text-xl text-white">
-                              {activePanel.audience ? activePanel.audience.toLocaleString() : '125,000+'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3 transition-colors hover:bg-white/10">
-                          <div className="p-2 bg-primary/10 rounded-xl w-fit">
-                            <Maximize size={18} className="text-primary" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Medidas</span>
-                            <p className="font-bold text-xl text-white">
-                              {activePanel.width && activePanel.height ? `${activePanel.width}x${activePanel.height}m` : '12x4m'}
-                            </p>
+                    <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-3xl p-6 flex justify-between items-end shadow-inner">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">{numberOfDays > 0 ? `Inversión total (${numberOfDays} días)` : "Inversión diaria"}</span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-4xl font-black text-white tracking-tighter">S/ {Math.floor(getDisplayPrice(currentFinalDailyPrice)).toLocaleString()}</span>
+                          <div className="flex flex-col">
+                            <span className="text-white/40 text-[10px] font-bold uppercase leading-none">.{(getDisplayPrice(currentFinalDailyPrice) % 1).toFixed(2).split('.')[1]}</span>
+                            <span className="text-primary text-[8px] font-black uppercase leading-none mt-1">Incl. IGV</span>
                           </div>
                         </div>
                       </div>
+                      <div className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">DISPONIBLE</div>
+                    </div>
 
-                      {/* Additional Details */}
-                      <div className="space-y-4">
-                        {activePanel.traffic_view && (
-                          <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                            <div className="flex items-center gap-2 mb-3">
-                              <Navigation size={18} className="text-primary" />
-                              <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Visibilidad</h4>
-                            </div>
-                            <p className="text-sm text-white/90 font-medium leading-relaxed">
-                              {activePanel.traffic_view}
-                            </p>
-                          </div>
-                        )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3">
+                        <Users size={18} className="text-primary" />
+                        <div>
+                          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Alcance</span>
+                          <p className="font-bold text-xl text-white">{currentActivePanel.audience ? currentActivePanel.audience.toLocaleString() : '125,000+'}</p>
+                        </div>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3">
+                        <Maximize size={18} className="text-primary" />
+                        <div>
+                          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Medidas</span>
+                          <p className="font-bold text-xl text-white">{currentActivePanel.width && currentActivePanel.height ? `${currentActivePanel.width}x${currentActivePanel.height}m` : '12x4m'}</p>
+                        </div>
+                      </div>
+                    </div>
 
+                    <div className="space-y-4">
+                      {currentActivePanel.traffic_view && (
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
                           <div className="flex items-center gap-2 mb-3">
-                            <List size={18} className="text-primary" />
-                            <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Especificaciones</h4>
+                            <Navigation size={18} className="text-primary" />
+                            <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Visibilidad</h4>
                           </div>
-                          <div className="grid grid-cols-1 gap-3">
-                            <div className="flex justify-between items-center text-sm py-1 border-b border-white/5">
-                              <span className="text-white/40">Código</span>
-                              <span className="text-white font-bold">{activePanel.panel_code || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm py-1 border-b border-white/5">
-                              <span className="text-white/40">Material</span>
-                              <span className="text-white font-bold">Lona Frontlit</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm py-1">
-                              <span className="text-white/40">Iluminación</span>
-                              <span className="text-white font-bold">Reflector LED</span>
-                            </div>
-                          </div>
+                          <p className="text-sm text-white/90 font-medium">{currentActivePanel.traffic_view}</p>
+                        </div>
+                      )}
+                      <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <List size={18} className="text-primary" />
+                          <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Especificaciones</h4>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 text-sm">
+                          <div className="flex justify-between py-1 border-b border-white/5"><span className="text-white/40">Código</span><span className="text-white font-bold">{currentActivePanel.panel_code || 'N/A'}</span></div>
+                          <div className="flex justify-between py-1 border-b border-white/5"><span className="text-white/40">Material</span><span className="text-white font-bold">Lona Frontlit</span></div>
+                          <div className="flex justify-between py-1"><span className="text-white/40">Iluminación</span><span className="text-white font-bold">Reflector LED</span></div>
                         </div>
                       </div>
-
-                      {/* Spacing for fixed button */}
-                      <div className="h-24" />
                     </div>
+                    <div className="h-24" />
                   </div>
+                </div>
 
-                  {/* Fixed Bottom Action Bar */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0e162b] via-[#0e162b] to-transparent pt-12 z-40">
-                    {(() => {
-                      const currentPanel = activePanel;
-                      const panelDailyPrice = Number(currentPanel.daily_price || 150);
-                      const isInCart = cartItems.some(i => i.panelId === currentPanel.id);
-                      return (
-                        <motion.button
-                          whileTap={{ scale: 0.97 }}
-                          className={`w-full py-5 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-2xl overflow-hidden
-                            ${isInCart
-                              ? "bg-white/10 text-white border border-white/20 hover:bg-white/20 shadow-none"
-                              : "bg-primary hover:bg-primary/90 text-white shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)]"
-                            }`}
-                          onClick={() => {
-                            if (isInCart) {
-                              setIsCartOpen(true);
-                              return;
-                            }
-                            addCartItem({
-                              panelId: currentPanel.id,
-                              structureId: selectedStructure.id,
-                              panelCode: currentPanel.panel_code || selectedStructure.code,
-                              address: selectedStructure.address,
-                              district: selectedStructure.district,
-                              photoUrl: currentPanel.photo_url || "",
-                              dailyPrice: panelDailyPrice,
-                              startDate: activeStartDate,
-                              endDate: activeEndDate,
-                              days: numberOfDays > 0 ? numberOfDays : 1,
-                              totalPrice: Math.round(panelDailyPrice * (numberOfDays > 0 ? numberOfDays : 1) * 1.18 * 100) / 100,
-                              format: currentPanel.format || "",
-                              mediaType: currentPanel.media_type || ""
-                            });
-                            triggerToast(`¡Panel ${currentPanel.panel_code || selectedStructure.code} añadido!`);
-                          }}
-                        >
-                          <AnimatePresence mode="wait">
-                            {isInCart ? (
-                              <motion.div
-                                key="in-cart"
-                                initial={{ y: 20, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: -20, opacity: 0 }}
-                                className="flex items-center gap-3"
-                              >
-                                <CheckCircle2 size={22} className="text-primary" />
-                                <span>Ir al Carrito</span>
-                              </motion.div>
-                            ) : (
-                              <motion.div
-                                key="add-to-cart"
-                                initial={{ y: 20, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: -20, opacity: 0 }}
-                                className="flex items-center gap-3"
-                              >
-                                <ShoppingCart size={22} />
-                                <span>Añadir al Carrito</span>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </motion.button>
-                      );
-                    })()}
-                  </div>
-                </>
-              );
-            })()}
+                {/* Fixed Bottom Action Bar */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0e162b] via-[#0e162b] to-transparent pt-12 z-40">
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    className={`w-full py-5 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-2xl ${currentIsInCart ? "bg-white/10 text-white border border-white/20" : "bg-primary text-white"}`}
+                    onClick={() => {
+                      if (currentIsInCart) { setIsCartOpen(true); return; }
+                      let actualDays = numberOfDays || 1;
+                      let actualStart = activeStartDate;
+                      let actualEnd = activeEndDate;
+                      if (startDate && endDate) {
+                        const s = new Date(startDate).getTime();
+                        const e = new Date(endDate).getTime();
+                        const d = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
+                        if (d > 0) { actualDays = d; actualStart = startDate; actualEnd = endDate; }
+                      }
+                      addCartItem({
+                        panelId: currentActivePanel.id,
+                        structureId: selectedStructure.id,
+                        panelCode: currentActivePanel.panel_code || selectedStructure.code,
+                        address: selectedStructure.address,
+                        district: selectedStructure.district,
+                        photoUrl: currentActivePanel.photo_url || "",
+                        dailyPrice: currentFinalDailyPrice,
+                        startDate: actualStart,
+                        endDate: actualEnd,
+                        days: actualDays,
+                        totalPrice: Math.round(currentFinalDailyPrice * actualDays * 1.18 * 100) / 100,
+                        format: currentActivePanel.format || "",
+                        mediaType: currentActivePanel.media_type || ""
+                      });
+                      triggerToast(`¡Panel ${currentActivePanel.panel_code || selectedStructure.code} añadido!`);
+                    }}
+                  >
+                    <AnimatePresence mode="wait">
+                      {currentIsInCart ? (
+                        <motion.div key="in-cart" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex items-center gap-3">
+                          <CheckCircle2 size={22} className="text-primary" />
+                          <span>Ir al Carrito</span>
+                        </motion.div>
+                      ) : (
+                        <motion.div key="add-to-cart" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex items-center gap-3">
+                          <ShoppingCart size={22} />
+                          <span>Añadir al Carrito</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
               </motion.div>
             </>
           )}
@@ -1511,17 +1446,17 @@ export function MapViewClient() {
 
                     {/* Items list — desktop only */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
-                      {cartItems.map((item) => (
-                        <div key={item.panelId} className="flex justify-between items-center px-5 py-3.5 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
+                      {cartItems.map((summaryItem) => (
+                        <div key={summaryItem.panelId} className="flex justify-between items-center px-5 py-3.5 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
                           <div className="min-w-0 flex-1 pr-3">
-                            <p className="font-bold text-sm text-foreground truncate uppercase tracking-tight">{item.panelCode}</p>
-                            <p className="text-xs text-muted-foreground truncate font-medium">{item.address}</p>
+                            <p className="font-bold text-sm text-foreground truncate uppercase tracking-tight">{summaryItem.panelCode}</p>
+                            <p className="text-xs text-muted-foreground truncate font-medium">{summaryItem.address}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase">{item.days} días</span>
-                              <p className="text-[10px] text-muted-foreground font-bold tracking-tight">{item.startDate} al {item.endDate}</p>
+                              <span className="text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase">{summaryItem.days} días</span>
+                              <p className="text-[10px] text-muted-foreground font-bold tracking-tight">{summaryItem.startDate} al {summaryItem.endDate}</p>
                             </div>
                           </div>
-                          <p className="font-black text-sm text-foreground whitespace-nowrap">S/ {item.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                          <p className="font-black text-sm text-foreground whitespace-nowrap">S/ {summaryItem.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
                         </div>
                       ))}
                     </div>

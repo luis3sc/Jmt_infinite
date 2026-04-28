@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ShoppingBag, Calendar, MapPin, ChevronRight, Package, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
+import { ShoppingBag, Calendar, MapPin, ChevronRight, Package, Clock, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import AuthButton from '@/components/layout/AuthButton'
 
@@ -43,6 +43,8 @@ export default async function DashboardPage() {
     switch (status) {
       case 'CONFIRMED': return 'text-green-400 bg-green-400/10 border-green-400/20'
       case 'PENDING_UPLOAD': return 'text-amber-400 bg-amber-400/10 border-amber-400/20'
+      case 'VIDEO_SENT': return 'text-blue-400 bg-blue-400/10 border-blue-400/20'
+      case 'PENDING_VALIDATION': return 'text-purple-400 bg-purple-400/10 border-purple-400/20'
       case 'CANCELLED': return 'text-red-400 bg-red-400/10 border-red-400/20'
       default: return 'text-slate-400 bg-slate-400/10 border-slate-400/20'
     }
@@ -52,6 +54,8 @@ export default async function DashboardPage() {
     switch (status) {
       case 'CONFIRMED': return 'Confirmado'
       case 'PENDING_UPLOAD': return 'Pendiente de Video'
+      case 'VIDEO_SENT': return 'Video Enviado'
+      case 'PENDING_VALIDATION': return 'En Validación'
       case 'CANCELLED': return 'Cancelado'
       default: return status
     }
@@ -60,34 +64,18 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen bg-[#0a0f1d] text-white flex flex-col">
       <TopBar 
-        left={
-          <div className="flex items-center gap-3">
-            <Link 
-              href="/map"
-              className="p-1.5 bg-slate-800/40 rounded-xl hover:bg-slate-800/80 hover:scale-105 active:scale-95 transition-all md:mr-2 border border-white/5"
-              title="Volver al Mapa"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
-              </svg>
-            </Link>
-            <Link href="/" className="transition-opacity hover:opacity-80 flex items-center shrink-0">
-              <div className="relative w-28 md:w-32 h-8 md:h-10">
-                <Image
-                  src="/assets/images/jmtinfinite_logo.svg"
-                  alt="JMT Logo"
-                  fill
-                  className="object-contain"
-                  priority
-                />
-              </div>
-            </Link>
-          </div>
-        }
         right={<AuthButton />} 
       />
 
       <div className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 pt-24 md:pt-28">
+        {/* Botón Volver - Standardized with Checkout */}
+        <Link
+          href="/map"
+          className="w-fit flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted hover:border-primary/20 transition-all active:scale-95 group text-sm font-semibold mb-8"
+        >
+          <ArrowLeft size={18} className="text-primary group-hover:-translate-x-1 transition-transform" />
+          <span className="text-muted-foreground group-hover:text-foreground">Volver</span>
+        </Link>
         <header className="mb-10">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-primary/20 rounded-lg text-primary">
@@ -120,18 +108,19 @@ export default async function DashboardPage() {
             </p>
             <Link 
               href="/map" 
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white font-black uppercase tracking-widest text-xs rounded-xl hover:bg-primary/90 transition-all shadow-xl shadow-primary/20"
+              className="w-fit flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted hover:border-primary/20 transition-all active:scale-95 group text-sm font-semibold"
             >
-              <span>Explorar Pantallas</span>
-              <ChevronRight size={16} />
+              <span className="text-muted-foreground group-hover:text-foreground">Explorar</span>
+              <ChevronRight size={18} className="text-primary group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         ) : (
           <div className="space-y-6">
             {orders.map((order) => (
-              <div 
+              <Link
+                href={`/order-success/${order.id}`} 
                 key={order.id}
-                className="group relative bg-[#0d1326] border border-white/5 rounded-3xl overflow-hidden transition-all hover:border-white/10 hover:shadow-2xl hover:shadow-black/50"
+                className="block group relative bg-[#0d1326] border border-white/5 rounded-3xl overflow-hidden transition-all hover:border-white/10 hover:shadow-2xl hover:shadow-black/50 cursor-pointer"
               >
                 {/* Header del Pedido */}
                 <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -164,12 +153,11 @@ export default async function DashboardPage() {
                         S/ {order.total_amount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
-                    <Link 
-                      href={`/order-success/${order.id}`}
-                      className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-400 hover:text-primary hover:border-primary/20 hover:bg-primary/5 transition-all group/btn"
+                    <div 
+                      className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-400 group-hover:text-primary group-hover:border-primary/20 group-hover:bg-primary/5 transition-all"
                     >
-                      <ChevronRight size={24} className="group-hover/btn:translate-x-0.5 transition-transform" />
-                    </Link>
+                      <ChevronRight size={24} className="group-hover:translate-x-0.5 transition-transform" />
+                    </div>
                   </div>
                 </div>
 
@@ -213,7 +201,7 @@ export default async function DashboardPage() {
 
                 {/* Status Bar Indicator */}
                 <div className="absolute top-0 left-0 bottom-0 w-1 bg-primary/20 group-hover:bg-primary transition-colors" />
-              </div>
+              </Link>
             ))}
           </div>
         )}
