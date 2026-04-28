@@ -557,42 +557,49 @@ export function MapViewClient() {
   };
 
   const handleUpdateItemDates = (panelId: string, start: string, end: string) => {
-    if (!start || !end) return;
+    const item = cartItems.find(i => i.panelId === panelId);
+    if (!item) return;
+
+    // Use provided dates or fallback to current item dates or global defaults
+    const newStart = start || item.startDate || today;
+    const newEnd = end || item.endDate || defaultEnd;
 
     try {
-      const s = parseISO(start);
-      const e = parseISO(end);
+      const s = parseISO(newStart);
+      const e = parseISO(newEnd);
 
-      // Basic validation: if dates are invalid, return
-      if (isNaN(s.getTime()) || isNaN(e.getTime())) return;
-
-      let diff = differenceInDays(e, s);
-
-      // Ensure at least 1 day and end >= start
-      if (diff < 1) {
-        diff = 1;
-        const newEnd = addDays(s, 1).toISOString().split('T')[0];
-        const item = cartItems.find(i => i.panelId === panelId);
-        if (item) {
-          useCartStore.getState().updateItem(panelId, {
-            startDate: start,
-            endDate: newEnd,
-            days: 1,
-            totalPrice: item.dailyPrice * 1 * 1.18
-          });
-        }
+      // Validation: If dates are invalid, just update what we have
+      if (isNaN(s.getTime()) || isNaN(e.getTime())) {
+        useCartStore.getState().updateItem(panelId, {
+          startDate: newStart,
+          endDate: newEnd
+        });
         return;
       }
 
-      const item = cartItems.find(i => i.panelId === panelId);
-      if (item) {
+      // Calculate difference
+      let diff = differenceInDays(e, s);
+
+      // Force at least 1 day if end is same or before start
+      if (diff < 1) {
+        diff = 1;
+        const correctedEnd = addDays(s, 1).toISOString().split('T')[0];
         useCartStore.getState().updateItem(panelId, {
-          startDate: start,
-          endDate: end,
-          days: diff,
-          totalPrice: Math.round(item.dailyPrice * diff * 1.18 * 100) / 100
+          startDate: newStart,
+          endDate: correctedEnd,
+          days: 1,
+          totalPrice: Math.round(item.dailyPrice * 1 * 1.18 * 100) / 100
         });
+        return;
       }
+
+      // Normal update with recalculated price
+      useCartStore.getState().updateItem(panelId, {
+        startDate: newStart,
+        endDate: newEnd,
+        days: diff,
+        totalPrice: Math.round(item.dailyPrice * diff * 1.18 * 100) / 100
+      });
     } catch (error) {
       console.error("Error updating dates:", error);
     }
@@ -708,7 +715,7 @@ export function MapViewClient() {
               // Layout-matching skeleton cards
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-card border border-border rounded-2xl overflow-hidden animate-pulse flex flex-row h-[120px]">
+                  <div key={i} className="bg-card border border-border rounded-lg overflow-hidden animate-pulse flex flex-row h-[120px]">
                     <div className="w-[35%] h-full bg-muted shrink-0" />
                     <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
                       <div>
@@ -720,7 +727,7 @@ export function MapViewClient() {
                           <div className="h-2 bg-muted rounded w-1/2" />
                           <div className="h-4 bg-muted rounded w-full" />
                         </div>
-                        <div className="h-8 bg-muted rounded-xl w-16" />
+                        <div className="h-8 bg-muted rounded-lg w-16" />
                       </div>
                     </div>
                   </div>
@@ -741,7 +748,7 @@ export function MapViewClient() {
                 {structures.map((s) => (
                   <div
                     key={s.id}
-                    className={`rounded-2xl overflow-hidden cursor-pointer transition-all flex flex-row h-[130px] border
+                    className={`rounded-lg overflow-hidden cursor-pointer transition-all flex flex-row h-[130px] border
                     ${selectedStructure?.id === s.id 
                       ? "bg-[#0e162b] text-white border-primary shadow-sm" 
                       : "bg-[#0e162b] text-white border-white/10 hover:border-primary/40"}`}
@@ -779,7 +786,7 @@ export function MapViewClient() {
                             <span className={`text-[10px] font-normal ${selectedStructure?.id === s.id ? "text-white/40" : "text-muted-foreground"}`}>{numberOfDays > 0 ? "" : "/día"}</span>
                           </p>
                         </div>
-                        <button className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20`}>
+                        <button className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20`}>
                           Ver
                         </button>
                       </div>
@@ -974,7 +981,7 @@ export function MapViewClient() {
               />
               {/* Filter button removed from mobile search as requested */}
               {showSuggestions && suggestions.length > 0 && (
-                <ul className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-xl shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto">
+                <ul className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto">
                   {suggestions.map((s: any) => (
                     <li
                       key={s.id}
@@ -1093,7 +1100,7 @@ export function MapViewClient() {
                             Tu solicitud de reserva para <span className="text-foreground font-bold">{cartItems.length} ubicaciones</span> ha sido enviada con éxito.
                           </p>
                         </div>
-                        <div className="bg-muted/50 p-4 rounded-2xl w-full border border-border/50 text-xs text-muted-foreground">
+                        <div className="bg-muted/50 p-4 rounded-lg w-full border border-border/50 text-xs text-muted-foreground">
                           Un asesor de JMT se pondrá en contacto contigo en breve para finalizar los detalles técnicos y contractuales.
                         </div>
                         <button
@@ -1101,7 +1108,7 @@ export function MapViewClient() {
                             setCheckoutSuccess(false);
                             setIsCartOpen(false);
                           }}
-                          className="w-full bg-foreground text-background py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-foreground/90 transition-all shadow-xl"
+                          className="w-full bg-foreground text-background py-4 rounded-lg font-black text-sm uppercase tracking-widest hover:bg-foreground/90 transition-all shadow-xl"
                         >
                           Volver al Mapa
                         </button>
@@ -1122,7 +1129,7 @@ export function MapViewClient() {
                         </div>
                         <button
                           onClick={() => setIsCartOpen(false)}
-                          className="bg-primary text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-[0_15px_30px_-10px_hsl(var(--primary)/0.5)]"
+                          className="bg-primary text-white px-10 py-4 rounded-lg font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-[0_15px_30px_-10px_hsl(var(--primary)/0.5)]"
                         >
                           Explorar Ubicaciones
                         </button>
@@ -1135,10 +1142,10 @@ export function MapViewClient() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
                             key={item.panelId}
-                            className="flex flex-row rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all group overflow-hidden"
+                            className="grid grid-cols-[96px_1fr] md:grid-cols-[35%_1fr] rounded-lg border border-border bg-card shadow-sm hover:shadow-md transition-all group overflow-hidden"
                           >
-                            {/* Image: fixed 96px on mobile, 35% on desktop */}
-                            <div className="relative w-24 md:w-[35%] shrink-0 bg-muted">
+                            {/* Image: fixed square 96px on mobile, auto height on desktop spanning both rows */}
+                            <div className="relative w-24 h-24 md:w-full md:h-full md:row-span-2 shrink-0 bg-muted border-r border-border/10">
                               {item.photoUrl ? (
                                 <Image src={item.photoUrl} alt={item.address} fill className="object-cover" />
                               ) : (
@@ -1146,13 +1153,13 @@ export function MapViewClient() {
                               )}
                             </div>
 
-                            {/* Info */}
-                            <div className="p-3 md:p-4 flex flex-col gap-1.5 flex-1 min-w-0">
+                            {/* Top row: Basic info (Col 2 on mobile, Col 2 Row 1 on desktop) */}
+                            <div className="p-3 md:p-4 flex flex-col gap-1.5 min-w-0">
                               <div className="flex justify-between items-start gap-2">
                                 <p className="font-bold text-sm text-foreground leading-tight line-clamp-2">{item.address}</p>
                                 <button
                                   onClick={() => removeCartItem(item.panelId)}
-                                  className="text-red-500 hover:text-white hover:bg-red-500 transition-all p-1.5 rounded-xl bg-red-50 dark:bg-red-950/30 shrink-0"
+                                  className="text-red-500 hover:text-white hover:bg-red-500 transition-all p-1.5 rounded-lg bg-red-50 dark:bg-red-950/30 shrink-0"
                                   title="Eliminar"
                                 >
                                   <Trash2 size={15} />
@@ -1162,21 +1169,27 @@ export function MapViewClient() {
                                 <MapPin size={10} className="text-primary shrink-0" />
                                 <span className="truncate">{item.district}</span>
                               </p>
-                              <div className="pt-2 border-t border-border/30 flex items-center justify-between">
+                              <div className="pt-2 flex items-center justify-between">
                                 <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{item.panelCode}</span>
                                 <p className="font-bold text-sm text-primary">S/ {item.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
                               </div>
+                            </div>
 
-                              {/* Date Range */}
-                              <div className="pt-2 border-t border-border/30">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="relative group flex flex-col gap-1 p-2 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-border/50">
-                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                      <Calendar size={10} className="text-primary" />
+                            {/* Bottom row: Dates (Now in Col 2 for both mobile and desktop to optimize space) */}
+                            <div className="col-start-2 p-3 md:p-4 md:pt-0 bg-muted/5 md:bg-transparent">
+                              <div className="grid grid-cols-2 gap-2">
+                                  <div className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-lg hover:border-primary/50 transition-colors cursor-pointer">
+                                    <label className="text-[10px] font-black text-primary uppercase tracking-wider flex items-center gap-1.5">
+                                      <Calendar size={11} className="text-primary" />
                                       Inicio
                                     </label>
-                                    <div className="text-xs font-bold text-foreground truncate">
-                                      {item.startDate ? new Date(item.startDate).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' }) : '---'}
+                                    <div className="text-xs font-bold text-foreground truncate pl-1">
+                                      {item.startDate ? (() => {
+                                        try {
+                                          const d = parseISO(item.startDate);
+                                          return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
+                                        } catch { return '---'; }
+                                      })() : '---'}
                                     </div>
                                     <input
                                       type="date"
@@ -1193,13 +1206,18 @@ export function MapViewClient() {
                                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     />
                                   </div>
-                                  <div className="relative group flex flex-col gap-1 p-2 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-border/50">
-                                    <label className="text-[9px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                                      <Calendar size={10} className="text-primary" />
+                                  <div className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-lg hover:border-primary/50 transition-colors cursor-pointer">
+                                    <label className="text-[10px] font-black text-primary uppercase tracking-wider flex items-center gap-1.5">
+                                      <Calendar size={11} className="text-primary" />
                                       Fin
                                     </label>
-                                    <div className="text-xs font-bold text-foreground truncate">
-                                      {item.endDate ? new Date(item.endDate).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' }) : '---'}
+                                    <div className="text-xs font-bold text-foreground truncate pl-1">
+                                      {item.endDate ? (() => {
+                                        try {
+                                          const d = parseISO(item.endDate);
+                                          return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
+                                        } catch { return '---'; }
+                                      })() : '---'}
                                     </div>
                                     <input
                                       type="date"
@@ -1217,16 +1235,17 @@ export function MapViewClient() {
                                     />
                                   </div>
                                 </div>
-                                <div className="mt-2 flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-full text-[10px] font-black text-primary uppercase tracking-tight">
-                                    <Clock size={10} />
+
+                                {/* Summary: Days and Daily Price - RE-INSERTED */}
+                                <div className="mt-3 flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 rounded-full text-[10px] font-black text-primary uppercase tracking-tight">
+                                    <Clock size={11} />
                                     <span>{item.days} días</span>
                                   </div>
-                                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">S/ {item.dailyPrice.toFixed(2)} / día</p>
+                                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter bg-muted/50 px-2 py-1 rounded">S/ {item.dailyPrice.toFixed(2)} / día</p>
                                 </div>
                               </div>
-                            </div>
-                          </motion.div>
+                            </motion.div>
                         ))}
                       </div>
                     )}
@@ -1286,7 +1305,19 @@ export function MapViewClient() {
                             <p className="text-xs text-muted-foreground truncate font-medium">{summaryItem.address}</p>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase">{summaryItem.days} días</span>
-                              <p className="text-[10px] text-muted-foreground font-bold tracking-tight">{summaryItem.startDate} al {summaryItem.endDate}</p>
+                               <p className="text-[10px] text-muted-foreground font-bold tracking-tight">
+                                {summaryItem.startDate ? (() => {
+                                  try {
+                                    const d = parseISO(summaryItem.startDate);
+                                    return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
+                                  } catch { return '---'; }
+                                })() : '---'} al {summaryItem.endDate ? (() => {
+                                  try {
+                                    const d = parseISO(summaryItem.endDate);
+                                    return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
+                                  } catch { return '---'; }
+                                })() : '---'}
+                              </p>
                             </div>
                           </div>
                           <p className="font-black text-sm text-foreground whitespace-nowrap">S/ {summaryItem.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>

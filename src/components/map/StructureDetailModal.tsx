@@ -287,19 +287,31 @@ export default function StructureDetailModal({
                 onClick={() => {
                   if (currentIsInCart) { onOpenCart(); return; }
 
+                  // Logic to ensure we always have valid dates and days for the cart
                   let actualDays = numberOfDays || 1;
                   let actualStart = activeStartDate;
                   let actualEnd = activeEndDate;
 
+                  // Use the pending filter dates if they form a valid range
                   if (startDate && endDate) {
-                    const s = new Date(startDate).getTime();
-                    const e = new Date(endDate).getTime();
-                    const d = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
+                    const s = new Date(startDate);
+                    const e = new Date(endDate);
+                    const d = Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
                     if (d > 0) {
                       actualDays = d;
                       actualStart = startDate;
                       actualEnd = endDate;
                     }
+                  }
+
+                  // If still no dates, use some sensible defaults (today to 30 days from now)
+                  if (!actualStart || !actualEnd) {
+                    const now = new Date();
+                    actualStart = now.toISOString().split('T')[0];
+                    const future = new Date();
+                    future.setDate(future.getDate() + 30);
+                    actualEnd = future.toISOString().split('T')[0];
+                    actualDays = 30;
                   }
 
                   onAddToCart({
