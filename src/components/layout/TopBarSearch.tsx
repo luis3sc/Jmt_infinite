@@ -1,7 +1,8 @@
 "use client";
 
-import { Search, Calendar } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { Search } from "lucide-react";
 
 interface TopBarSearchProps {
   searchQuery: string;
@@ -36,17 +37,16 @@ export default function TopBarSearch({
   };
 
   return (
-    <div className="flex items-center bg-card/60 backdrop-blur-sm border border-border rounded-2xl p-1.5 shadow-sm hover:shadow-lg hover:border-primary/40 transition-all duration-300">
+    <div className="flex items-center bg-card/60 backdrop-blur-sm border border-border rounded-2xl p-1.5 shadow-sm hover:shadow-lg hover:border-primary transition-all duration-300">
       {/* Location Search */}
       <div className="relative w-[180px] lg:w-[280px]">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" />
         <input
           type="text"
           value={searchQuery || ""}
           onChange={(e) => onLocationSearch(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="¿Dónde quieres anunciarte?"
-          className="w-full pl-11 pr-4 py-2 bg-transparent border-none text-sm focus:outline-none h-[38px] font-medium placeholder:text-muted-foreground/60"
+          className="w-full px-4 py-2 bg-transparent border-none text-sm focus:outline-none h-[44px] font-medium placeholder:text-muted-foreground/60"
         />
         {showSuggestions && suggestions.length > 0 && (
           <ul className="absolute top-[calc(100%+12px)] left-0 right-0 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-[100] max-h-60 overflow-y-auto">
@@ -67,8 +67,6 @@ export default function TopBarSearch({
 
       {/* Date Range Picker */}
       <div className="hidden sm:flex items-center gap-2 lg:gap-3 px-2 lg:px-3">
-        <Calendar size={16} className="text-primary flex-shrink-0" />
-
         <div
           className="flex items-center gap-1 lg:gap-2 cursor-pointer group"
           onClick={(e) => {
@@ -76,18 +74,28 @@ export default function TopBarSearch({
             if (input && 'showPicker' in input) (input as any).showPicker();
           }}
         >
-          <span className="text-[9px] lg:text-[10px] uppercase font-black text-primary tracking-tighter group-hover:opacity-80 transition-opacity">Desde</span>
-          <input
-            type="date"
-            value={startDate}
-            min={new Date().toISOString().split('T')[0]}
-            onChange={(e) => setStartDate(e.target.value)}
-            onClick={(e) => {
-              e.stopPropagation();
-              if ('showPicker' in e.currentTarget) e.currentTarget.showPicker();
-            }}
-            className="bg-transparent border-none text-[11px] lg:text-xs focus:outline-none text-foreground w-[85px] lg:w-[95px] cursor-pointer font-bold [color-scheme:dark]"
-          />
+          <span className="text-[9px] lg:text-[10px] uppercase font-black text-primary tracking-tighter group-hover:opacity-80 transition-opacity leading-none">Desde</span>
+          <div className="relative flex items-center h-[44px]">
+            {!startDate && (
+              <span className="absolute inset-0 pointer-events-none text-muted-foreground/40 text-[11px] lg:text-xs font-bold whitespace-nowrap flex items-center">
+                Seleccionar
+              </span>
+            )}
+            <input
+              type="date"
+              value={startDate}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setStartDate(e.target.value)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if ('showPicker' in e.currentTarget) e.currentTarget.showPicker();
+              }}
+              className={cn(
+                "bg-transparent border-none text-[11px] lg:text-xs focus:outline-none text-foreground w-[85px] lg:w-[95px] cursor-pointer font-bold [color-scheme:dark] h-full",
+                !startDate && "opacity-0"
+              )}
+            />
+          </div>
         </div>
 
         <div className="h-4 w-px bg-border mx-0.5 lg:mx-1" />
@@ -99,28 +107,49 @@ export default function TopBarSearch({
             if (input && 'showPicker' in input) (input as any).showPicker();
           }}
         >
-          <span className="text-[9px] lg:text-[10px] uppercase font-black text-primary tracking-tighter group-hover:opacity-80 transition-opacity">Hasta</span>
-          <input
-            type="date"
-            value={endDate}
-            min={startDate || new Date().toISOString().split('T')[0]}
-            onChange={(e) => setEndDate(e.target.value)}
-            onClick={(e) => {
-              e.stopPropagation();
-              if ('showPicker' in e.currentTarget) e.currentTarget.showPicker();
-            }}
-            className="bg-transparent border-none text-[11px] lg:text-xs focus:outline-none text-foreground w-[85px] lg:w-[95px] cursor-pointer font-bold [color-scheme:dark]"
-          />
+          <span className="text-[9px] lg:text-[10px] uppercase font-black text-primary tracking-tighter group-hover:opacity-80 transition-opacity leading-none">Hasta</span>
+          <div className="relative flex items-center h-[44px]">
+            {!endDate && (
+              <span className="absolute inset-0 pointer-events-none text-muted-foreground/40 text-[11px] lg:text-xs font-bold whitespace-nowrap flex items-center">
+                Seleccionar
+              </span>
+            )}
+            <input
+              type="date"
+              value={endDate}
+              min={startDate || new Date().toISOString().split('T')[0]}
+              onChange={(e) => setEndDate(e.target.value)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if ('showPicker' in e.currentTarget) e.currentTarget.showPicker();
+              }}
+              className={cn(
+                "bg-transparent border-none text-[11px] lg:text-xs focus:outline-none text-foreground w-[85px] lg:w-[95px] cursor-pointer font-bold [color-scheme:dark] h-full",
+                !endDate && "opacity-0"
+              )}
+            />
+          </div>
         </div>
       </div>
 
       {/* Search Button */}
       <button
         onClick={onSearch}
-        className="ml-1 lg:ml-2 bg-primary text-white px-4 lg:px-6 py-2 rounded-xl text-xs lg:text-sm font-bold hover:bg-primary/90 transition-all active:scale-95 shadow-sm shadow-primary/20"
+        className={cn(
+          "ml-1 lg:ml-2 bg-primary text-white p-2 lg:p-2.5 rounded-xl font-bold hover:bg-primary/90 transition-all active:scale-95 shadow-sm shadow-primary/20",
+          "flex items-center justify-center min-w-[44px] min-h-[44px]"
+        )}
       >
-        Buscar
+        <Search size={18} strokeWidth={3} />
+        <span className="hidden sm:hidden">Buscar</span>
       </button>
+
+      <style jsx global>{`
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          display: none;
+          -webkit-appearance: none;
+        }
+      `}</style>
     </div>
   );
 }

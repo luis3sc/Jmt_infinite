@@ -74,7 +74,7 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 pl-2 pr-3 py-1.5 md:pl-3 md:pr-4 md:py-2 bg-primary/10 border border-primary/20 text-primary rounded-xl transition-all hover:bg-primary/20 group"
+        className="flex items-center gap-2 pl-2 pr-3 py-1.5 md:pl-3 md:pr-4 md:h-11 bg-primary/10 border border-primary/20 text-primary rounded-xl transition-all hover:bg-primary/20 group"
       >
         <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-primary flex items-center justify-center text-white shadow-sm overflow-hidden flex-shrink-0">
           <User size={16} />
@@ -146,22 +146,14 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
       </AnimatePresence>
     </div>
   ) : (
-    <div className="flex items-center gap-2 md:gap-3">
+    <div className="flex items-center">
       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
         <Link
           href="/login"
-          className="flex items-center gap-2 px-3.5 py-2 md:px-5 md:py-2.5 text-xs md:text-sm font-black text-white bg-slate-800/40 hover:bg-primary border border-slate-700/50 hover:border-primary rounded-xl transition-all shadow-sm group"
+          className="flex items-center gap-2 px-3.5 py-2 md:px-5 md:h-11 text-xs md:text-sm font-black text-white bg-slate-800/40 hover:bg-primary border border-slate-700/50 hover:border-primary rounded-xl transition-all shadow-sm group"
         >
           <User size={16} className="text-primary group-hover:text-white group-hover:scale-110 transition-all" />
           <span>INGRESAR</span>
-        </Link>
-      </motion.div>
-      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="hidden sm:block">
-        <Link
-          href="/signup"
-          className="px-5 py-2.5 text-sm font-black border border-primary text-primary bg-transparent hover:bg-primary hover:text-white rounded-xl transition-all shadow-[0_0_15px_hsl(var(--primary)/0.1)] uppercase tracking-tight"
-        >
-          Crear Cuenta
         </Link>
       </motion.div>
     </div>

@@ -14,6 +14,7 @@ import { getCached, setCached } from "@/lib/bboxCache";
 import AuthButton from "@/components/layout/AuthButton";
 import TopBar from "@/components/layout/TopBar";
 import TopBarSearch from "@/components/layout/TopBarSearch";
+import StructureDetailModal from "@/components/map/StructureDetailModal";
 import { cn } from "@/lib/utils";
 
 
@@ -29,6 +30,8 @@ type Panel = {
   audience: number | null;
   width: number | null;
   height: number | null;
+  resolution_width: number | null;
+  resolution_height: number | null;
   traffic_view: string | null;
 };
 
@@ -66,8 +69,8 @@ export function MapViewClient() {
   const today = new Date().toISOString().split('T')[0];
   const defaultEnd = addDays(new Date(), 30).toISOString().split('T')[0];
 
-  const initialStart = fromParam || new Date().toISOString().split('T')[0];
-  const initialEnd = toParam || addDays(new Date(), 30).toISOString().split('T')[0];
+  const initialStart = fromParam || "";
+  const initialEnd = toParam || "";
 
   // Staged states for active search (only update when "Buscar" is clicked)
   const [activeStartDate, setActiveStartDate] = useState(initialStart);
@@ -623,7 +626,7 @@ export function MapViewClient() {
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={cn(
-                "hidden md:flex px-4 py-2 rounded-2xl transition-all flex items-center gap-2 text-sm font-medium border active:scale-95",
+                "hidden md:flex px-4 md:h-11 rounded-2xl transition-all flex items-center gap-2 text-sm font-medium border active:scale-95",
                 isFilterOpen 
                   ? "bg-primary text-white border-primary shadow-[0_0_15px_hsl(var(--primary)/0.1)]" 
                   : "bg-card/60 backdrop-blur-md border-white/5 text-foreground hover:bg-muted"
@@ -850,10 +853,10 @@ export function MapViewClient() {
                   className={`flex items-center justify-center cursor-pointer transition-all duration-300 group
                 ${selectedStructure?.id === structure.id ? "scale-125 z-10" : "hover:scale-110 z-0"}`}
                 >
-                  <div className={`px-3 py-1.5 rounded-full shadow-lg font-bold text-sm whitespace-nowrap transition-all duration-300 border-2
+                  <div className={`px-3 py-1.5 rounded-full shadow-md font-bold text-sm whitespace-nowrap transition-all duration-300
                   ${selectedStructure?.id === structure.id
-                      ? "bg-primary text-white border-white shadow-[0_0_20px_rgba(98,174,64,0.5)]"
-                      : "bg-[#0e162b] text-white border-primary group-hover:bg-primary group-hover:text-white group-hover:border-white group-hover:shadow-[0_0_20px_rgba(98,174,64,0.5)]"}
+                      ? "bg-primary text-white shadow-[0_0_15px_rgba(98,174,64,0.4)] border-none"
+                      : "bg-white text-[#0e162b] group-hover:bg-primary group-hover:text-white group-hover:shadow-[0_0_15px_rgba(98,174,64,0.4)] group-hover:border-none"}
                 `}>
                     S/ {calculateDisplayPrice(structure).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
@@ -925,195 +928,25 @@ export function MapViewClient() {
         {/* SIDE PANEL / MODAL (Mobile full-screen, Desktop right-side) */}
         <AnimatePresence>
           {selectedStructure && currentActivePanel && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setSelectedStructure(null)}
-                className="fixed inset-0 bg-black/60 backdrop-blur-md z-[90]"
-              />
-
-              <motion.div
-                initial={{ x: "100%", opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: "100%", opacity: 0 }}
-                transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="fixed inset-0 md:inset-y-0 md:right-0 md:left-auto md:w-[480px] z-[100] bg-[#0e162b] text-white flex flex-col overflow-hidden shadow-2xl md:border-l md:border-white/10"
-              >
-                {/* Header with Close Button */}
-                <div className="absolute top-0 left-0 right-0 z-30 flex justify-between items-center p-4">
-                  <div className="text-white font-bold tracking-tight shadow-sm px-4 py-1.5 bg-black/40 rounded-full text-xs backdrop-blur-md border border-white/10">
-                    {currentActivePanel.panel_code || selectedStructure.code}
-                  </div>
-                  <button
-                    onClick={() => setSelectedStructure(null)}
-                    className="bg-black/50 backdrop-blur-md p-2.5 rounded-full text-white hover:bg-black/70 transition-all hover:scale-110 active:scale-95 border border-white/10"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-
-                {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto overscroll-contain no-scrollbar">
-                  <div className="relative h-[45vh] w-full bg-[#1a233a] shrink-0">
-                    {currentActivePanel.photo_url ? (
-                      <Image src={currentActivePanel.photo_url} alt={selectedStructure.address} fill className="object-cover" priority />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center w-full h-full text-white/30 bg-[#1a233a]">
-                        <MapIcon size={48} className="mb-2 opacity-20" />
-                        <span className="text-sm font-medium">Vista no disponible</span>
-                      </div>
-                    )}
-
-                    {selectedStructure.panels.length > 1 && (
-                      <div className="absolute bottom-6 left-6 right-6 flex bg-black/60 backdrop-blur-xl p-1.5 rounded-2xl gap-2 z-20 border border-white/10 shadow-2xl">
-                        {selectedStructure.panels.map((p, idx) => (
-                          <button
-                            key={p.id}
-                            onClick={() => setActivePanelIndex(idx)}
-                            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-300 whitespace-nowrap px-4 ${activePanelIndex === idx
-                              ? 'bg-primary text-white shadow-[0_0_20px_hsl(var(--primary)/0.4)]'
-                              : 'text-white/60 hover:text-white hover:bg-white/10'
-                            }`}
-                          >
-                            Cara {p.face || (idx === 0 ? 'A' : 'B')}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0e162b] to-transparent z-10" />
-                  </div>
-
-                  <div className="px-6 py-4 space-y-6">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        <span className="bg-primary/20 text-primary px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-primary/30">
-                          {currentActivePanel.media_type || "Estática"}
-                        </span>
-                        <span className="bg-white/5 text-white/70 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-white/10">
-                          {currentActivePanel.format || "Panel"}
-                        </span>
-                      </div>
-                      <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-tight tracking-tight">{selectedStructure.address}</h2>
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2 text-primary font-medium text-sm">
-                          <MapPin size={16} />
-                          <span>{selectedStructure.district}</span>
-                        </div>
-                        {selectedStructure.reference && <p className="text-white/50 text-sm italic">Ref: {selectedStructure.reference}</p>}
-                      </div>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-3xl p-6 flex justify-between items-end shadow-inner">
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">{numberOfDays > 0 ? `Inversión total (${numberOfDays} días)` : "Inversión diaria"}</span>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-4xl font-black text-white tracking-tighter">S/ {Math.floor(getDisplayPrice(currentFinalDailyPrice)).toLocaleString()}</span>
-                          <div className="flex flex-col">
-                            <span className="text-white/40 text-[10px] font-bold uppercase leading-none">.{(getDisplayPrice(currentFinalDailyPrice) % 1).toFixed(2).split('.')[1]}</span>
-                            <span className="text-primary text-[8px] font-black uppercase leading-none mt-1">Incl. IGV</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">DISPONIBLE</div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3">
-                        <Users size={18} className="text-primary" />
-                        <div>
-                          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Alcance</span>
-                          <p className="font-bold text-xl text-white">{currentActivePanel.audience ? currentActivePanel.audience.toLocaleString() : '125,000+'}</p>
-                        </div>
-                      </div>
-                      <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3">
-                        <Maximize size={18} className="text-primary" />
-                        <div>
-                          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Medidas</span>
-                          <p className="font-bold text-xl text-white">{currentActivePanel.width && currentActivePanel.height ? `${currentActivePanel.width}x${currentActivePanel.height}m` : '12x4m'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      {currentActivePanel.traffic_view && (
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Navigation size={18} className="text-primary" />
-                            <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Visibilidad</h4>
-                          </div>
-                          <p className="text-sm text-white/90 font-medium">{currentActivePanel.traffic_view}</p>
-                        </div>
-                      )}
-                      <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                        <div className="flex items-center gap-2 mb-3">
-                          <List size={18} className="text-primary" />
-                          <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Especificaciones</h4>
-                        </div>
-                        <div className="grid grid-cols-1 gap-3 text-sm">
-                          <div className="flex justify-between py-1 border-b border-white/5"><span className="text-white/40">Código</span><span className="text-white font-bold">{currentActivePanel.panel_code || 'N/A'}</span></div>
-                          <div className="flex justify-between py-1 border-b border-white/5"><span className="text-white/40">Material</span><span className="text-white font-bold">Lona Frontlit</span></div>
-                          <div className="flex justify-between py-1"><span className="text-white/40">Iluminación</span><span className="text-white font-bold">Reflector LED</span></div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="h-24" />
-                  </div>
-                </div>
-
-                {/* Fixed Bottom Action Bar */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0e162b] via-[#0e162b] to-transparent pt-12 z-40">
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    className={`w-full py-5 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-2xl ${currentIsInCart ? "bg-white/10 text-white border border-white/20" : "bg-primary text-white"}`}
-                    onClick={() => {
-                      if (currentIsInCart) { setIsCartOpen(true); return; }
-                      let actualDays = numberOfDays || 1;
-                      let actualStart = activeStartDate;
-                      let actualEnd = activeEndDate;
-                      if (startDate && endDate) {
-                        const s = new Date(startDate).getTime();
-                        const e = new Date(endDate).getTime();
-                        const d = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
-                        if (d > 0) { actualDays = d; actualStart = startDate; actualEnd = endDate; }
-                      }
-                      addCartItem({
-                        panelId: currentActivePanel.id,
-                        structureId: selectedStructure.id,
-                        panelCode: currentActivePanel.panel_code || selectedStructure.code,
-                        address: selectedStructure.address,
-                        district: selectedStructure.district,
-                        photoUrl: currentActivePanel.photo_url || "",
-                        dailyPrice: currentFinalDailyPrice,
-                        startDate: actualStart,
-                        endDate: actualEnd,
-                        days: actualDays,
-                        totalPrice: Math.round(currentFinalDailyPrice * actualDays * 1.18 * 100) / 100,
-                        format: currentActivePanel.format || "",
-                        mediaType: currentActivePanel.media_type || ""
-                      });
-                      triggerToast(`¡Panel ${currentActivePanel.panel_code || selectedStructure.code} añadido!`);
-                    }}
-                  >
-                    <AnimatePresence mode="wait">
-                      {currentIsInCart ? (
-                        <motion.div key="in-cart" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex items-center gap-3">
-                          <CheckCircle2 size={22} className="text-primary" />
-                          <span>Ir al Carrito</span>
-                        </motion.div>
-                      ) : (
-                        <motion.div key="add-to-cart" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex items-center gap-3">
-                          <ShoppingCart size={22} />
-                          <span>Añadir al Carrito</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.button>
-                </div>
-              </motion.div>
-            </>
+            <StructureDetailModal
+              selectedStructure={selectedStructure}
+              onClose={() => setSelectedStructure(null)}
+              activePanelIndex={activePanelIndex}
+              setActivePanelIndex={setActivePanelIndex}
+              numberOfDays={numberOfDays}
+              startDate={startDate}
+              endDate={endDate}
+              activeStartDate={activeStartDate}
+              activeEndDate={activeEndDate}
+              currentFinalDailyPrice={currentFinalDailyPrice}
+              currentIsInCart={currentIsInCart}
+              onAddToCart={(item) => {
+                addCartItem(item);
+                triggerToast(`¡Panel ${item.panelCode} añadido!`);
+              }}
+              onOpenCart={() => setIsCartOpen(true)}
+              getDisplayPrice={getDisplayPrice}
+            />
           )}
         </AnimatePresence>
 
@@ -1136,7 +969,7 @@ export function MapViewClient() {
                 value={searchQuery || ""}
                 onChange={(e) => handleLocationSearch(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Buscar ubicaciones..."
+                placeholder="¿Dónde quieres anunciarte?"
                 className="w-full pl-11 pr-12 py-3.5 bg-transparent rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
               {/* Filter button removed from mobile search as requested */}
