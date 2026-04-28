@@ -1,9 +1,8 @@
 import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
-import dotenv from 'dotenv';
-import path from 'path';
+import { loadEnvConfig } from '@next/env';
 
-// Load .env.local
-dotenv.config({ path: path.join(process.cwd(), '.env.local') });
+// Load .env.local using Next.js utility
+loadEnvConfig(process.cwd());
 
 async function testR2() {
   console.log('Testing R2 connection...');
