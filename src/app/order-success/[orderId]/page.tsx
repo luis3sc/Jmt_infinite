@@ -38,7 +38,7 @@ export default function OrderSuccessPage() {
         if (data) {
           setOrder(data)
           // If video is already sent or in validation, show success state (preview)
-          if (data.status === 'VIDEO_SENT' || data.status === 'PENDING_VALIDATION' || data.video_url) {
+          if ((data.status === 'VIDEO_SENT' || data.status === 'PENDING_VALIDATION' || data.video_url) && data.status !== 'REJECTED') {
             setUploadStatus('success')
           }
         }
@@ -119,7 +119,7 @@ export default function OrderSuccessPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30 pt-16 md:pt-24 overflow-x-hidden">
+    <main className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30 pt-12 md:pt-16 overflow-x-hidden">
       <TopBar
         right={<AuthButton />}
       />
@@ -131,14 +131,14 @@ export default function OrderSuccessPage() {
         <div className="absolute top-[40%] left-[20%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[120px]" />
       </div>
 
-      <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col p-4 md:p-8 lg:p-12 relative z-10">
+      <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col p-4 md:p-6 relative z-10">
         {/* Botón Volver - Standardized with Checkout */}
         <button
-          onClick={() => router.push('/dashboard')}
-          className="w-fit flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted transition-all active:scale-95 group text-xs md:text-sm font-semibold mb-4 md:mb-8"
+          onClick={() => router.push('/dashboard/orders')}
+          className="w-fit flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted transition-all active:scale-95 group text-[10px] md:text-xs font-bold mb-2 md:mb-4"
         >
-          <ArrowLeft size={16} className="text-primary group-hover:-translate-x-1 transition-transform" />
-          <span className="text-muted-foreground group-hover:text-foreground">Volver</span>
+          <ArrowLeft size={14} className="text-primary group-hover:-translate-x-1 transition-transform" />
+          <span className="text-muted-foreground group-hover:text-foreground">Volver a Pedidos</span>
         </button>
 
         <AnimatePresence mode="wait">
@@ -151,10 +151,10 @@ export default function OrderSuccessPage() {
               className="flex flex-col lg:grid lg:grid-cols-12 gap-8 w-full"
             >
               {/* LEFT SECTION: Upload Video */}
-              <section className="lg:col-span-8 flex flex-col bg-card/40 backdrop-blur-xl border border-border/50 rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-12 shadow-2xl relative overflow-hidden">
+              <section className="lg:col-span-8 flex flex-col bg-card/40 backdrop-blur-xl border border-border/50 rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 lg:p-10 shadow-2xl relative overflow-hidden">
                 <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/5 rounded-full blur-[80px]" />
 
-                <div className="relative z-10 space-y-2 md:space-y-4 mb-6 md:mb-10">
+                <div className="relative z-10 space-y-1 md:space-y-2 mb-4 md:mb-6">
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -164,16 +164,15 @@ export default function OrderSuccessPage() {
                     Pedido #{orderId?.slice(0, 8).toUpperCase()}
                   </motion.div>
 
-                  <h1 className="text-3xl md:text-5xl font-black tracking-tighter leading-tight">
-                    SUBE TU <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60 italic">MATERIAL</span>
+                  <h1 className="text-2xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-tight uppercase max-w-xl">
+                    SUBE TU <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60 italic">MATERIAL</span>
                   </h1>
-                  <p className="text-sm md:text-lg text-muted-foreground max-w-md font-medium leading-relaxed opacity-80">
+                  <p className="text-xs md:text-base text-muted-foreground max-w-md font-medium leading-relaxed opacity-80">
                     Finaliza tu campaña subiendo el video publicitario.
                   </p>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mb-6 md:mb-10">
+                <div className="flex flex-wrap gap-2 mb-4 md:mb-6">
                   {[
                     { label: 'Resolución', val: '720x1280', icon: ShieldCheck },
                     { label: 'Duración', val: '7 Seg', icon: Clock },
@@ -195,7 +194,7 @@ export default function OrderSuccessPage() {
                   setFile={setFile}
                 />
 
-                <div className="pt-6 md:pt-8 flex flex-col sm:flex-row items-center gap-4">
+                <div className="pt-4 md:pt-6 flex flex-col sm:flex-row items-center gap-4">
                   <motion.button
                     whileHover={file ? { scale: 1.01 } : {}}
                     whileTap={file ? { scale: 0.98 } : {}}

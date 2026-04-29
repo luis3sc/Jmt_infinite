@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { Check, ExternalLink, ArrowLeft, ShieldCheck, Clock, Share2, Play, Info, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
@@ -158,23 +158,22 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring" as const, stiffness: 200, delay: 0.3 }}
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-4 md:mb-8 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em]"
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-2 md:mb-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em]"
               >
                 <Check size={12} strokeWidth={3} />
                 <span>Material Recibido</span>
               </motion.div>
 
-              <h2 className="text-3xl md:text-7xl font-black text-foreground mb-3 md:mb-6 tracking-tight leading-[0.95]">
-                TODO <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60 italic underline decoration-primary/20 underline-offset-4 md:underline-offset-8">LISTO.</span>
+              <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-foreground mb-2 md:mb-4 tracking-tight leading-[0.95] uppercase">
+                TODO <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60 italic underline decoration-primary/20 underline-offset-4 md:underline-offset-8">LISTO.</span>
               </h2>
 
-              <p className="text-sm md:text-lg text-muted-foreground leading-relaxed mb-4 md:mb-10 max-w-md font-medium opacity-80">
+              <p className="text-sm md:text-lg text-muted-foreground leading-relaxed mb-3 md:mb-6 max-w-md font-medium opacity-80">
                 Material recibido. Lo validaremos en las próximas horas.
               </p>
 
               {/* Status Pills — compact on mobile */}
-              <div className="flex flex-wrap gap-2 md:gap-4 mb-4 md:mb-10 w-full">
+              <div className="flex flex-wrap gap-2 md:gap-4 mb-3 md:mb-6 w-full">
                 <div className="bg-background/40 border border-border/40 px-3 py-2 rounded-lg flex items-center gap-2 flex-1 min-w-[130px]">
                   <div className={`w-6 h-6 md:w-10 md:h-10 rounded-lg md:rounded-lg ${currentStatus.color} flex items-center justify-center shrink-0`}>
                     <currentStatus.icon size={14} />

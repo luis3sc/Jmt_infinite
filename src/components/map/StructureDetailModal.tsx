@@ -188,18 +188,20 @@ export default function StructureDetailModal({
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-3xl p-6 flex justify-between items-end shadow-inner mb-2 md:hidden">
+                  <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-3xl p-4 flex flex-col gap-4 shadow-inner mb-2 md:hidden">
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">{numberOfDays > 0 ? `Inversión total (${numberOfDays} días)` : "Inversión diaria"}</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-black text-white tracking-tighter">S/ {Math.floor(getDisplayPrice(currentFinalDailyPrice)).toLocaleString()}</span>
-                        <div className="flex flex-col">
-                          <span className="text-white/40 text-[10px] font-bold uppercase leading-none">.{(getDisplayPrice(currentFinalDailyPrice) % 1).toFixed(2).split('.')[1]}</span>
-                          <span className="text-primary text-[8px] font-black uppercase leading-none mt-1">Incl. IGV</span>
+                      <div className="flex flex-row items-start gap-4">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-5xl font-black text-white tracking-tighter">S/ {Math.floor(getDisplayPrice(currentFinalDailyPrice)).toLocaleString()}</span>
+                          <span className="text-white/40 text-sm font-bold">.{(getDisplayPrice(currentFinalDailyPrice) % 1).toFixed(2).split('.')[1]}</span>
+                        </div>
+                        <div className="flex flex-col gap-2 mt-1">
+                          <span className="text-primary text-[10px] font-black uppercase tracking-[0.1em] leading-none">Incl. IGV</span>
+                          <div className="text-[10px] font-bold text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/30 w-fit uppercase tracking-widest">DISPONIBLE</div>
                         </div>
                       </div>
                     </div>
-                    <div className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">DISPONIBLE</div>
                   </div>
 
                   <div className="border-b border-white/10 pb-6" />
@@ -251,7 +253,7 @@ export default function StructureDetailModal({
             {/* Fixed Bottom Action Bar */}
             <div className="absolute bottom-0 left-0 right-0 md:left-auto md:w-[45%] p-6 bg-[#0e162b] pt-4 z-40 border-t border-white/10 flex flex-col md:flex-row items-center gap-4">
               {/* Desktop Price Display - 50% width split: Label Left, Price Right */}
-              <div className="hidden md:flex w-1/2 items-center justify-between h-14 border-r border-white/5 pr-6">
+              <div className="hidden md:flex w-1/2 items-center gap-4 h-14 border-r border-white/5 pr-6">
                 <div className="flex flex-col">
                   <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em] leading-tight">Inversión</span>
                   <div className="flex items-center gap-2 mt-0.5">

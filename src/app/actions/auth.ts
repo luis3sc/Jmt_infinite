@@ -12,13 +12,25 @@ export async function login(formData: FormData) {
     password: formData.get('password') as string,
   }
 
-  const { error } = await supabase.auth.signInWithPassword(data)
+  const { data: authData, error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
     return { error: error.message }
   }
 
+  // Check role to redirect accordingly
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', authData.user.id)
+    .single()
+
   revalidatePath('/', 'layout')
+
+  if (profile?.role === 'gestor' || profile?.role === 'admin') {
+    redirect('/gestor')
+  }
+
   redirect('/dashboard')
 }
 

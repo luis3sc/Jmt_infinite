@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { User, LogOut, LayoutDashboard, ChevronDown, ShoppingBag } from "lucide-react";
+import { User, LogOut, LayoutDashboard, ChevronDown, ShoppingBag, Clapperboard } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,27 +10,46 @@ import { cn } from "@/lib/utils";
 
 interface AuthButtonProps {
   mode?: "desktop" | "mobile";
+  initialRole?: string | null;
 }
 
-export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
+export default function AuthButton({ mode = "desktop", initialRole }: AuthButtonProps) {
   const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(initialRole ?? null);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  const isGestor = role === 'gestor' || role === 'admin';
+
   useEffect(() => {
     const supabase = createClient();
 
-    const getInitialSession = async () => {
+    const fetchRole = async (userId: string) => {
+      // Only fetch role from DB if it wasn't provided by the server
+      if (initialRole !== undefined) return;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      setRole(profile?.role ?? null);
+    };
+
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) await fetchRole(currentUser.id);
       setIsLoading(false);
     };
 
-    getInitialSession();
+    init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (!currentUser) setRole(null);
       setIsLoading(false);
     });
 
@@ -57,13 +76,16 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
   }
 
   if (mode === "mobile") {
+    const mobileHref = !user ? "/login" : isGestor ? "/gestor" : "/dashboard/orders";
+    const mobileLabel = !user ? "Ingresar" : isGestor ? "Gestión" : "Mis Pedidos";
+    const MobileIcon = isGestor ? Clapperboard : User;
     return (
       <Link
-        href={user ? "/dashboard" : "/login"}
+        href={mobileHref}
         className="flex flex-col items-center justify-center w-16 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors"
       >
-        <User size={20} className={user ? "text-primary" : ""} />
-        <span className="text-[10px] font-medium">{user ? "Mis Pedidos" : "Ingresar"}</span>
+        <MobileIcon size={20} className={user ? "text-primary" : ""} />
+        <span className="text-[10px] font-medium">{mobileLabel}</span>
       </Link>
     );
   }
@@ -108,27 +130,42 @@ export default function AuthButton({ mode = "desktop" }: AuthButtonProps) {
               </div>
               
               <div className="p-2.5 space-y-1.5">
-                <Link
-                  href="/dashboard"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-xl transition-all group"
-                >
-                  <div className="p-2 bg-slate-800 rounded-lg group-hover:bg-primary/20 group-hover:text-primary transition-colors">
-                    <ShoppingBag size={18} />
-                  </div>
-                  Mis Pedidos
-                </Link>
+                {isGestor ? (
+                  <Link
+                    href="/gestor"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-xl transition-all group"
+                  >
+                    <div className="p-2 bg-amber-500/10 rounded-lg group-hover:bg-amber-500/20 transition-colors">
+                      <Clapperboard size={18} />
+                    </div>
+                    Panel de Gestión
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/dashboard/orders"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-xl transition-all group"
+                    >
+                      <div className="p-2 bg-slate-800 rounded-lg group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+                        <ShoppingBag size={18} />
+                      </div>
+                      Mis Pedidos
+                    </Link>
 
-                <Link
-                  href="/dashboard"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-xl transition-all group"
-                >
-                  <div className="p-2 bg-slate-800 rounded-lg group-hover:bg-primary/20 group-hover:text-primary transition-colors">
-                    <LayoutDashboard size={18} />
-                  </div>
-                  Panel de Control
-                </Link>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-xl transition-all group"
+                    >
+                      <div className="p-2 bg-slate-800 rounded-lg group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+                        <LayoutDashboard size={18} />
+                      </div>
+                      Panel de Control
+                    </Link>
+                  </>
+                )}
                 
                 <button
                   onClick={handleLogout}
