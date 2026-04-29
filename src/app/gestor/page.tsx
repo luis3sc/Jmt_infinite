@@ -5,6 +5,7 @@ import { ArrowLeft, Video, Clock, CheckCircle2, XCircle, AlertCircle, UploadClou
 import TopBar from '@/components/layout/TopBar'
 import AuthButton from '@/components/layout/AuthButton'
 import { GestorReviewList } from '@/components/gestor/GestorReviewList'
+import { Order } from '@/components/gestor/GestorOrderDetail'
 
 export default async function GestorPage() {
   const supabase = createClient()
@@ -80,17 +81,19 @@ export default async function GestorPage() {
   const profileMap = Object.fromEntries((profilesData ?? []).map(p => [p.id, p]))
 
   // Attach profile info and flatten Supabase nested arrays
-  const ordersWithProfiles = orders?.map(o => {
+  const ordersWithProfiles: Order[] = (orders ?? []).map(o => {
     const profile = profileMap[o.user_id] || null;
     
     // Transform bookings to flatten nested arrays from joins
     const transformedBookings = (o.bookings as any[])?.map(b => {
-      const panelArray = b.panels as any[];
+      // Handle the case where panels might be an array or a single object
+      const panelArray = b.panels;
       const firstPanel = Array.isArray(panelArray) ? panelArray[0] : panelArray;
       
       let transformedPanel = null;
       if (firstPanel) {
-        const structureArray = firstPanel.structures as any[];
+        // Handle nested structures array
+        const structureArray = firstPanel.structures;
         transformedPanel = {
           ...firstPanel,
           structures: Array.isArray(structureArray) ? structureArray[0] : structureArray
@@ -101,14 +104,20 @@ export default async function GestorPage() {
         ...b,
         panels: transformedPanel
       };
-    });
+    }) ?? [];
 
     return {
-      ...o,
+      id: o.id,
+      status: o.status,
+      video_url: o.video_url,
+      total_amount: o.total_amount,
+      rejection_reason: o.rejection_reason,
+      created_at: o.created_at,
+      user_id: o.user_id,
       profile,
       bookings: transformedBookings
     };
-  }) ?? []
+  });
 
   // Stats
   const pendingUpload  = ordersWithProfiles.filter(o => o.status === 'PENDING_UPLOAD').length

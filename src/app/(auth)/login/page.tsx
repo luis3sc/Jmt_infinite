@@ -5,6 +5,8 @@ import { login } from '@/app/actions/auth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Loader2 } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +50,12 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="mt-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mt-8"
+          >
             <form className="space-y-6" action={handleSubmit}>
               <div className="space-y-1.5">
                 <label htmlFor="email" className="block text-xs font-black uppercase tracking-widest text-muted-foreground/80 ml-1">
@@ -94,12 +101,19 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full justify-center rounded-2xl bg-primary px-4 py-4 text-sm font-black text-white shadow-[0_10px_20px_-5px_rgba(98,174,64,0.3)] hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 transition-all active:scale-[0.98] uppercase tracking-widest"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-primary px-4 py-4 text-sm font-black text-white shadow-[0_10px_20px_-5px_rgba(98,174,64,0.3)] hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-70 transition-all active:scale-[0.98] uppercase tracking-widest min-h-[56px]"
               >
-                {loading ? 'Iniciando...' : 'Entrar'}
+                {loading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Iniciando...</span>
+                  </>
+                ) : (
+                  'Entrar'
+                )}
               </button>
             </form>
-          </div>
+          </motion.div>
         </div>
 
         {/* Decorative elements for the form side */}
