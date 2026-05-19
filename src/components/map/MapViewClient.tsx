@@ -403,7 +403,7 @@ export function MapViewClient() {
         count = result.count;
 
         if (!error) break; // Success
-        
+
         if (i < retries - 1) {
           // Wait before retrying (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
@@ -411,7 +411,7 @@ export function MapViewClient() {
       }
 
       if (error) throw error;
-      
+
       if (data) {
         const total = count ?? 0;
 
@@ -649,7 +649,7 @@ export function MapViewClient() {
       <TopBar
         isFixed={false}
         center={
-          <TopBarSearch 
+          <TopBarSearch
             searchQuery={searchQuery}
             onLocationSearch={handleLocationSearch}
             startDate={startDate}
@@ -670,8 +670,8 @@ export function MapViewClient() {
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={cn(
                 "hidden md:flex px-4 flex items-center gap-2 text-sm font-medium",
-                isFilterOpen 
-                  ? "bg-foreground text-background border-foreground shadow-md hover:bg-foreground/90" 
+                isFilterOpen
+                  ? "bg-foreground text-background border-foreground shadow-md hover:bg-foreground/90"
                   : "bg-card/60 backdrop-blur-md border-border text-foreground"
               )}
             >
@@ -785,9 +785,9 @@ export function MapViewClient() {
                   <Card
                     key={s.id}
                     className={`cursor-pointer transition-all flex flex-row min-h-[130px] h-auto
-                    ${selectedStructure?.id === s.id 
-                      ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/35" 
-                      : "hover:border-muted-foreground/30 hover:bg-muted/10"}`}
+                    ${selectedStructure?.id === s.id
+                        ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/35"
+                        : "hover:border-muted-foreground/30 hover:bg-muted/10"}`}
                     onClick={() => {
                       handleSelectStructure(s);
                       setActiveTab("map");
@@ -818,7 +818,7 @@ export function MapViewClient() {
                         <div>
                           <p className="text-[10px] leading-none mb-1 text-muted-foreground">Desde</p>
                           <p className="font-bold text-sm leading-none text-foreground">
-                            S/ {calculateDisplayPrice(s).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
+                            S/ {calculateDisplayPrice(s).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             <span className="text-[10px] font-normal text-muted-foreground">{numberOfDays > 0 ? "" : "/día"}</span>
                           </p>
                         </div>
@@ -1285,16 +1285,7 @@ export function MapViewClient() {
                         </div>
                       </div>
 
-                      {/* Summary: Days and Daily Price */}
-                      <div className="mt-3 flex items-center justify-between">
-                        <Badge variant="outline" className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-[10px] font-black text-primary border-primary/20 uppercase tracking-tight">
-                          <Clock size={11} />
-                          <span>{item.days} días</span>
-                        </Badge>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter bg-muted/50 px-2 py-1 rounded">
-                          S/ {item.dailyPrice.toFixed(2)} / día
-                        </p>
-                      </div>
+
                     </div>
                   </motion.div>
                 ))}

@@ -65,3 +65,9 @@ Desktop.ini
 .JMT_UI/
 # Scratch / dev scripts
 scratch/
+
+# Editor & workspace configurations
+.vscode/
+
+# Local/temporary test scripts
+test-supabase.ts
