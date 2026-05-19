@@ -20,6 +20,7 @@ import { PhotoDropzone } from '@/components/upload/PhotoDropzone'
 import { PhotoCropEditor } from '@/components/upload/PhotoCropEditor'
 import { FrameSelector, AVAILABLE_FRAMES } from '@/components/upload/FrameSelector'
 import type { Frame } from '@/components/upload/FrameSelector'
+import { Checkbox } from '@/components/ui/Checkbox'
 
 // Libs
 import { composeImage } from '@/lib/imageComposer'
@@ -42,8 +43,15 @@ interface Order {
 const VIDEO_SPECS = [
   { label: 'Resolución', val: '1280×720', icon: ShieldCheck },
   { label: 'Duración', val: '7 Seg', icon: Clock },
-  { label: 'Formato', val: 'MP4', icon: CheckCircle2 },
+  { label: 'Formato', val: 'MP4 ', icon: CheckCircle2 },
   { label: 'Peso Máx', val: '50MB', icon: ShieldCheck },
+]
+
+const PHOTO_SPECS = [
+  { label: 'Resolución', val: '1280×720', icon: ShieldCheck },
+  { label: 'Orientación', val: 'Horizontal 16:9', icon: Clock },
+  { label: 'Formato', val: 'JPG / PNG', icon: CheckCircle2 },
+  { label: 'Peso Máx', val: '20MB', icon: ShieldCheck },
 ]
 
 function Spec({ label, val, icon: Icon }: { label: string; val: string; icon: typeof ShieldCheck }) {
@@ -53,6 +61,51 @@ function Spec({ label, val, icon: Icon }: { label: string; val: string; icon: ty
       <div className="flex flex-col">
         <span className="text-[7px] md:text-[8px] uppercase tracking-wider font-bold text-muted-foreground/60 leading-none">{label}</span>
         <span className="text-[9px] md:text-xs font-bold leading-none mt-0.5">{val}</span>
+      </div>
+    </div>
+  )
+}
+
+interface ConsentCheckboxesProps {
+  acceptedTerms: boolean
+  setAcceptedTerms: (val: boolean) => void
+  acceptedNoLogos: boolean
+  setAcceptedNoLogos: (val: boolean) => void
+}
+
+function ConsentCheckboxes({
+  acceptedTerms,
+  setAcceptedTerms,
+  acceptedNoLogos,
+  setAcceptedNoLogos,
+}: ConsentCheckboxesProps) {
+  return (
+    <div className="bg-card/45 backdrop-blur-md border border-border/50 rounded-2xl p-4 sm:p-5 my-4 space-y-3.5 shadow-sm relative overflow-hidden group/consent">
+      {/* Glow sutil en el fondo del consentimiento */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50 pointer-events-none" />
+
+      <div className="grid grid-cols-[20px_1fr] items-start gap-3 relative z-10">
+        <Checkbox
+          id="terms-check"
+          checked={acceptedTerms}
+          onChange={(e) => setAcceptedTerms(e.target.checked)}
+          className="mt-0.5"
+        />
+        <label htmlFor="terms-check" className="text-[11px] sm:text-xs text-muted-foreground leading-normal cursor-pointer select-none">
+          He leído y acepto las <span className="text-primary font-semibold hover:underline">condiciones generales del servicio</span>.*
+        </label>
+      </div>
+
+      <div className="grid grid-cols-[20px_1fr] items-start gap-3 relative z-10">
+        <Checkbox
+          id="logos-check"
+          checked={acceptedNoLogos}
+          onChange={(e) => setAcceptedNoLogos(e.target.checked)}
+          className="mt-0.5"
+        />
+        <label htmlFor="logos-check" className="text-[11px] sm:text-xs text-muted-foreground leading-normal cursor-pointer select-none">
+          Reconozco que mi foto/video <span className="text-foreground font-semibold">no contiene marcas ni logotipos comerciales</span>; si así fuera, sé que será rechazado.*
+        </label>
       </div>
     </div>
   )
@@ -86,6 +139,10 @@ export default function OrderSuccessPage() {
   const [photoStep, setPhotoStep] = useState<'drop' | 'crop' | 'frame'>('drop')
   // Blob preview de la imagen recortada para el FrameSelector
   const [croppedPreviewUrl, setCroppedPreviewUrl] = useState<string | null>(null)
+
+  // Checkboxes de consentimiento obligatorio
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [acceptedNoLogos, setAcceptedNoLogos] = useState(false)
 
   // Fetch order on mount
   useEffect(() => {
@@ -164,6 +221,10 @@ export default function OrderSuccessPage() {
   // ── Flujo de VIDEO ───────────────────────────────────────────────────────
   async function handleVideoUpload() {
     if (!videoFile) return
+    if (!acceptedTerms || !acceptedNoLogos) {
+      alert("Por favor, acepta las condiciones generales y confirma que tu video no tiene logotipos antes de continuar.")
+      return
+    }
     setProgress(0)
 
     // Análisis rápido de aspect ratio (no bloqueante)
@@ -228,6 +289,10 @@ export default function OrderSuccessPage() {
 
   async function handlePhotoUpload() {
     if (!photoObjectUrl || !croppedArea) return
+    if (!acceptedTerms || !acceptedNoLogos) {
+      alert("Por favor, acepta las condiciones generales y confirma que tu foto no tiene logotipos antes de continuar.")
+      return
+    }
     setProgress(0)
 
     try {
@@ -262,6 +327,8 @@ export default function OrderSuccessPage() {
       setProgress(0)
     }
   }
+
+
 
   // ── Render: Loading inicial ───────────────────────────────────────────────
   if (loading) {
@@ -325,9 +392,9 @@ export default function OrderSuccessPage() {
           {uploadStatus === 'idle' && (
             <motion.div
               key="idle"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-8 w-full"
             >
               {/* ── LEFT: Estudio de Creación ───────────────────────── */}
@@ -348,15 +415,10 @@ export default function OrderSuccessPage() {
                   {contentType === 'idle' ? (
                     <>
                       <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight leading-tight max-w-xl">
-                        {userType === 'individual' ? 'Sube tu mensaje' :
-                          userType === 'influencer' ? 'Tu contenido' :
-                            'Tu anuncio'}{' '}
-
+                        ¿Qué tipo de material subirás?
                       </h1>
-                      <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground max-w-md font-medium leading-relaxed opacity-80">
-                        {userType === 'individual' ? 'Comparte tu momento.' :
-                          userType === 'influencer' ? 'Conecta con tu audiencia.' :
-                            'Impacto visual directo.'}
+                      <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground max-w-2xl font-medium leading-relaxed opacity-80 mt-1">
+                        Elige tu formato de video o foto
                       </p>
                     </>
                   ) : (
@@ -369,6 +431,8 @@ export default function OrderSuccessPage() {
                             setPhotoStep('drop')
                             setPhotoFile(null)
                             setVideoFile(null)
+                            setAcceptedTerms(false)
+                            setAcceptedNoLogos(false)
                             if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl)
                             setPhotoObjectUrl(null)
                           }}
@@ -402,7 +466,30 @@ export default function OrderSuccessPage() {
                 {contentType === 'photo' && (
                   <div className="relative z-10 space-y-4 md:space-y-5">
                     {photoStep === 'drop' && (
-                      <PhotoDropzone onFile={handlePhotoSelected} />
+                      <>
+                        {/* Specs del panel */}
+                        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2">
+                          {PHOTO_SPECS.map((s, i) => (
+                            <Spec key={i} {...s} />
+                          ))}
+                        </div>
+
+                        <PhotoDropzone onFile={handlePhotoSelected} />
+
+                        {/* Nota Importante */}
+                        <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-3.5 space-y-1.5 mt-2">
+                          <p className="text-[10px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
+                            ⚠️ SÚPER IMPORTANTE
+                          </p>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                            NO SE ACEPTAN MARCAS/LOGOS COMERCIALES, TABACO, VIOLENCIA, DESNUDOS NI VULGARIDAD. Si hay alguno, tu foto será rechazada.
+                          </p>
+                          <div className="h-px bg-border/40 my-1" />
+                          <p className="text-[11px] text-primary/90 font-semibold leading-relaxed">
+                            ✅ ¡Sí se permite poner tu propio texto y tu @usuario personal de redes sociales!
+                          </p>
+                        </div>
+                      </>
                     )}
 
                     {photoStep === 'crop' && photoObjectUrl && (
@@ -421,12 +508,24 @@ export default function OrderSuccessPage() {
                           onSelectFrame={setSelectedFrame}
                         />
 
+                        <ConsentCheckboxes
+                          acceptedTerms={acceptedTerms}
+                          setAcceptedTerms={setAcceptedTerms}
+                          acceptedNoLogos={acceptedNoLogos}
+                          setAcceptedNoLogos={setAcceptedNoLogos}
+                        />
+
                         <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
                           <motion.button
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.98 }}
+                            whileHover={acceptedTerms && acceptedNoLogos ? { scale: 1.01 } : {}}
+                            whileTap={acceptedTerms && acceptedNoLogos ? { scale: 0.98 } : {}}
+                            disabled={!acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
-                            className="w-full sm:w-fit flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-primary text-white border border-primary/20 transition-all text-sm font-bold shadow-lg shadow-primary/20"
+                            className={`w-full sm:w-fit flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl transition-all text-sm font-bold shadow-lg
+                              ${(acceptedTerms && acceptedNoLogos)
+                                ? 'bg-primary text-white border border-primary/20 shadow-primary/20 cursor-pointer hover:shadow-primary/30'
+                                : 'bg-muted/20 border-border/20 text-muted-foreground cursor-not-allowed opacity-50 shadow-none'
+                              }`}
                           >
                             <Send size={18} />
                             <span>Enviar Material</span>
@@ -447,7 +546,7 @@ export default function OrderSuccessPage() {
                 {contentType === 'video' && (
                   <div className="relative z-10 space-y-4 md:space-y-5">
                     {/* Specs del panel */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2">
                       {VIDEO_SPECS.map((s, i) => (
                         <Spec key={i} {...s} />
                       ))}
@@ -458,19 +557,40 @@ export default function OrderSuccessPage() {
                       setFile={setVideoFile}
                     />
 
+                    {/* Nota Importante */}
+                    <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-3.5 space-y-1.5 mt-2">
+                      <p className="text-[10px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
+                        ⚠️ SÚPER IMPORTANTE
+                      </p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                        NO SE ACEPTAN MARCAS/LOGOS COMERCIALES, TABACO, VIOLENCIA, DESNUDOS NI VULGARIDAD. Si hay alguno, tu video será rechazado.
+                      </p>
+                      <div className="h-px bg-border/40 my-1" />
+                      <p className="text-[11px] text-primary/90 font-semibold leading-relaxed">
+                        ✅ ¡Sí se permite poner tu propio texto y tu @usuario personal de redes sociales!
+                      </p>
+                    </div>
+
+                    <ConsentCheckboxes
+                      acceptedTerms={acceptedTerms}
+                      setAcceptedTerms={setAcceptedTerms}
+                      acceptedNoLogos={acceptedNoLogos}
+                      setAcceptedNoLogos={setAcceptedNoLogos}
+                    />
+
                     <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
                       <motion.button
-                        whileHover={videoFile ? { scale: 1.01 } : {}}
-                        whileTap={videoFile ? { scale: 0.98 } : {}}
-                        disabled={!videoFile}
+                        whileHover={(videoFile && acceptedTerms && acceptedNoLogos) ? { scale: 1.01 } : {}}
+                        whileTap={(videoFile && acceptedTerms && acceptedNoLogos) ? { scale: 0.98 } : {}}
+                        disabled={!videoFile || !acceptedTerms || !acceptedNoLogos}
                         onClick={handleVideoUpload}
-                        className={`w-full sm:w-fit flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl backdrop-blur-sm border transition-all active:scale-95 group text-sm font-bold shadow-sm
-                          ${videoFile
-                            ? 'bg-card/50 border-border hover:bg-muted hover:border-primary/20 text-foreground cursor-pointer'
-                            : 'bg-muted/20 border-border/20 text-muted-foreground cursor-not-allowed opacity-50'
+                        className={`w-full sm:w-fit flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl transition-all text-sm font-bold shadow-lg
+                          ${(videoFile && acceptedTerms && acceptedNoLogos)
+                            ? 'bg-primary text-white border border-primary/20 shadow-primary/20 cursor-pointer hover:shadow-primary/30'
+                            : 'bg-muted/20 border-border/20 text-muted-foreground cursor-not-allowed opacity-50 shadow-none'
                           }`}
                       >
-                        <Send size={18} className={videoFile ? 'text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform' : ''} />
+                        <Send size={18} className={(videoFile && acceptedTerms && acceptedNoLogos) ? 'text-white group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform' : ''} />
                         <span>Enviar Material</span>
                       </motion.button>
                     </div>

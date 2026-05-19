@@ -8,6 +8,7 @@ import {
   MapPin, ChevronDown, ChevronUp, Calendar
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { OrderTrackingStepper, type OrderStatus } from '@/components/ui/OrderTrackingStepper'
 
 interface OrdersListProps {
   initialOrders: any[]
@@ -171,6 +172,17 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                       className="overflow-hidden border-t border-border/50 bg-muted/10"
                     >
                       <div className="px-4 py-5 space-y-4">
+
+                        {/* Order Tracking Stepper */}
+                        <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-3">
+                            Estado de la campaña
+                          </p>
+                          <OrderTrackingStepper
+                            status={order.status as OrderStatus}
+                            layout="auto"
+                          />
+                        </div>
 
                         {/* Bookings table */}
                         <div>

@@ -1,5 +1,3 @@
-'use client'
-
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import type { FileRejection } from 'react-dropzone'
@@ -53,7 +51,7 @@ export function PhotoDropzone({ onFile }: PhotoDropzoneProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="w-full">
       <AnimatePresence mode="wait">
         {!preview ? (
           /* Separate motion wrapper from getRootProps div to avoid Framer Motion / react-dropzone onDrag type collision */

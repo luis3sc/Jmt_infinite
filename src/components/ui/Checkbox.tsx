@@ -23,9 +23,9 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     };
 
     return (
-      <label
+      <span
         className={cn(
-          "relative flex items-center justify-center w-5 h-5 rounded-sm border border-primary ring-offset-background transition-colors",
+          "relative flex items-center justify-center w-5 h-5 min-w-[20px] min-h-[20px] rounded-sm border border-primary ring-offset-background transition-colors shrink-0 select-none",
           isChecked ? "bg-primary text-primary-foreground" : "bg-transparent",
           disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-primary/10",
           className
@@ -50,7 +50,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
             <Check className="h-3.5 w-3.5" />
           </motion.div>
         )}
-      </label>
+      </span>
     );
   }
 );

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
+import { MapErrorBoundary } from "@/components/map/MapErrorBoundary";
 
 const MapViewClient = dynamic(
   () => import("@/components/map/MapViewClient").then((mod) => mod.MapViewClient),
@@ -18,7 +19,9 @@ const MapViewClient = dynamic(
 export default function MapPage() {
   return (
     <Suspense fallback={null}>
-      <MapViewClient />
+      <MapErrorBoundary>
+        <MapViewClient />
+      </MapErrorBoundary>
     </Suspense>
   );
 }

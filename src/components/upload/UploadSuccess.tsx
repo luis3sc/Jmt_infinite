@@ -1,6 +1,7 @@
 'use client'
 
-import { Check, ExternalLink, ArrowLeft, ShieldCheck, Clock, Share2, Play, Info, Sparkles } from 'lucide-react'
+import { Check, ExternalLink, ShieldCheck, Clock, Play, Info, Sparkles } from 'lucide-react'
+import { OrderTrackingStepper, type OrderStatus } from '@/components/ui/OrderTrackingStepper'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -63,6 +64,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
   }
 
   const currentStatus = statusMap[status || 'VIDEO_SENT'] || statusMap['VIDEO_SENT']
+  const trackingStatus = (status as OrderStatus) || 'VIDEO_SENT'
 
   return (
     <motion.div 
@@ -178,6 +180,14 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
               <p className="text-sm md:text-lg text-muted-foreground leading-relaxed mb-3 md:mb-6 max-w-md font-medium opacity-80">
                 Material recibido. Lo validaremos en las próximas horas.
               </p>
+
+              {/* Order Tracking Stepper */}
+              <div className="w-full mb-3 md:mb-6 p-3 md:p-4 rounded-xl bg-muted/30 border border-border/50">
+                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-3">
+                  Estado de tu campaña
+                </p>
+                <OrderTrackingStepper status={trackingStatus} layout="auto" />
+              </div>
 
               {/* Status Pills — compact on mobile */}
               <div className="flex flex-wrap gap-2 md:gap-4 mb-3 md:mb-6 w-full">

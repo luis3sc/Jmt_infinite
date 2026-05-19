@@ -57,7 +57,8 @@ export function SearchForm() {
         onSubmit={handleSearch}
         className={cn(
           "bg-card border border-border/80 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] transition-all duration-300",
-          "hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.12)] hover:border-border",
+          "hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.12)] hover:border-primary",
+          "focus-within:border-primary",
           "rounded-[calc(var(--radius)*1.5)] p-2 flex flex-col md:flex-row items-center gap-1 md:gap-0"
         )}
       >
@@ -65,7 +66,7 @@ export function SearchForm() {
         <div className="relative flex-1 w-full group">
           <div className="flex items-center h-full px-5 py-4 md:py-0">
             <div className="flex flex-col md:flex-row md:items-center flex-1 min-w-0">
-              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] leading-none mb-1.5 md:mb-0 md:mr-3 md:hidden">Ubicación</span>
+              <span className="text-[10px] font-black uppercase text-foreground/60 tracking-[0.2em] leading-none mb-1.5 md:mb-0 md:mr-3 md:hidden">Ubicación</span>
               <input
                 type="text"
                 placeholder="¿Dónde quieres anunciarte?"
@@ -73,7 +74,7 @@ export function SearchForm() {
                 onChange={(e) => handleLocationChange(e.target.value)}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                className="bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 text-base font-bold placeholder:text-muted-foreground/40 w-full truncate text-foreground h-auto"
+                className="bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 text-base font-bold placeholder:text-muted-foreground/75 w-full truncate text-foreground h-auto"
               />
             </div>
             {location && (
@@ -101,16 +102,16 @@ export function SearchForm() {
                 {suggestions.map((suggestion, index) => (
                   <div
                     key={index}
-                    className="px-5 py-4 hover:bg-muted/50 cursor-pointer flex items-center gap-4 transition-colors border-b border-border/50 last:border-0"
+                    className="px-5 py-4 hover:bg-primary/[0.08] cursor-pointer flex items-center gap-4 transition-all duration-200 border-b border-border/50 last:border-0 group/item"
                     onClick={() => {
                       setLocation(suggestion.place_name);
                       setShowSuggestions(false);
                     }}
                   >
-                    <div className="w-8 h-8 rounded-[calc(var(--radius)*0.75)] bg-muted flex items-center justify-center shrink-0">
-                      <MapPin size={16} className="text-muted-foreground" />
+                    <div className="w-8 h-8 rounded-[calc(var(--radius)*0.75)] bg-muted flex items-center justify-center shrink-0 group-hover/item:bg-primary/20 transition-colors">
+                      <MapPin size={16} className="text-muted-foreground group-hover/item:text-primary transition-colors" />
                     </div>
-                    <span className="text-sm font-semibold text-foreground truncate">{suggestion.place_name}</span>
+                    <span className="text-sm font-semibold text-foreground group-hover/item:text-primary transition-colors truncate">{suggestion.place_name}</span>
                   </div>
                 ))}
               </motion.div>
@@ -127,15 +128,26 @@ export function SearchForm() {
           <div
             className="flex-1 md:flex-none flex items-center px-4 md:px-5 py-4 md:py-5 cursor-pointer group"
             onClick={(e) => {
-              const input = e.currentTarget.querySelector('input');
-              if (input && 'showPicker' in input) (input as any).showPicker();
+              const input = e.currentTarget.querySelector<HTMLInputElement>('input');
+              if (input) {
+                if (typeof (input as any).showPicker === 'function') {
+                  try {
+                    (input as any).showPicker();
+                  } catch (err) {
+                    console.error("Failed to open datepicker:", err);
+                    input.focus();
+                  }
+                } else {
+                  input.focus();
+                }
+              }
             }}
           >
             <div className="flex flex-col md:flex-row md:items-center gap-0 md:gap-3">
-              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] leading-none mb-1.5 md:mb-0 group-hover:opacity-80 transition-opacity">Desde</span>
+              <span className="text-[10px] font-black uppercase text-foreground/60 tracking-[0.2em] leading-none mb-1.5 md:mb-0 group-hover:opacity-80 transition-opacity">Desde</span>
               <div className="relative flex items-center h-full">
                 {!dateFrom && (
-                  <span className="absolute inset-0 pointer-events-none text-muted-foreground/40 text-sm md:text-base font-bold whitespace-nowrap flex items-center">
+                  <span className="absolute inset-0 pointer-events-none text-muted-foreground/75 text-sm md:text-base font-bold whitespace-nowrap flex items-center">
                     Seleccionar
                   </span>
                 )}
@@ -144,11 +156,8 @@ export function SearchForm() {
                   value={dateFrom}
                   min={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
                   className={cn(
-                    "bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 text-sm md:text-base font-bold [color-scheme:light] dark:[color-scheme:dark] cursor-pointer w-full md:w-[110px] text-foreground h-auto",
+                    "bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 text-sm md:text-base font-bold [color-scheme:light] dark:[color-scheme:dark] pointer-events-none w-full md:w-[110px] text-foreground h-auto",
                     !dateFrom && "opacity-0"
                   )}
                 />
@@ -162,15 +171,26 @@ export function SearchForm() {
           <div
             className="flex-1 md:flex-none flex items-center px-4 md:px-5 py-4 md:py-5 cursor-pointer group"
             onClick={(e) => {
-              const input = e.currentTarget.querySelector('input');
-              if (input && 'showPicker' in input) (input as any).showPicker();
+              const input = e.currentTarget.querySelector<HTMLInputElement>('input');
+              if (input) {
+                if (typeof (input as any).showPicker === 'function') {
+                  try {
+                    (input as any).showPicker();
+                  } catch (err) {
+                    console.error("Failed to open datepicker:", err);
+                    input.focus();
+                  }
+                } else {
+                  input.focus();
+                }
+              }
             }}
           >
             <div className="flex flex-col md:flex-row md:items-center gap-0 md:gap-3">
-              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] leading-none mb-1.5 md:mb-0 group-hover:opacity-80 transition-opacity">Hasta</span>
+              <span className="text-[10px] font-black uppercase text-foreground/60 tracking-[0.2em] leading-none mb-1.5 md:mb-0 group-hover:opacity-80 transition-opacity">Hasta</span>
               <div className="relative flex items-center h-full">
                 {!dateTo && (
-                  <span className="absolute inset-0 pointer-events-none text-muted-foreground/40 text-sm md:text-base font-bold whitespace-nowrap flex items-center">
+                  <span className="absolute inset-0 pointer-events-none text-muted-foreground/75 text-sm md:text-base font-bold whitespace-nowrap flex items-center">
                     Seleccionar
                   </span>
                 )}
@@ -179,11 +199,8 @@ export function SearchForm() {
                   value={dateTo}
                   min={dateFrom || new Date().toISOString().split('T')[0]}
                   onChange={(e) => setDateTo(e.target.value)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
                   className={cn(
-                    "bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 text-sm md:text-base font-bold [color-scheme:light] dark:[color-scheme:dark] cursor-pointer w-full md:w-[110px] text-foreground h-auto",
+                    "bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 text-sm md:text-base font-bold [color-scheme:light] dark:[color-scheme:dark] pointer-events-none w-full md:w-[110px] text-foreground h-auto",
                     !dateTo && "opacity-0"
                   )}
                 />
