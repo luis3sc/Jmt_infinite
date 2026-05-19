@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-outfit)', 'sans-serif'],
+        sans: ['var(--font-roboto)', 'sans-serif'],
       },
       colors: {
         background: "hsl(var(--background))",

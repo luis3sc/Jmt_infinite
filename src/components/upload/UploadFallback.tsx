@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -35,7 +35,7 @@ export function UploadFallback({ orderId }: { orderId: string }) {
           <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary border border-primary/20">
             <Link2 size={24} />
           </div>
-          <h3 className="text-xl font-black text-foreground tracking-tight uppercase">Compartir Enlace</h3>
+          <h3 className="text-xl font-bold text-foreground tracking-tight">Compartir enlace</h3>
         </div>
         
         <p className="text-sm text-muted-foreground mb-10 leading-relaxed font-medium">

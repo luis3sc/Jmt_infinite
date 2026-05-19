@@ -12,14 +12,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 interface OrdersListProps {
   initialOrders: any[]
 }
+import { Input } from "@/components/ui/Input"
+import { Button } from "@/components/ui/Button"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
-  CONFIRMED:          { label: 'Activo',            color: 'text-emerald-400', dot: 'bg-emerald-400' },
-  PENDING_UPLOAD:     { label: 'Pendiente de video', color: 'text-amber-400',  dot: 'bg-amber-400' },
-  VIDEO_SENT:         { label: 'Video enviado',      color: 'text-blue-400',   dot: 'bg-blue-400' },
-  PENDING_VALIDATION: { label: 'En validación',      color: 'text-purple-400', dot: 'bg-purple-400' },
-  REJECTED:           { label: 'Rechazado',          color: 'text-red-400',    dot: 'bg-red-400' },
-  CANCELLED:          { label: 'Cancelado',          color: 'text-slate-500',  dot: 'bg-slate-500' },
+  CONFIRMED:          { label: 'Activo',            color: 'text-emerald-600', dot: 'bg-emerald-500' },
+  PENDING_UPLOAD:     { label: 'Pendiente de video', color: 'text-amber-600',  dot: 'bg-amber-500' },
+  VIDEO_SENT:         { label: 'Video enviado',      color: 'text-muted-foreground', dot: 'bg-muted-foreground/60' },
+  PENDING_VALIDATION: { label: 'En validación',      color: 'text-purple-600', dot: 'bg-purple-500' },
+  REJECTED:           { label: 'Rechazado',          color: 'text-red-600',    dot: 'bg-red-500' },
+  CANCELLED:          { label: 'Cancelado',          color: 'text-muted-foreground/80',  dot: 'bg-muted/80' },
 }
 
 const FILTERS = [
@@ -50,47 +52,44 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
       {/* TOOLBAR */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" />
-          <input
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
             type="text"
             placeholder="Buscar por ID..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white/[0.03] border border-white/5 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/30 focus:bg-white/[0.05] transition-all"
+            className="w-full bg-card border-border rounded-lg py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-muted/10 h-auto"
           />
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
           {FILTERS.map(f => (
-            <button
+            <Button
               key={f.value}
+              variant={filter === f.value ? 'default' : 'outline'}
               onClick={() => setFilter(f.value)}
-              className={`px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
-                filter === f.value
-                  ? 'bg-primary text-white'
-                  : 'bg-white/[0.03] text-slate-500 border border-white/5 hover:text-white hover:bg-white/[0.06]'
-              }`}
+              className="px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap h-auto"
             >
               {f.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       {/* TABLE HEADER — desktop only */}
-      <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 border-b border-white/5">
-        <p className="col-span-3 text-[10px] font-black text-slate-600 uppercase tracking-widest">ID Pedido</p>
-        <p className="col-span-3 text-[10px] font-black text-slate-600 uppercase tracking-widest">Pantallas</p>
-        <p className="col-span-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Fecha</p>
-        <p className="col-span-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Estado</p>
-        <p className="col-span-2 text-[10px] font-black text-slate-600 uppercase tracking-widest text-right">Total</p>
+      <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 border-b border-border/50">
+        <p className="col-span-3 text-[10px] font-black text-muted-foreground uppercase tracking-widest">ID Pedido</p>
+        <p className="col-span-3 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Pantallas</p>
+        <p className="col-span-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Fecha</p>
+        <p className="col-span-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Estado</p>
+        <p className="col-span-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Total</p>
       </div>
 
       {/* ROWS */}
       <div className="space-y-2">
         <AnimatePresence mode="popLayout">
           {filtered.length > 0 ? filtered.map((order, i) => {
-            const status = STATUS_CONFIG[order.status] ?? { label: order.status, color: 'text-slate-400', dot: 'bg-slate-400' }
+            const status = STATUS_CONFIG[order.status] ?? { label: order.status, color: 'text-muted-foreground', dot: 'bg-muted-foreground/40' }
             const isExpanded = expanded.includes(order.id)
 
             return (
@@ -101,18 +100,19 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ delay: i * 0.03, duration: 0.25 }}
-                className="rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors overflow-hidden"
+                className="rounded-lg border border-border bg-card hover:bg-muted/10 hover:border-border/80 transition-all overflow-hidden"
               >
                 {/* MAIN ROW */}
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => toggle(order.id)}
-                  className="w-full text-left"
+                  className="w-full text-left block h-auto p-0 hover:bg-transparent rounded-none"
                 >
                   <div className="grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-4 px-4 py-4 items-center">
                     {/* ID */}
                     <div className="md:col-span-3">
-                      <p className="text-[10px] text-slate-600 mb-0.5 md:hidden">Pedido</p>
-                      <p className="font-mono text-xs font-bold text-white">
+                      <p className="text-[10px] text-muted-foreground mb-0.5 md:hidden">Pedido</p>
+                      <p className="font-mono text-xs font-bold text-foreground">
                         #{order.id.slice(0, 8).toUpperCase()}
                       </p>
                     </div>
@@ -120,13 +120,13 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                     {/* Pantallas preview */}
                     <div className="md:col-span-3 flex flex-wrap gap-1.5">
                       {order.bookings?.slice(0, 2).map((b: any, idx: number) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[10px] font-medium text-slate-400">
-                          <MapPin size={9} className="text-primary/60 shrink-0" />
+                        <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted border border-border text-[10px] font-semibold text-muted-foreground">
+                          <MapPin size={9} className="text-muted-foreground shrink-0" />
                           {b.panels?.panel_code}
                         </span>
                       ))}
                       {order.bookings?.length > 2 && (
-                        <span className="text-[10px] text-slate-600 self-center">
+                        <span className="text-[10px] text-muted-foreground self-center font-medium">
                           +{order.bookings.length - 2}
                         </span>
                       )}
@@ -134,7 +134,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
 
                     {/* Fecha */}
                     <div className="md:col-span-2 hidden md:block">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground font-medium">
                         {new Date(order.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: '2-digit' })}
                       </p>
                     </div>
@@ -149,16 +149,16 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
 
                     {/* Total */}
                     <div className="md:col-span-2 text-right flex items-center justify-end gap-2">
-                      <span className="text-sm font-black text-white">
+                      <span className="text-sm font-black text-foreground">
                         S/ {order.total_amount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                       </span>
                       {isExpanded
-                        ? <ChevronUp size={14} className="text-slate-600 shrink-0" />
-                        : <ChevronDown size={14} className="text-slate-600 shrink-0" />
+                        ? <ChevronUp size={14} className="text-muted-foreground shrink-0" />
+                        : <ChevronDown size={14} className="text-muted-foreground shrink-0" />
                       }
                     </div>
                   </div>
-                </button>
+                </Button>
 
                 {/* EXPANDED DETAIL */}
                 <AnimatePresence>
@@ -168,22 +168,22 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="overflow-hidden border-t border-white/5"
+                      className="overflow-hidden border-t border-border/50 bg-muted/10"
                     >
                       <div className="px-4 py-5 space-y-4">
 
                         {/* Bookings table */}
                         <div>
-                          <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3">Detalle de pantallas</p>
+                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Detalle de pantallas</p>
                           <div className="space-y-1.5">
                             {order.bookings?.map((b: any) => (
-                              <div key={b.id} className="grid grid-cols-3 gap-3 py-2.5 px-3 rounded-lg bg-white/[0.02] border border-white/5 text-xs">
+                              <div key={b.id} className="grid grid-cols-3 gap-3 py-2.5 px-3 rounded-lg bg-card border border-border text-xs">
                                 <div className="flex items-center gap-2">
-                                  <MapPin size={11} className="text-primary/50 shrink-0" />
-                                  <span className="font-bold text-white">{b.panels?.panel_code}</span>
+                                  <MapPin size={11} className="text-muted-foreground shrink-0" />
+                                  <span className="font-bold text-foreground">{b.panels?.panel_code}</span>
                                 </div>
-                                <p className="text-slate-500 truncate">{b.panels?.structures?.district}</p>
-                                <p className="text-right font-black text-primary">S/ {b.amount?.toLocaleString()}</p>
+                                <p className="text-muted-foreground truncate font-medium">{b.panels?.structures?.district}</p>
+                                <p className="text-right font-black text-foreground">S/ {b.amount?.toLocaleString()}</p>
                               </div>
                             ))}
                           </div>
@@ -194,7 +194,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                           {order.status === 'PENDING_UPLOAD' && (
                             <Link
                               href={`/order-success/${order.id}`}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all active:scale-95"
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all active:scale-95 shadow-sm"
                             >
                               <Upload size={13} />
                               Subir Video
@@ -203,7 +203,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                           {order.status === 'REJECTED' && (
                             <Link
                               href={`/order-success/${order.id}`}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all active:scale-95"
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all active:scale-95 shadow-sm"
                             >
                               <AlertCircle size={13} />
                               Corregir Video
@@ -212,19 +212,20 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                           {(order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
                             <Link
                               href={`/order-success/${order.id}`}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95"
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted border border-border text-foreground text-[10px] font-black uppercase tracking-widest hover:bg-muted/80 transition-all active:scale-95"
                             >
                               <ExternalLink size={13} />
                               Ver Campaña
                             </Link>
                           )}
-                          <button
+                          <Button
+                            variant="outline"
                             onClick={e => { e.stopPropagation(); alert(`Preparando factura #${order.id.slice(0, 8).toUpperCase()}...`) }}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/[0.02] border border-white/5 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:text-white hover:bg-white/[0.05] transition-all active:scale-95"
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest h-auto bg-muted/40"
                           >
                             <FileText size={13} />
                             Factura
-                          </button>
+                          </Button>
                         </div>
 
                       </div>
@@ -234,16 +235,17 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
               </motion.div>
             )
           }) : (
-            <div className="py-20 text-center border border-dashed border-white/5 rounded-lg">
-              <Search size={28} className="text-slate-700 mx-auto mb-4" strokeWidth={1} />
-              <p className="text-sm font-black text-white uppercase tracking-tight mb-1">Sin resultados</p>
-              <p className="text-xs text-slate-500 mb-5">No coinciden pedidos con tu búsqueda o filtro.</p>
-              <button
+            <div className="py-20 text-center border border-dashed border-border rounded-lg bg-muted/10">
+              <Search size={28} className="text-muted-foreground mx-auto mb-4" strokeWidth={1} />
+              <p className="text-sm font-black text-foreground uppercase tracking-tight mb-1">Sin resultados</p>
+              <p className="text-xs text-muted-foreground mb-5">No coinciden pedidos con tu búsqueda o filtro.</p>
+              <Button
+                variant="link"
                 onClick={() => { setSearch(''); setFilter('ALL') }}
-                className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline underline-offset-4"
+                className="text-[10px] font-black text-primary uppercase tracking-widest h-auto p-0"
               >
                 Limpiar filtros
-              </button>
+              </Button>
             </div>
           )}
         </AnimatePresence>

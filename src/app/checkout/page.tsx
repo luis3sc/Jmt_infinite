@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, CreditCard, Loader2, ChevronDown, ChevronUp, ShoppingCart, X, QrCode, CheckCircle2, Lock } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CreditCard, Loader2, ChevronDown, ChevronUp, ShoppingCart, X, QrCode, CheckCircle2, Lock, User, Briefcase, Star, Building2, UserCircle } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
 import { PhoneInput, defaultCountries } from 'react-international-phone'
 import 'react-international-phone/style.css'
 import Link from 'next/link'
 import TopBar from '@/components/layout/TopBar'
 import AuthButton from '@/components/layout/AuthButton'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
+import { Button } from '@/components/ui/Button'
+import { Dialog } from '@/components/ui/Dialog'
 import { createClient } from '@/lib/supabase/client'
 
 export default function CheckoutPage() {
@@ -33,6 +37,7 @@ export default function CheckoutPage() {
   const [user, setUser] = useState<any>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [profileExists, setProfileExists] = useState(false)
+  const [userType, setUserType] = useState<'individual' | 'entrepreneur' | 'influencer'>('individual')
 
 
   // Prevent hydration errors and check for session
@@ -70,6 +75,7 @@ export default function CheckoutPage() {
           setFullName(profile.full_name || '')
           if (profile.document_type) setDocType(profile.document_type)
           if (profile.receipt_type) setReceiptType(profile.receipt_type as 'boleta' | 'factura')
+          if (profile.user_type) setUserType(profile.user_type as any)
           // NO pre-llenar DNI y teléfono por solicitud del usuario
         } else {
           // El perfil no existe en DB (puede haberse eliminado manualmente de 'profiles')
@@ -232,6 +238,7 @@ export default function CheckoutPage() {
         p_document_number: docNumber,
         p_document_type: docType,
         p_receipt_type: receiptType,
+        p_user_type: userType,
       })
 
       if (rpcError) {
@@ -315,10 +322,10 @@ export default function CheckoutPage() {
   if (!isMounted) return null
 
   return (
-    <div className="min-h-[100dvh] bg-[#0a0f1c] text-slate-200 flex flex-col">
+    <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
       <TopBar
         center={
-          <h1 className="text-xs md:text-sm font-bold text-white uppercase tracking-[0.2em] hidden sm:block">
+          <h1 className="text-xs md:text-sm font-bold text-foreground uppercase tracking-[0.2em] hidden sm:block">
             Confirmación y pago
           </h1>
         }
@@ -330,27 +337,28 @@ export default function CheckoutPage() {
         {/* SECCIÓN IZQUIERDA: FORMULARIO */}
         <div className="flex-1 px-4 pt-4 pb-24 md:p-10 md:max-w-2xl md:mx-auto md:w-full overflow-y-auto custom-scrollbar">
           {/* Botón Volver */}
-          <button
+          <Button
+            variant="outline"
             onClick={() => router.back()}
-            className="w-fit flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted hover:border-primary/20 transition-all active:scale-95 group text-sm font-semibold mb-8"
+            className="w-fit flex items-center gap-2.5 px-4 py-2.5 bg-card/50 backdrop-blur-sm shadow-sm hover:bg-muted transition-all active:scale-95 group mb-8"
           >
             <ArrowLeft size={18} className="text-primary group-hover:-translate-x-1 transition-transform" />
             <span className="text-muted-foreground group-hover:text-foreground">Volver</span>
-          </button>
+          </Button>
 
           {/* RESUMEN COLLAPSABLE (Solo Mobile) */}
-          <div className="md:hidden mb-8 border border-white/10 rounded-lg bg-[#0d1326] overflow-hidden">
+          <div className="md:hidden mb-8 border border-border rounded-[calc(var(--radius)*0.75)] bg-card overflow-hidden">
             <button
               onClick={() => setShowSummary(!showSummary)}
-              className="w-full flex items-center justify-between p-4 bg-[#131b2f]"
+              className="w-full flex items-center justify-between p-4 bg-muted"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
+                <div className="p-2 bg-primary/10 rounded-[calc(var(--radius)*0.75)]">
                   <ShoppingCart size={18} className="text-primary" />
                 </div>
                 <div className="text-left">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Resumen del pedido</p>
-                  <p className="text-sm font-black text-white">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Resumen del pedido</p>
+                  <p className="text-sm font-black text-foreground">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -362,15 +370,15 @@ export default function CheckoutPage() {
             </button>
 
             {showSummary && (
-              <div className="p-4 space-y-4 border-t border-white/5 bg-[#0d1326]/50 animate-in slide-in-from-top-2 duration-300">
+              <div className="p-4 space-y-4 border-t border-border bg-card/50 animate-in slide-in-from-top-2 duration-300">
                 <div className="space-y-3">
                   {cartItems.map((item) => (
-                    <div key={item.panelId} className="flex justify-between items-start pb-3 border-b border-white/5 last:border-0">
+                    <div key={item.panelId} className="flex justify-between items-start pb-3 border-b border-border last:border-0">
                       <div className="pr-4 min-w-0">
-                        <p className="font-bold text-[11px] text-white uppercase tracking-tight truncate">{item.panelCode}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5 truncate">{item.address}</p>
+                        <p className="font-bold text-[11px] text-foreground uppercase tracking-tight truncate">{item.panelCode}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{item.address}</p>
                       </div>
-                      <p className="font-bold text-[11px] text-white whitespace-nowrap">
+                      <p className="font-bold text-[11px] text-foreground whitespace-nowrap">
                         S/ {item.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -378,15 +386,15 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="pt-2 space-y-2">
-                  <div className="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                     <span>Subtotal (Neto)</span>
                     <span>S/ {(cartTotal / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                     <span>IGV (18%)</span>
                     <span>S/ {(cartTotal - (cartTotal / 1.18)).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-white font-black uppercase tracking-widest pt-2 border-t border-white/5">
+                  <div className="flex justify-between text-xs text-foreground font-black uppercase tracking-widest pt-2 border-t border-border">
                     <span>Total</span>
                     <span className="text-primary">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
                   </div>
@@ -399,48 +407,84 @@ export default function CheckoutPage() {
           {isInitialLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
-              <p className="text-slate-400 text-sm animate-pulse uppercase tracking-widest font-bold">Cargando tus datos...</p>
+              <p className="text-muted-foreground text-sm animate-pulse uppercase tracking-widest font-bold">Cargando tus datos...</p>
             </div>
           ) : (
             <div className="space-y-6">
               <form id="checkout-form" onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {user && (
-                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center gap-3 mb-2">
+                  <div className="bg-primary/10 border border-primary/20 rounded-[calc(var(--radius)*0.75)] p-4 flex items-center gap-3 mb-2">
                     <CheckCircle2 size={20} className="text-primary" />
                     <div>
                       <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-0.5">Sesión Activa</p>
-                      <p className="text-sm text-white font-bold">{email}</p>
+                      <p className="text-sm text-foreground font-bold">{email}</p>
                     </div>
                   </div>
                 )}
 
+                {/* Tipo de Usuario */}
+                <div>
+                  <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3">
+                    ¿Cómo te identificas?
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: 'individual', label: 'Persona', sub: 'Uso personal', icon: User },
+                      { id: 'entrepreneur', label: 'Negocio', sub: 'Empresa/Emprendedor', icon: Briefcase },
+                      { id: 'influencer', label: 'Creador', sub: 'Influencer/Artista', icon: Star }
+                    ].map((type) => {
+                      const Icon = type.icon
+                      return (
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() => setUserType(type.id as any)}
+                          className={`flex flex-col items-center justify-center p-3 rounded-[calc(var(--radius)*0.75)] border transition-all gap-1.5 ${
+                            userType === type.id
+                              ? 'border-primary bg-primary/5 text-primary shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
+                              : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                          }`}
+                        >
+                          <div className={`p-2 rounded-[calc(var(--radius)*0.5)] ${userType === type.id ? 'bg-primary/20' : 'bg-muted'}`}>
+                             <Icon size={18} />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] font-black uppercase tracking-tight leading-none">{type.label}</p>
+                            <p className="text-[8px] opacity-60 mt-0.5 leading-none">{type.sub}</p>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 {/* Email */}
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
                     Correo Electrónico
                   </label>
-                  <input
+                  <Input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={!!user}
-                    className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all disabled:opacity-50"
+                    className="w-full"
                   />
                 </div>
 
                 {/* Password */}
                 {!user && (
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                    <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
                       Contraseña (para crear o acceder a tu cuenta)
                     </label>
-                    <input
+                    <Input
                       type="password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      className="w-full"
                     />
                   </div>
                 )}
@@ -450,9 +494,9 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() => setReceiptType('boleta')}
-                    className={`py-3 rounded-lg text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'boleta'
+                    className={`py-3 rounded-[calc(var(--radius)*0.6875)] text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'boleta'
                         ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                        : 'bg-[#131b2f] text-slate-400 border-slate-800/60 hover:bg-slate-800/40'
+                        : 'bg-card text-muted-foreground border-border hover:bg-muted'
                       }`}
                   >
                     Boleta
@@ -460,9 +504,9 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() => setReceiptType('factura')}
-                    className={`py-3 rounded-lg text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'factura'
+                    className={`py-3 rounded-[calc(var(--radius)*0.6875)] text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'factura'
                         ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                        : 'bg-[#131b2f] text-slate-400 border-slate-800/60 hover:bg-slate-800/40'
+                        : 'bg-card text-muted-foreground border-border hover:bg-muted'
                       }`}
                   >
                     Factura
@@ -472,56 +516,55 @@ export default function CheckoutPage() {
                 {/* Documento */}
                 <div className="flex gap-3">
                   <div className="w-1/3 md:w-1/4">
-                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                    <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
                       Tipo
                     </label>
-                    <select
+                    <Select
                       value={docType}
                       onChange={(e) => setDocType(e.target.value)}
-                      className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-3 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none"
                     >
                       {receiptType === 'factura' ? (
-                        <option value="RUC">RUC</option>
+                        <option value="RUC" className="bg-card text-foreground">RUC</option>
                       ) : (
                         <>
-                          <option value="DNI">DNI</option>
-                          <option value="CE">CE</option>
-                          <option value="PASAPORTE">Pasaporte</option>
+                          <option value="DNI" className="bg-card text-foreground">DNI</option>
+                          <option value="CE" className="bg-card text-foreground">CE</option>
+                          <option value="PASAPORTE" className="bg-card text-foreground">Pasaporte</option>
                         </>
                       )}
-                    </select>
+                    </Select>
                   </div>
                   <div className="flex-1">
-                    <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                    <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
                       {receiptType === 'factura' ? 'Número de RUC' : `Número de ${docType}`}
                     </label>
-                    <input
+                    <Input
                       type="text"
                       required
                       value={docNumber}
                       onChange={(e) => setDocNumber(e.target.value)}
-                      className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      className="w-full"
                     />
                   </div>
                 </div>
 
                 {/* Nombres y Apellidos / Razón Social */}
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5">
+                  <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
                     {receiptType === 'factura' ? 'Razón Social' : 'Nombres y Apellidos'}
                   </label>
-                  <input
+                  <Input
                     type="text"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-[#131b2f] border border-slate-800/60 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    className="w-full"
                   />
                 </div>
 
                 {/* Teléfono */}
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-400 uppercase tracking-widest mb-1.5 flex justify-between">
+                  <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5 flex justify-between">
                     <span>Teléfono <span className="text-primary">*</span></span>
                   </label>
                   <style dangerouslySetInnerHTML={{__html: `
@@ -535,12 +578,12 @@ export default function CheckoutPage() {
                     .custom-phone-input .react-international-phone-input {
                       width: 100% !important;
                       flex: 1;
-                      background-color: #131b2f;
-                      border: 1px solid rgba(30, 41, 59, 0.6) !important;
+                      background-color: hsl(var(--card));
+                      border: 1px solid hsl(var(--border)) !important;
                       border-left: none !important;
-                      border-radius: 0 0.5rem 0.5rem 0 !important;
+                      border-radius: 0 calc(var(--radius)*0.5) calc(var(--radius)*0.5) 0 !important;
                       padding: 0.75rem 1rem !important;
-                      color: white !important;
+                      color: hsl(var(--foreground)) !important;
                       transition: all 0.2s;
                       height: 48px !important;
                       font-size: 14px;
@@ -551,12 +594,12 @@ export default function CheckoutPage() {
                       box-shadow: 0 0 0 1px hsl(var(--primary)) !important;
                     }
                     .custom-phone-input .react-international-phone-country-selector-button {
-                      background-color: #131b2f !important;
-                      border: 1px solid rgba(30, 41, 59, 0.6) !important;
-                      border-radius: 0.5rem 0 0 0.5rem !important;
+                      background-color: hsl(var(--card)) !important;
+                      border: 1px solid hsl(var(--border)) !important;
+                      border-radius: calc(var(--radius)*0.5) 0 0 calc(var(--radius)*0.5) !important;
                       padding: 0 0.75rem !important;
                       height: 48px !important;
-                      color: white !important;
+                      color: hsl(var(--foreground)) !important;
                       transition: all 0.2s;
                       display: flex;
                       align-items: center;
@@ -565,26 +608,26 @@ export default function CheckoutPage() {
                       gap: 4px;
                     }
                     .custom-phone-input .react-international-phone-country-selector-button:hover {
-                      background-color: rgba(30, 41, 59, 0.8) !important;
+                      background-color: hsl(var(--muted)) !important;
                     }
                     .custom-phone-input .react-international-phone-country-selector-button__dropdown-arrow {
-                      border-top-color: #94a3b8 !important;
+                      border-top-color: hsl(var(--muted-foreground)) !important;
                       margin-left: 2px;
                     }
                     .custom-phone-input .react-international-phone-country-selector-dropdown {
-                      background-color: #131b2f !important;
-                      border: 1px solid rgba(30, 41, 59, 0.8) !important;
-                      color: white !important;
+                      background-color: hsl(var(--card)) !important;
+                      border: 1px solid hsl(var(--border)) !important;
+                      color: hsl(var(--foreground)) !important;
                       z-index: 9999 !important;
-                      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.8) !important;
-                      border-radius: 0.5rem !important;
+                      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+                      border-radius: calc(var(--radius)*0.5) !important;
                       margin-top: 4px;
                       max-height: 300px !important;
                       width: 250px !important;
                     }
                     .custom-phone-input .react-international-phone-country-selector-dropdown__list-item {
-                      background-color: #131b2f !important;
-                      color: white !important;
+                      background-color: hsl(var(--card)) !important;
+                      color: hsl(var(--foreground)) !important;
                       padding: 12px 16px !important;
                       transition: all 0.2s;
                       display: flex;
@@ -592,17 +635,17 @@ export default function CheckoutPage() {
                       gap: 12px;
                     }
                     .custom-phone-input .react-international-phone-country-selector-dropdown__list-item:hover {
-                      background-color: rgba(255, 255, 255, 0.08) !important;
+                      background-color: hsl(var(--muted)) !important;
                     }
                     .custom-phone-input .react-international-phone-country-selector-dropdown__list-item--selected {
                       background-color: hsl(var(--primary) / 0.2) !important;
                     }
                     .custom-phone-input .react-international-phone-country-selector-dropdown__country-name {
-                      color: white !important;
+                      color: hsl(var(--foreground)) !important;
                       font-size: 14px !important;
                     }
                     .custom-phone-input .react-international-phone-country-selector-dropdown__dial-code {
-                      color: #94a3b8 !important;
+                      color: hsl(var(--muted-foreground)) !important;
                       font-size: 13px !important;
                       margin-left: auto;
                     }
@@ -657,23 +700,23 @@ export default function CheckoutPage() {
       </div>
 
         {/* SECCIÓN DERECHA: RESUMEN Y PAGO (Desktop) */}
-        <div className="hidden md:flex md:w-[400px] lg:w-[480px] bg-[#0d1326] border-l border-slate-800/50 p-8 flex-col shrink-0">
+        <div className="hidden md:flex md:w-[400px] lg:w-[480px] bg-card border-l border-border p-8 flex-col shrink-0">
           <div className="flex-1 overflow-y-auto mb-6 pr-2 custom-scrollbar">
-            <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4">Resumen del Pedido</h3>
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-widest mb-4">Resumen del Pedido</h3>
             {cartItems.length === 0 ? (
-              <p className="text-slate-500 text-sm italic">Tu carrito está vacío.</p>
+              <p className="text-muted-foreground text-sm italic">Tu carrito está vacío.</p>
             ) : (
               <div className="space-y-4">
                 {cartItems.map((item) => (
-                  <div key={item.panelId} className="flex justify-between items-start pb-4 border-b border-slate-800/50 last:border-0">
+                  <div key={item.panelId} className="flex justify-between items-start pb-4 border-b border-border last:border-0">
                     <div className="pr-4">
-                      <p className="font-bold text-sm text-white uppercase tracking-tight">{item.panelCode}</p>
-                      <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{item.address}</p>
+                      <p className="font-bold text-sm text-foreground uppercase tracking-tight">{item.panelCode}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.address}</p>
                       <div className="flex gap-2 items-center mt-2">
                         <span className="text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase">{item.days} días</span>
                       </div>
                     </div>
-                    <p className="font-bold text-sm text-white whitespace-nowrap">
+                    <p className="font-bold text-sm text-foreground whitespace-nowrap">
                       S/ {item.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                     </p>
                   </div>
@@ -683,12 +726,12 @@ export default function CheckoutPage() {
           </div>
 
           <div className="mt-auto">
-            <div className="space-y-3 mb-6 pb-6 border-b border-slate-800/50">
-              <div className="flex justify-between text-xs text-slate-400 font-medium">
+            <div className="space-y-3 mb-6 pb-6 border-b border-border">
+              <div className="flex justify-between text-xs text-muted-foreground font-medium">
                 <span>Subtotal (Neto)</span>
                 <span>S/ {(cartTotal / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between text-xs text-slate-400 font-medium">
+              <div className="flex justify-between text-xs text-muted-foreground font-medium">
                 <span>IGV (18%)</span>
                 <span>S/ {(cartTotal - (cartTotal / 1.18)).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
               </div>
@@ -696,7 +739,7 @@ export default function CheckoutPage() {
 
             <div className="flex justify-between items-end mb-4">
               <div className="flex items-center justify-between w-full">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Total a pagar</p>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Total a pagar</p>
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-black text-primary tracking-tighter">
                     S/ {Number(cartTotal.toFixed(2).split('.')[0]).toLocaleString()}
@@ -708,11 +751,11 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <button
+            <Button
               type="button"
               onClick={handleProceedToPayment}
               disabled={loading || cartItems.length === 0}
-              className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-lg font-black text-base uppercase tracking-widest transition-all shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.98] flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 h-auto rounded-[calc(var(--radius)*0.875)] font-black text-base uppercase tracking-widest transition-all shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.98] flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -725,21 +768,21 @@ export default function CheckoutPage() {
                   Confirmar y pagar
                 </>
               )}
-            </button>
+            </Button>
 
             <div className="mt-4 text-center">
-              <p className="text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
+              <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1.5">
                 <span>Pagos seguros procesados por</span>
-                <strong className="text-white/80">Culqi</strong>
+                <strong className="text-foreground/80">Culqi</strong>
               </p>
             </div>
           </div>
         </div>
 
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0a0f1c]/95 backdrop-blur-2xl border-t border-white/10 z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.7)]">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-2xl border-t border-border z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
           <div className="px-5 py-3 max-w-md mx-auto flex items-center justify-between gap-3">
             <div className="flex flex-col justify-center min-w-0">
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Total a pagar</span>
+              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Total a pagar</span>
               <div className="flex items-baseline gap-0.5 text-xl font-black text-primary tracking-tighter leading-none">
                 <span className="text-xs mr-0.5 font-bold">S/</span>
                 <span>{Number(cartTotal.toFixed(2).split('.')[0]).toLocaleString()}</span>
@@ -747,11 +790,11 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <button
+            <Button
               type="button"
               onClick={handleProceedToPayment}
               disabled={loading || cartItems.length === 0}
-              className="shrink-0 h-11 min-w-[160px] px-6 bg-primary text-white text-[11px] font-black uppercase tracking-[0.15em] rounded-lg shadow-[0_8px_20px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.96] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="shrink-0 h-11 min-w-[160px] px-6 text-[11px] font-black uppercase tracking-[0.15em] shadow-[0_8px_20px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.96] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={16} />
@@ -761,7 +804,7 @@ export default function CheckoutPage() {
                   <ArrowRight size={14} />
                 </>
               )}
-            </button>
+            </Button>
           </div>
           <div className="h-[env(safe-area-inset-bottom)]" />
         </div>
@@ -769,126 +812,115 @@ export default function CheckoutPage() {
       </div>
 
       {/* ===== MODAL DE PAGO ===== */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowPaymentModal(false)} />
+      <Dialog
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        title="Elige tu método de pago"
+        description="Paso final"
+        variant="bottom-sheet"
+        className="sm:max-w-md"
+      >
+        {/* Total */}
+        <div className="mx-6 mt-4 mb-4 bg-primary/10 border border-primary/20 rounded-[calc(var(--radius)*0.75)] px-5 py-3 flex items-center justify-between">
+          <p className="text-xs text-primary font-bold uppercase tracking-widest">Total a pagar</p>
+          <p className="text-2xl font-black text-primary">
+            S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+          </p>
+        </div>
 
-          {/* Modal */}
-          <div className="relative w-full sm:max-w-md bg-[#0d1326] sm:rounded-lg rounded-t-3xl border border-white/10 shadow-[0_40px_80px_-10px_rgba(0,0,0,0.8)] overflow-hidden animate-in slide-in-from-bottom duration-300">
+        {/* Tabs */}
+        <div className="flex gap-2 px-6 mb-4">
+          <Button
+            variant={paymentTab === 'card' ? 'default' : 'secondary'}
+            onClick={() => setPaymentTab('card')}
+            className={`flex-1 py-2.5 rounded-[calc(var(--radius)*0.625)] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${
+              paymentTab === 'card' ? 'shadow-lg shadow-primary/30' : ''
+            }`}
+          >
+            <CreditCard size={14} /> Tarjeta
+          </Button>
+          <Button
+            variant={paymentTab === 'qr' ? 'default' : 'secondary'}
+            onClick={() => setPaymentTab('qr')}
+            className={`flex-1 py-2.5 rounded-[calc(var(--radius)*0.625)] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${
+              paymentTab === 'qr' ? 'shadow-lg shadow-primary/30' : ''
+            }`}
+          >
+            <QrCode size={14} /> QR / Yape
+          </Button>
+        </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/5">
-              <div>
-                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Paso final</p>
-                <h2 className="text-lg font-black text-white">Elige tu método de pago</h2>
+        {/* Tab Content */}
+        <div className="px-6 pb-6">
+          {paymentTab === 'card' ? (
+            <div className="space-y-3">
+              {/* Mock card visual */}
+              <div className="relative h-[120px] rounded-[calc(var(--radius)*0.75)] bg-gradient-to-br from-card-gradient-from to-card-gradient-to border border-white/10 p-4 overflow-hidden mb-4">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -translate-y-8 translate-x-8" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full translate-y-8 -translate-x-8" />
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-2">Culqi · Pago Seguro</p>
+                <p className="text-white font-mono text-lg tracking-[0.2em]">•••• •••• •••• ••••</p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-white/50 text-[10px]">NOMBRE DEL TITULAR</p>
+                  <p className="text-white/50 text-[10px]">MM/AA</p>
+                </div>
               </div>
-              <button onClick={() => setShowPaymentModal(false)} className="p-2 rounded-lg hover:bg-white/5 transition-colors">
-                <X size={18} className="text-slate-400" />
-              </button>
-            </div>
-
-            {/* Total */}
-            <div className="mx-6 mt-4 mb-4 bg-primary/10 border border-primary/20 rounded-lg px-5 py-3 flex items-center justify-between">
-              <p className="text-xs text-primary font-bold uppercase tracking-widest">Total a pagar</p>
-              <p className="text-2xl font-black text-primary">
-                S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+              <div>
+                <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Número de tarjeta</label>
+                <Input readOnly placeholder="4111 1111 1111 1111" className="w-full font-mono" />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Vencimiento</label>
+                  <Input readOnly placeholder="MM/AA" className="w-full font-mono" />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">CVV</label>
+                  <Input readOnly placeholder="•••" className="w-full font-mono" />
+                </div>
+              </div>
+              <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <Lock size={10} /> Cifrado SSL · Procesado por Culqi
               </p>
             </div>
-
-            {/* Tabs */}
-            <div className="flex gap-2 px-6 mb-4">
-              <button
-                onClick={() => setPaymentTab('card')}
-                className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                  paymentTab === 'card' ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                }`}
-              >
-                <CreditCard size={14} /> Tarjeta
-              </button>
-              <button
-                onClick={() => setPaymentTab('qr')}
-                className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                  paymentTab === 'qr' ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                }`}
-              >
-                <QrCode size={14} /> QR / Yape
-              </button>
+          ) : (
+            <div className="flex flex-col items-center py-2">
+              {/* QR SVG placeholder */}
+              <div className="w-44 h-44 bg-white rounded-[calc(var(--radius)*0.75)] p-3 mb-4 border border-border">
+                <svg viewBox="0 0 200 200" className="w-full h-full">
+                  {/* Simple QR pattern mockup */}
+                  {[0,1,2,3,4,5,6].map(r => [0,1,2,3,4,5,6].map(c => {
+                    const inFinder = (r < 2 && c < 2) || (r < 2 && c > 4) || (r > 4 && c < 2)
+                    return <rect key={`${r}-${c}`} x={r*27+5} y={c*27+5} width={22} height={22} fill={inFinder ? 'hsl(var(--primary))' : (Math.random() > 0.5 ? 'hsl(var(--foreground))' : 'transparent')} rx={2} />
+                  }))}
+                  <rect x={5} y={5} width={74} height={74} fill="none" stroke="hsl(var(--foreground))" strokeWidth={6} rx={4} />
+                  <rect x={121} y={5} width={74} height={74} fill="none" stroke="hsl(var(--foreground))" strokeWidth={6} rx={4} />
+                  <rect x={5} y={121} width={74} height={74} fill="none" stroke="hsl(var(--foreground))" strokeWidth={6} rx={4} />
+                </svg>
+              </div>
+              <p className="text-xs font-bold text-foreground mb-1">Escanea con Yape o Plin</p>
+              <p className="text-[10px] text-muted-foreground text-center">Apunta la cámara al QR y completa el pago de <span className="text-primary font-bold">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span></p>
+              <div className="mt-4 bg-muted border border-border rounded-[calc(var(--radius)*0.75)] px-4 py-2 text-center w-full">
+                <p className="text-[10px] text-muted-foreground">Número de cuenta demo</p>
+                <p className="text-sm font-mono font-bold text-foreground">9 999 999 999</p>
+              </div>
             </div>
+          )}
 
-            {/* Tab Content */}
-            <div className="px-6 pb-6">
-              {paymentTab === 'card' ? (
-                <div className="space-y-3">
-                  {/* Mock card visual */}
-                  <div className="relative h-[120px] rounded-lg bg-gradient-to-br from-[#1a3a6e] to-[#0d1f3c] border border-white/10 p-4 overflow-hidden mb-4">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -translate-y-8 translate-x-8" />
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full translate-y-8 -translate-x-8" />
-                    <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-2">Culqi · Pago Seguro</p>
-                    <p className="text-white font-mono text-lg tracking-[0.2em]">•••• •••• •••• ••••</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <p className="text-white/50 text-[10px]">NOMBRE DEL TITULAR</p>
-                      <p className="text-white/50 text-[10px]">MM/AA</p>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Número de tarjeta</label>
-                    <input readOnly placeholder="4111 1111 1111 1111" className="w-full bg-[#131b2f] border border-slate-700/60 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 text-sm focus:outline-none focus:border-primary transition-all" />
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Vencimiento</label>
-                      <input readOnly placeholder="MM/AA" className="w-full bg-[#131b2f] border border-slate-700/60 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 text-sm focus:outline-none focus:border-primary transition-all" />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">CVV</label>
-                      <input readOnly placeholder="•••" className="w-full bg-[#131b2f] border border-slate-700/60 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 text-sm focus:outline-none focus:border-primary transition-all" />
-                    </div>
-                  </div>
-                  <p className="flex items-center gap-1.5 text-[10px] text-slate-500">
-                    <Lock size={10} /> Cifrado SSL · Procesado por Culqi
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center py-2">
-                  {/* QR SVG placeholder */}
-                  <div className="w-44 h-44 bg-white rounded-lg p-3 mb-4">
-                    <svg viewBox="0 0 200 200" className="w-full h-full">
-                      {/* Simple QR pattern mockup */}
-                      {[0,1,2,3,4,5,6].map(r => [0,1,2,3,4,5,6].map(c => {
-                        const inFinder = (r < 2 && c < 2) || (r < 2 && c > 4) || (r > 4 && c < 2)
-                        return <rect key={`${r}-${c}`} x={r*27+5} y={c*27+5} width={22} height={22} fill={inFinder ? '#1a3a6e' : (Math.random() > 0.5 ? '#0d1326' : 'transparent')} rx={2} />
-                      }))}
-                      <rect x={5} y={5} width={74} height={74} fill="none" stroke="#0d1326" strokeWidth={6} rx={4} />
-                      <rect x={121} y={5} width={74} height={74} fill="none" stroke="#0d1326" strokeWidth={6} rx={4} />
-                      <rect x={5} y={121} width={74} height={74} fill="none" stroke="#0d1326" strokeWidth={6} rx={4} />
-                    </svg>
-                  </div>
-                  <p className="text-xs font-bold text-white mb-1">Escanea con Yape o Plin</p>
-                  <p className="text-[10px] text-slate-400 text-center">Apunta la cámara al QR y completa el pago de <span className="text-primary font-bold">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span></p>
-                  <div className="mt-4 bg-[#131b2f] border border-white/5 rounded-lg px-4 py-2 text-center">
-                    <p className="text-[10px] text-slate-500">Número de cuenta demo</p>
-                    <p className="text-sm font-mono font-bold text-white">9 999 999 999</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Confirm Button */}
-              <button
-                onClick={handleConfirmPayment}
-                disabled={paymentLoading}
-                className="w-full mt-5 bg-primary hover:bg-primary/90 text-white py-4 rounded-lg font-black text-sm uppercase tracking-widest transition-all shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {paymentLoading ? (
-                  <><Loader2 size={18} className="animate-spin" /> Procesando...</>
-                ) : (
-                  <><CheckCircle2 size={18} /> Confirmar pago · S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</>
-                )}
-              </button>
-            </div>
-          </div>
+          {/* Confirm Button */}
+          <Button
+            onClick={handleConfirmPayment}
+            disabled={paymentLoading}
+            className="w-full mt-5 h-auto py-4 font-black text-sm uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+          >
+            {paymentLoading ? (
+              <><Loader2 size={18} className="mr-2 animate-spin" /> Procesando...</>
+            ) : (
+              <><CheckCircle2 size={18} className="mr-2" /> Confirmar pago · S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</>
+            )}
+          </Button>
         </div>
-      )}
+      </Dialog>
     </div>
   )
 }

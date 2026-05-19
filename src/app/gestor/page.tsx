@@ -126,7 +126,7 @@ export default async function GestorPage() {
   const rejected       = ordersWithProfiles.filter(o => o.status === 'REJECTED').length
 
   return (
-    <main className="min-h-screen bg-[#0a0f1d] text-white flex flex-col">
+    <main className="min-h-screen bg-background text-foreground flex flex-col">
       <TopBar right={<AuthButton initialRole={profile.role} />} />
 
       <div className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 pt-20 md:pt-24">
@@ -134,10 +134,10 @@ export default async function GestorPage() {
         {/* Back */}
         <Link
           href="/map"
-          className="w-fit flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] hover:border-primary/20 transition-all active:scale-95 group text-[10px] font-black uppercase tracking-widest mb-8"
+          className="w-fit flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border hover:bg-slate-50 hover:border-primary/20 transition-all active:scale-95 group text-[10px] font-black uppercase tracking-widest mb-8 shadow-sm"
         >
           <ArrowLeft size={14} className="text-primary group-hover:-translate-x-1 transition-transform" />
-          <span className="text-slate-400 group-hover:text-white">Volver al Mapa</span>
+          <span className="text-slate-500 group-hover:text-foreground">Volver al Mapa</span>
         </Link>
 
         {/* Header */}
@@ -145,18 +145,18 @@ export default async function GestorPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Panel de Gestión</p>
-              <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white leading-none">
+              <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-foreground leading-none">
                 Revisión de <span className="text-primary">Videos</span>
               </h1>
-              <p className="text-slate-500 mt-2 text-sm font-medium">
+              <p className="text-muted-foreground mt-2 text-sm font-medium">
                 Evalúa y valida los materiales de campaña enviados por los clientes.
               </p>
             </div>
 
             {pendingReview > 0 && (
-              <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-amber-400 text-xs font-black uppercase tracking-widest">
+              <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-amber-50 border border-amber-200">
+                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-amber-700 text-xs font-black uppercase tracking-widest">
                   {pendingReview} {pendingReview === 1 ? 'video pendiente' : 'videos pendientes'}
                 </span>
               </div>
@@ -166,52 +166,52 @@ export default async function GestorPage() {
 
         {/* Stats */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <div className="p-5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-4">
-            <div className="p-3 bg-slate-500/10 rounded-lg text-slate-400 shrink-0">
+          <div className="p-5 rounded-xl bg-card border border-border shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-500 shrink-0">
               <UploadCloud size={20} />
             </div>
             <div>
-              <p className="text-2xl font-black text-white">{pendingUpload}</p>
+              <p className="text-2xl font-black text-foreground">{pendingUpload}</p>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sin Video</p>
             </div>
           </div>
 
-          <div className="p-5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-4">
-            <div className="p-3 bg-amber-500/10 rounded-lg text-amber-400 shrink-0">
+          <div className="p-5 rounded-xl bg-card border border-border shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-600 shrink-0">
               <Clock size={20} />
             </div>
             <div>
-              <p className="text-2xl font-black text-white">{pendingReview}</p>
+              <p className="text-2xl font-black text-foreground">{pendingReview}</p>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Por Revisar</p>
             </div>
           </div>
 
-          <div className="p-5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-4">
-            <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-400 shrink-0">
+          <div className="p-5 rounded-xl bg-card border border-border shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-600 shrink-0">
               <CheckCircle2 size={20} />
             </div>
             <div>
-              <p className="text-2xl font-black text-white">{approved}</p>
+              <p className="text-2xl font-black text-foreground">{approved}</p>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Aprobados</p>
             </div>
           </div>
 
-          <div className="p-5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-4">
-            <div className="p-3 bg-red-500/10 rounded-lg text-red-400 shrink-0">
+          <div className="p-5 rounded-xl bg-card border border-border shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 shrink-0">
               <XCircle size={20} />
             </div>
             <div>
-              <p className="text-2xl font-black text-white">{rejected}</p>
+              <p className="text-2xl font-black text-foreground">{rejected}</p>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Rechazados</p>
             </div>
           </div>
         </section>
 
         {error ? (
-          <div className="p-12 rounded-2xl bg-red-500/5 border border-red-500/10 text-center">
+          <div className="p-12 rounded-2xl bg-red-50 border border-red-200 text-center">
             <AlertCircle size={40} className="text-red-500/40 mx-auto mb-4" />
-            <h3 className="font-bold text-red-400 uppercase tracking-tight">Error de Conexión</h3>
-            <p className="text-slate-500 mt-2 text-sm">{error.message}</p>
+            <h3 className="font-bold text-red-600 uppercase tracking-tight">Error de Conexión</h3>
+            <p className="text-slate-600 mt-2 text-sm">{error.message}</p>
           </div>
         ) : (
           <GestorReviewList initialOrders={ordersWithProfiles} />

@@ -3,14 +3,16 @@
 import { useState } from 'react'
 import { Search, CheckCircle2, XCircle, UploadCloud, Clock, Building2, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Input } from "@/components/ui/Input"
+import { Button } from "@/components/ui/Button"
 import { GestorOrderDetail, type Order } from './GestorOrderDetail'
 
 const STATUS: Record<string, { label: string; color: string; dot: string }> = {
-  PENDING_UPLOAD:     { label: 'Sin video',     color: 'text-slate-400',   dot: 'bg-slate-400'   },
-  VIDEO_SENT:         { label: 'Por revisar',   color: 'text-amber-400',   dot: 'bg-amber-400'   },
-  PENDING_VALIDATION: { label: 'En validación', color: 'text-blue-400',    dot: 'bg-blue-400'    },
-  CONFIRMED:          { label: 'Aprobado',      color: 'text-emerald-400', dot: 'bg-emerald-400' },
-  REJECTED:           { label: 'Rechazado',     color: 'text-red-400',     dot: 'bg-red-400'     },
+  PENDING_UPLOAD:     { label: 'Sin video',     color: 'text-muted-foreground',                 dot: 'bg-muted-foreground/30'   },
+  VIDEO_SENT:         { label: 'Por revisar',   color: 'text-amber-600 dark:text-amber-400',   dot: 'bg-amber-500'             },
+  PENDING_VALIDATION: { label: 'En validación', color: 'text-blue-600 dark:text-blue-400',     dot: 'bg-blue-500'              },
+  CONFIRMED:          { label: 'Aprobado',      color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500'           },
+  REJECTED:           { label: 'Rechazado',     color: 'text-red-600 dark:text-red-400',         dot: 'bg-red-500'               },
 }
 
 const FILTERS = [
@@ -85,48 +87,46 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" />
-          <input
+          <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
             type="text"
             placeholder="Buscar por ID, cliente o email..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white/[0.03] border border-white/5 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/30"
+            className="w-full bg-card border-border rounded-lg py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:border-primary/50 shadow-sm h-auto"
           />
         </div>
         <div className="flex items-center gap-1.5 overflow-x-auto">
           {FILTERS.map(f => (
-            <button
+            <Button
               key={f.value}
+              variant={filter === f.value ? 'default' : 'outline'}
               onClick={() => setFilter(f.value)}
-              className={`px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
-                filter === f.value
-                  ? 'bg-primary text-white'
-                  : 'bg-white/[0.03] text-slate-500 border border-white/5 hover:text-white hover:bg-white/[0.06]'
-              }`}
+              className="px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap h-auto shadow-sm"
             >
               {f.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="py-20 text-center border border-dashed border-white/5 rounded-xl">
-          <Search size={28} className="text-slate-700 mx-auto mb-4" strokeWidth={1} />
-          <p className="text-sm font-black text-white uppercase tracking-tight mb-1">Sin resultados</p>
-          <button
+        <div className="py-20 text-center border border-dashed border-border rounded-xl bg-card shadow-sm">
+          <Search size={28} className="text-muted-foreground/40 mx-auto mb-4" strokeWidth={1} />
+          <p className="text-sm font-black text-foreground uppercase tracking-tight mb-1">Sin resultados</p>
+          <Button
+            variant="link"
             onClick={() => { setSearch(''); setFilter('ALL') }}
-            className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline mt-2"
+            className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline mt-2 p-0 h-auto"
           >
             Limpiar filtros
-          </button>
+          </Button>
         </div>
       ) : (
-        <div className="rounded-xl border border-white/5 overflow-hidden">
+        <div className="rounded-xl border border-border overflow-hidden bg-card shadow-sm">
           {/* Header */}
-          <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 bg-white/[0.02] border-b border-white/5 text-[10px] font-black text-slate-600 uppercase tracking-widest">
+          <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 bg-muted/30 border-b border-border text-[10px] font-black text-muted-foreground uppercase tracking-widest">
             <div className="col-span-1">#</div>
             <div className="col-span-4">Cliente</div>
             <div className="col-span-2">Fecha</div>
@@ -136,37 +136,38 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
           </div>
 
           {filtered.map((order, i) => {
-            const st = STATUS[order.status] ?? { label: order.status, color: 'text-slate-400', dot: 'bg-slate-400' }
+            const st = STATUS[order.status] ?? { label: order.status, color: 'text-muted-foreground', dot: 'bg-muted-foreground/40' }
             const isPending = order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION'
 
             return (
-              <button
+              <Button
                 key={order.id}
+                variant="ghost"
                 onClick={() => setSelected(order)}
-                className={`w-full text-left grid grid-cols-2 md:grid-cols-12 gap-4 px-5 py-4 border-b border-white/5 last:border-b-0 transition-all hover:bg-white/[0.04] group ${isPending ? 'hover:bg-amber-500/[0.04]' : ''}`}
+                className={`w-full text-left grid grid-cols-2 md:grid-cols-12 gap-4 px-5 py-4 border-b border-border last:border-b-0 rounded-none h-auto transition-all ${isPending ? 'bg-amber-500/5 hover:bg-amber-500/10 dark:bg-amber-500/10 dark:hover:bg-amber-500/20' : 'hover:bg-muted/40'} group`}
               >
                 <div className="col-span-1 hidden md:flex items-center">
-                  <span className="font-mono text-[10px] text-slate-600">{i + 1}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground/60">{i + 1}</span>
                 </div>
 
                 <div className="col-span-2 md:col-span-4 flex flex-col justify-center gap-0.5">
-                  <p className="text-sm font-bold text-white truncate">
+                  <p className="text-sm font-bold text-foreground truncate">
                     {order.profile?.full_name || order.profile?.email || 'Sin nombre'}
                   </p>
                   {order.profile?.company_name && (
-                    <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                    <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                       <Building2 size={9} /> {order.profile.company_name}
                     </p>
                   )}
-                  <p className="text-[10px] font-mono text-slate-700">#{order.id.slice(0, 8).toUpperCase()}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground/50">#{order.id.slice(0, 8).toUpperCase()}</p>
                 </div>
 
-                <div className="hidden md:flex md:col-span-2 items-center gap-1.5 text-xs text-slate-500">
+                <div className="hidden md:flex md:col-span-2 items-center gap-1.5 text-xs text-muted-foreground">
                   <Calendar size={11} className="text-primary/40" />
                   {new Date(order.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: '2-digit' })}
                 </div>
 
-                <div className="hidden md:flex md:col-span-2 items-center text-sm font-black text-white">
+                <div className="hidden md:flex md:col-span-2 items-center text-sm font-black text-foreground">
                   S/ {Number(order.total_amount).toLocaleString('es-PE', { minimumFractionDigits: 0 })}
                 </div>
 
@@ -177,16 +178,16 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
 
                 <div className="col-span-1 flex items-center justify-end">
                   {order.status === 'PENDING_UPLOAD' ? (
-                    <UploadCloud size={14} className="text-slate-600" />
+                    <UploadCloud size={14} className="text-muted-foreground/60" />
                   ) : isPending ? (
-                    <span className="text-[9px] font-black text-amber-400 bg-amber-400/10 px-2 py-1 rounded-lg">Revisar</span>
+                    <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">Revisar</span>
                   ) : order.status === 'CONFIRMED' ? (
-                    <CheckCircle2 size={14} className="text-emerald-400" />
+                    <CheckCircle2 size={14} className="text-emerald-500" />
                   ) : (
-                    <XCircle size={14} className="text-red-400" />
+                    <XCircle size={14} className="text-red-500" />
                   )}
                 </div>
-              </button>
+              </Button>
             )
           })}
         </div>

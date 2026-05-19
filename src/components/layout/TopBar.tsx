@@ -39,8 +39,8 @@ export default function TopBar({
   return (
     <header
       className={cn(
-        "flex h-14 md:h-[74px] w-full items-center justify-between px-4 md:px-6 bg-background/80 backdrop-blur-xl border-b border-white/5 flex-shrink-0 z-50 transition-all duration-300",
-        isFixed ? "fixed top-0 left-0 right-0 shadow-[0_2px_20px_-10px_rgba(0,0,0,0.5)]" : "relative",
+        "flex h-14 md:h-[74px] w-full items-center justify-between px-4 md:px-6 bg-white border-b border-border/80 flex-shrink-0 z-50 transition-all duration-300",
+        isFixed ? "fixed top-0 left-0 right-0 shadow-[0_1px_10px_-5px_rgba(0,0,0,0.05)] shadow-border/30" : "relative",
         className
       )}
     >

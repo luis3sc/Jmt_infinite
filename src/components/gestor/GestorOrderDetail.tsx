@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
+import { Textarea } from '@/components/ui/Textarea'
+import { Button } from '@/components/ui/Button'
 
 interface Panel {
   id: string; panel_code: string; face: string | null; media_type: string | null
@@ -117,7 +119,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject }: Props
       <motion.div
         key="detail-backdrop"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-0 sm:p-4"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-0 sm:p-4"
         onClick={onClose}
       />
 
@@ -130,24 +132,26 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject }: Props
         className="fixed inset-0 z-[210] flex items-center justify-center p-0 sm:p-4 pointer-events-none"
       >
         <div
-          className="pointer-events-auto w-full max-w-full sm:max-w-[90vw] h-full sm:h-[90vh] bg-[#0c1427] border-0 sm:border border-white/10 rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+          className="pointer-events-auto w-full max-w-full sm:max-w-[90vw] h-full sm:h-[90vh] bg-background border-0 sm:border border-border rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden text-foreground"
           onClick={e => e.stopPropagation()}
         >
           {/* ── TOP HEADER (static) ── */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30 shrink-0">
             <div className="flex items-center gap-3">
               <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Revisión de campaña</p>
-                <p className="text-sm font-black text-white">#{order.id.slice(0, 8).toUpperCase()}</p>
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Revisión de campaña</p>
+                <p className="text-sm font-black text-foreground">#{order.id.slice(0, 8).toUpperCase()}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {/* Status badge */}
-              {isApproved && <span className="px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-400 uppercase tracking-widest">✓ Aprobado — En curso</span>}
-              {isRejected && <span className="px-3 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-[10px] font-black text-red-400 uppercase tracking-widest">✗ Rechazado</span>}
-              {isPending && <span className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> Por revisar</span>}
-              {order.status === 'PENDING_UPLOAD' && <span className="px-3 py-1 rounded-lg bg-slate-500/10 border border-slate-500/20 text-[10px] font-black text-slate-400 uppercase tracking-widest">Sin video</span>}
-              <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/5 text-slate-500 hover:text-white transition-all"><X size={18} /></button>
+              {isApproved && <span className="px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">✓ Aprobado — En curso</span>}
+              {isRejected && <span className="px-3 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest">✗ Rechazado</span>}
+              {isPending && <span className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Por revisar</span>}
+              {order.status === 'PENDING_UPLOAD' && <span className="px-3 py-1 rounded-lg bg-muted border border-border text-[10px] font-black text-muted-foreground uppercase tracking-widest">Sin video</span>}
+              <Button variant="ghost" size="icon" onClick={onClose} className="text-muted-foreground hover:bg-muted">
+                <X size={18} />
+              </Button>
             </div>
           </div>
 
@@ -155,60 +159,61 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject }: Props
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
 
             {/* LEFT — Video (static, no scroll) */}
-            <div className="lg:w-[55%] flex flex-col bg-black/40 shrink-0">
+            <div className="lg:w-[55%] flex flex-col bg-muted/30 border-r border-border shrink-0">
               {order.video_url ? (
                 <>
                   <div className="flex-1 flex items-center justify-center p-4 min-h-0">
                     <video
                       controls
-                      className="max-w-full max-h-full rounded-xl border border-white/10 object-contain"
+                      className="max-w-full max-h-full rounded-xl border border-border bg-black object-contain shadow-sm"
                       src={order.video_url}
                     >Tu navegador no soporta video.</video>
                   </div>
                   {/* Video actions */}
-                  <div className="flex items-center gap-3 px-5 py-4 border-t border-white/5 shrink-0">
+                  <div className="flex items-center gap-3 px-5 py-4 border-t border-border shrink-0 bg-card">
 
-                    <button
+                    <Button
+                      variant="outline"
                       onClick={handleDownload}
                       disabled={loading === 'download'}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-[10px] font-black text-slate-300 uppercase tracking-widest hover:bg-white/[0.08] transition-all disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto shadow-sm"
                     >
                       {loading === 'download' ? <Spin /> : <Download size={13} />} 
                       Descargar
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={handleShare}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-[10px] font-black text-primary uppercase tracking-widest hover:bg-primary/20 transition-all"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto shadow-[0_4px_12px_-2px_rgba(37,99,235,0.25)]"
                     >
                       <Share2 size={13} /> Compartir enlace
-                    </button>
+                    </Button>
                   </div>
                 </>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-8">
-                  <UploadCloud size={40} className="text-slate-700" strokeWidth={1} />
-                  <p className="text-sm font-bold text-slate-400">Sin video todavía</p>
-                  <p className="text-xs text-slate-600">El cliente aún no ha subido su material de campaña.</p>
+                  <UploadCloud size={40} className="text-muted-foreground" strokeWidth={1} />
+                  <p className="text-sm font-bold text-muted-foreground">Sin video todavía</p>
+                  <p className="text-xs text-muted-foreground/80">El cliente aún no ha subido su material de campaña.</p>
                 </div>
               )}
             </div>
 
             {/* RIGHT — Scrollable details */}
-            <div className="lg:w-[45%] flex flex-col border-l border-white/5 min-h-0">
+            <div className="lg:w-[45%] flex flex-col bg-background min-h-0">
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
 
                 {/* Rejected reason */}
                 {isRejected && order.rejection_reason && (
-                  <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20 space-y-1">
-                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Motivo de rechazo</p>
-                    <p className="text-sm text-slate-400">{order.rejection_reason}</p>
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 space-y-1">
+                    <p className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest">Motivo de rechazo</p>
+                    <p className="text-sm text-foreground font-medium">{order.rejection_reason}</p>
                   </div>
                 )}
 
                 {/* Client contact */}
                 <section>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Datos del cliente</p>
-                  <div className="rounded-xl bg-white/[0.02] border border-white/5 divide-y divide-white/5">
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Datos del cliente</p>
+                  <div className="rounded-xl bg-muted/30 border border-border divide-y divide-border/60">
                     <Row icon={<User size={13} />} label="Nombre" value={order.profile?.full_name || '—'} />
                     {order.profile?.company_name && <Row icon={<Building2 size={13} />} label="Empresa" value={order.profile.company_name} />}
                     <Row
@@ -219,7 +224,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject }: Props
                       icon={<Phone size={13} />} label="Teléfono"
                       value={order.profile?.phone
                         ? <a href={`tel:${order.profile.phone}`} className="text-primary hover:underline">{order.profile.phone}</a>
-                        : <span className="text-slate-600">Sin teléfono</span>
+                        : <span className="text-muted-foreground">Sin teléfono</span>
                       }
                     />
                   </div>
@@ -228,10 +233,10 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject }: Props
                 {/* Bookings / Panel details */}
                 {order.bookings?.map((b, i) => (
                   <section key={b.id}>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
                       <Monitor size={11} className="text-primary" /> Pantalla {order.bookings.length > 1 ? i + 1 : ''}
                     </p>
-                    <div className="rounded-xl bg-white/[0.02] border border-white/5 divide-y divide-white/5">
+                    <div className="rounded-xl bg-muted/30 border border-border divide-y divide-border/60">
                       <Row icon={<span className="text-[10px] font-mono">#</span>} label="Código panel" value={b.panels?.panel_code || b.panel_id.slice(0, 8)} />
                       <Row icon={<span className="text-[10px]">🎯</span>} label="Campaña" value={b.campaign_name || '—'} />
                       <Row icon={<Calendar size={13} />} label="Período"
@@ -250,7 +255,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject }: Props
 
                     {/* Structure location */}
                     {b.panels?.structures && (
-                      <div className="mt-2 rounded-xl bg-white/[0.02] border border-white/5 divide-y divide-white/5">
+                      <div className="mt-2 rounded-xl bg-muted/30 border border-border divide-y divide-border/60">
                         {b.panels.structures.code && <Row icon={<span className="text-[10px] font-mono">#</span>} label="Cód. estructura" value={b.panels.structures.code} />}
                         {b.panels.structures.address && <Row icon={<MapPin size={13} />} label="Dirección" value={b.panels.structures.address} />}
                         {b.panels.structures.reference && <Row icon={<span className="text-[10px]">📍</span>} label="Referencia" value={b.panels.structures.reference} />}
@@ -274,43 +279,44 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject }: Props
                     )}
 
                     <div className="flex justify-between items-center mt-2 px-1">
-                      <span className="text-[10px] text-slate-600 uppercase tracking-widest">Monto</span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Monto</span>
                       <span className="text-sm font-black text-primary">S/ {Number(b.amount).toLocaleString('es-PE')}</span>
                     </div>
                   </section>
                 ))}
 
                 {/* Total */}
-                <div className="flex items-center justify-between py-4 border-t border-white/5">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total orden</span>
-                  <span className="text-2xl font-black text-white">S/ {Number(order.total_amount).toLocaleString('es-PE', { minimumFractionDigits: 0 })}</span>
+                <div className="flex items-center justify-between py-4 border-t border-border">
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total orden</span>
+                  <span className="text-2xl font-black text-foreground">S/ {Number(order.total_amount).toLocaleString('es-PE', { minimumFractionDigits: 0 })}</span>
                 </div>
               </div>
 
               {/* ── STATIC ACTION BAR ── */}
               {isPending && order.video_url && (
-                <div className="px-5 py-4 border-t border-white/5 shrink-0 flex gap-3">
-                  <button
+                <div className="px-5 py-4 border-t border-border bg-muted/30 shrink-0 flex gap-3">
+                  <Button
                     onClick={handleApprove}
                     disabled={!!loading}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 text-[10px] font-black uppercase tracking-widest h-auto shadow-lg shadow-emerald-500/20"
                   >
                     {loading === 'approve' ? <Spin /> : <CheckCircle2 size={16} />}
                     Aprobar Video
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={() => setRejectOpen(true)}
                     disabled={!!loading}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 active:scale-95 transition-all disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl border-red-500/20 bg-red-500/10 text-red-600 hover:bg-red-500/20 text-[10px] font-black uppercase tracking-widest h-auto"
                   >
                     <XCircle size={16} /> Rechazar
-                  </button>
+                  </Button>
                 </div>
               )}
 
               {order.status === 'PENDING_UPLOAD' && (
-                <div className="px-5 py-4 border-t border-white/5 shrink-0 text-center">
-                  <p className="text-xs text-slate-500">Contacta al cliente para que suba su video.</p>
+                <div className="px-5 py-4 border-t border-border bg-muted/30 shrink-0 text-center">
+                  <p className="text-xs text-muted-foreground">Contacta al cliente para que suba su video.</p>
                 </div>
               )}
             </div>
@@ -324,38 +330,39 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject }: Props
           <motion.div
             key="reject-backdrop"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="fixed inset-0 bg-black/60 z-[300]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300]"
             onClick={() => setRejectOpen(false)}
           />
           <motion.div
             key="reject-content"
             initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[310] w-full max-w-md bg-[#0e162b] border border-white/10 rounded-2xl p-8 shadow-2xl"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[310] w-full max-w-md bg-background border border-border rounded-2xl p-8 shadow-2xl text-foreground"
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-red-500/10 rounded-xl text-red-400"><AlertTriangle size={20} /></div>
+              <div className="p-2.5 bg-red-500/10 rounded-xl text-red-500 dark:text-red-400"><AlertTriangle size={20} /></div>
               <div>
-                <h3 className="font-black text-white uppercase tracking-tight">Rechazar Video</h3>
-                <p className="text-xs text-slate-500">Orden #{order.id.slice(0, 8).toUpperCase()}</p>
+                <h3 className="font-black text-foreground uppercase tracking-tight">Rechazar Video</h3>
+                <p className="text-xs text-muted-foreground">Orden #{order.id.slice(0, 8).toUpperCase()}</p>
               </div>
             </div>
-            <p className="text-sm text-slate-400 mb-4">Indica el motivo para que el cliente pueda corregir su material.</p>
-            <textarea
+            <p className="text-sm text-muted-foreground mb-4">Indica el motivo para que el cliente pueda corregir su material.</p>
+            <Textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder="Ej: El video no cumple con las dimensiones requeridas (16:9)..."
               rows={4}
-              className="w-full bg-white/[0.04] border border-white/10 rounded-xl p-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/40 resize-none mb-5"
+              className="w-full bg-muted/30 border-border rounded-xl p-4 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:border-red-500/40 resize-none mb-5 focus-visible:bg-card/50 transition-colors"
             />
             <div className="flex gap-3">
-              <button onClick={() => setRejectOpen(false)} className="flex-1 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-white/[0.08] transition-all">Cancelar</button>
-              <button
+              <Button onClick={() => setRejectOpen(false)} variant="outline" className="flex-1 py-3 rounded-xl bg-card border border-border text-muted-foreground text-[10px] font-black uppercase tracking-widest hover:bg-muted hover:text-foreground transition-all shadow-sm">Cancelar</Button>
+              <Button
                 onClick={handleReject}
                 disabled={!!loading}
+                variant="destructive"
                 className="flex-1 py-3 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading === 'reject' ? <Spin /> : <XCircle size={14} />} Confirmar
-              </button>
+              </Button>
             </div>
           </motion.div>
         </div>
@@ -368,14 +375,14 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject }: Props
 function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3 px-4 py-3">
-      <span className="text-slate-500 mt-0.5 shrink-0">{icon}</span>
+      <span className="text-muted-foreground mt-0.5 shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className="text-[10px] text-slate-600 uppercase tracking-widest">{label}</p>
-        <div className="text-sm font-bold text-white break-words">{value}</div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{label}</p>
+        <div className="text-sm font-bold text-foreground break-words">{value}</div>
       </div>
     </div>
   )
 }
 function Spin() {
-  return <span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+  return <span className="w-4 h-4 rounded-full border-2 border-current/40 border-t-current animate-spin" />
 }

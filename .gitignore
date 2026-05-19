@@ -3,6 +3,10 @@ node_modules/
 .pnp
 .pnp.js
 
+# npm lockfile (replaced by pnpm-lock.yaml - do NOT ignore pnpm-lock.yaml)
+package-lock.json
+yarn.lock
+
 # testing
 coverage/
 

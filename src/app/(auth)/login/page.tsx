@@ -7,6 +7,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -61,14 +63,14 @@ export default function LoginPage() {
                 <label htmlFor="email" className="block text-xs font-black uppercase tracking-widest text-muted-foreground/80 ml-1">
                   Correo Electrónico
                 </label>
-                <input
+                <Input
                   id="email"
                   name="email"
                   type="email"
                   autoComplete="email"
                   required
                   placeholder="tu@ejemplo.com"
-                  className="block w-full appearance-none rounded-2xl border border-border bg-card/50 px-4 py-3.5 text-foreground placeholder-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm font-medium transition-all"
+                  className="w-full"
                 />
               </div>
 
@@ -81,14 +83,14 @@ export default function LoginPage() {
                     ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
-                <input
+                <Input
                   id="password"
                   name="password"
                   type="password"
                   autoComplete="current-password"
                   required
                   placeholder="••••••••"
-                  className="block w-full appearance-none rounded-2xl border border-border bg-card/50 px-4 py-3.5 text-foreground placeholder-muted-foreground/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm font-medium transition-all"
+                  className="w-full"
                 />
               </div>
 
@@ -98,20 +100,21 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-primary px-4 py-4 text-sm font-black text-white shadow-[0_10px_20px_-5px_rgba(98,174,64,0.3)] hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-70 transition-all active:scale-[0.98] uppercase tracking-widest min-h-[56px]"
+                size="xl"
+                className="w-full uppercase tracking-widest text-sm font-black shadow-[0_10px_20px_-5px_rgba(37,99,235,0.3)]"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
                     <span>Iniciando...</span>
                   </>
                 ) : (
                   'Entrar'
                 )}
-              </button>
+              </Button>
             </form>
           </motion.div>
         </div>

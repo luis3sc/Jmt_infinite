@@ -12,6 +12,9 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@ffprobe-installer/ffprobe": "^2.1.2",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.10.2",
@@ -27,6 +30,7 @@
     "react": "latest",
     "react-dom": "latest",
     "react-dropzone": "^15.0.0",
+    "react-easy-crop": "^5.5.7",
     "react-international-phone": "^4.8.0",
     "react-map-gl": "^8.1.1",
     "tailwind-merge": "latest",
@@ -39,7 +43,7 @@
     "@types/react-dom": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
-    "postcss": "latest",
+    "postcss": "^8.5.14",
     "tailwindcss": "latest",
     "typescript": "latest"
   }

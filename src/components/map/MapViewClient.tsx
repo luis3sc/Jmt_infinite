@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Map, { Marker, Popup, ViewStateChangeEvent } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
+
+const supabase = createClient();
 import { MapPin, X, SlidersHorizontal, List, Map as MapIcon, User, Users, Maximize, Navigation, ShoppingCart, Search, Filter, CheckCircle2, Trash2, Calendar, ChevronRight, Loader2, CreditCard, Clock } from "lucide-react";
 import Image from "next/image";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -15,7 +17,13 @@ import AuthButton from "@/components/layout/AuthButton";
 import TopBar from "@/components/layout/TopBar";
 import TopBarSearch from "@/components/layout/TopBarSearch";
 import StructureDetailModal from "@/components/map/StructureDetailModal";
+import { Dialog } from "@/components/ui/Dialog";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+import { Select } from "@/components/ui/Select";
+import { Input } from "@/components/ui/Input";
 
 
 // Define Types
@@ -166,22 +174,30 @@ export function MapViewClient() {
   });
 
   useEffect(() => {
-    async function loadFilterOptions() {
-      try {
-        const { data: panels, error: panelError } = await supabase.from("panels").select("media_type, daily_price, audience");
-        if (panelError) throw panelError;
+    async function loadFilterOptions(retries = 3) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const { data: panels, error: panelError } = await supabase.from("panels").select("media_type, daily_price, audience");
+          if (panelError) throw panelError;
 
-        const uniqueMediaTypes = [...new Set(panels?.map(p => p.media_type).filter(Boolean) || [])].sort();
-        const uniquePrices = [...new Set(panels?.map(p => p.daily_price).filter(Boolean) || [])].sort((a: any, b: any) => a - b);
-        const uniqueAudiences = [...new Set(panels?.map(p => p.audience).filter(Boolean) || [])].sort((a: any, b: any) => a - b);
+          const uniqueMediaTypes = [...new Set(panels?.map(p => p.media_type).filter(Boolean) || [])].sort();
+          const uniquePrices = [...new Set(panels?.map(p => p.daily_price).filter(Boolean) || [])].sort((a: any, b: any) => a - b);
+          const uniqueAudiences = [...new Set(panels?.map(p => p.audience).filter(Boolean) || [])].sort((a: any, b: any) => a - b);
 
-        setFilterOptions({
-          mediaTypes: uniqueMediaTypes.length ? uniqueMediaTypes as string[] : ["Estática", "Digital"],
-          prices: uniquePrices as number[],
-          audiences: uniqueAudiences as number[],
-        });
-      } catch (err: any) {
-        console.error("Error loading filter options:", err.message || err);
+          setFilterOptions({
+            mediaTypes: uniqueMediaTypes.length ? uniqueMediaTypes as string[] : ["Estática", "Digital"],
+            prices: uniquePrices as number[],
+            audiences: uniqueAudiences as number[],
+          });
+          return; // Success, exit
+        } catch (err: any) {
+          if (i === retries - 1) {
+            console.warn("Error loading filter options after retries:", err.message || err);
+          } else {
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+          }
+        }
       }
     }
     loadFilterOptions();
@@ -224,66 +240,67 @@ export function MapViewClient() {
       <div className="space-y-4">
         <div className="flex justify-between items-end">
           <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Tipo de Medio</label>
-          <button onClick={resetFilters} className="text-[10px] font-bold text-primary uppercase tracking-wider hover:underline">Limpiar Todo</button>
+          <Button variant="link" onClick={resetFilters} className="text-[10px] font-bold text-muted-foreground hover:text-foreground uppercase tracking-wider h-auto p-0 hover:underline">Limpiar Todo</Button>
         </div>
-        <select
+        <Select
           value={filters.mediaType}
           onChange={e => setFilters({ ...filters, mediaType: e.target.value })}
-          className="w-full bg-muted/50 border border-border rounded-2xl px-5 py-4 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all appearance-none cursor-pointer"
+          className="bg-muted/50 rounded-[calc(var(--radius)*0.6875)] px-5 py-4 font-bold border-border"
         >
           <option value="">Todos los tipos</option>
           {filterOptions.mediaTypes.map(m => (
             <option key={m} value={m}>{m}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="space-y-4">
         <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Rango de Inversión Diaria</label>
         <div className="grid grid-cols-2 gap-4">
-          <select
+          <Select
             value={filters.minPrice || ''}
             onChange={e => setFilters({ ...filters, minPrice: e.target.value ? Number(e.target.value) : null })}
-            className="w-full bg-muted/50 border border-border rounded-2xl px-5 py-4 text-sm font-bold text-foreground focus:outline-none appearance-none cursor-pointer"
+            className="bg-muted/50 rounded-[calc(var(--radius)*0.6875)] px-5 py-4 font-bold border-border"
           >
             <option value="">Mínimo</option>
             {filterOptions.prices.map(p => (
               <option key={`min-${p}`} value={p}>S/ {p}</option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             value={filters.maxPrice || ''}
             onChange={e => setFilters({ ...filters, maxPrice: e.target.value ? Number(e.target.value) : null })}
-            className="w-full bg-muted/50 border border-border rounded-2xl px-5 py-4 text-sm font-bold text-foreground focus:outline-none appearance-none cursor-pointer"
+            className="bg-muted/50 rounded-[calc(var(--radius)*0.6875)] px-5 py-4 font-bold border-border"
           >
             <option value="">Máximo</option>
             {filterOptions.prices.map(p => (
               <option key={`max-${p}`} value={p}>S/ {p}</option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 
       <div className="space-y-4">
         <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Alcance Potencial (Audiencia)</label>
-        <select
+        <Select
           value={filters.audience || ''}
           onChange={e => setFilters({ ...filters, audience: e.target.value ? Number(e.target.value) : null })}
-          className="w-full bg-muted/50 border border-border rounded-2xl px-5 py-4 text-sm font-bold text-foreground focus:outline-none appearance-none cursor-pointer"
+          className="bg-muted/50 rounded-[calc(var(--radius)*0.6875)] px-5 py-4 font-bold border-border"
         >
           <option value="">Cualquier alcance</option>
           {filterOptions.audiences.map(a => (
             <option key={a} value={a}>{a.toLocaleString()}+ impactos</option>
           ))}
-        </select>
+        </Select>
       </div>
 
-      <button
+      <Button
         onClick={applyFilters}
-        className="w-full bg-primary text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] mt-2 hover:bg-primary/90 transition-all shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)] active:scale-95"
+        size="xl"
+        className="w-full font-black text-xs uppercase tracking-[0.2em] mt-2 shadow-[0_10px_30px_-10px_hsl(var(--primary)/0.5)]"
       >
         Aplicar Filtros
-      </button>
+      </Button>
     </div>
   );
 
@@ -349,35 +366,52 @@ export function MapViewClient() {
       const isPanelFiltering = activeFilters.audience || activeFilters.mediaType || activeFilters.minPrice || activeFilters.maxPrice;
       const relation = isPanelFiltering ? "panels!inner" : "panels";
 
-      let query = supabase
-        .from("structures")
-        .select(
-          `id, code, address, district, reference, latitude, longitude,
-          ${relation} (id, panel_code, face, media_type, format, daily_price, photo_url, audience, width, height, traffic_view)`,
-          { count: "exact" }
-        )
-        .gte("latitude", sw.lat)
-        .lte("latitude", ne.lat)
-        .gte("longitude", sw.lng)
-        .lte("longitude", ne.lng);
+      let data: any = null;
+      let count: number | null = null;
+      let error: any = null;
+      const retries = 3;
 
+      for (let i = 0; i < retries; i++) {
+        let query = supabase
+          .from("structures")
+          .select(
+            `id, code, address, district, reference, latitude, longitude,
+            ${relation} (id, panel_code, face, media_type, format, daily_price, photo_url, audience, width, height, traffic_view)`,
+            { count: "exact" }
+          )
+          .gte("latitude", sw.lat)
+          .lte("latitude", ne.lat)
+          .gte("longitude", sw.lng)
+          .lte("longitude", ne.lng);
 
-      if (activeFilters.audience) {
-        query = query.gte("panels.audience", activeFilters.audience);
-      }
-      if (activeFilters.mediaType) {
-        query = query.eq("panels.media_type", activeFilters.mediaType);
-      }
-      if (activeFilters.minPrice) {
-        query = query.gte("panels.daily_price", activeFilters.minPrice);
-      }
-      if (activeFilters.maxPrice) {
-        query = query.lte("panels.daily_price", activeFilters.maxPrice);
-      }
+        if (activeFilters.audience) {
+          query = query.gte("panels.audience", activeFilters.audience);
+        }
+        if (activeFilters.mediaType) {
+          query = query.eq("panels.media_type", activeFilters.mediaType);
+        }
+        if (activeFilters.minPrice) {
+          query = query.gte("panels.daily_price", activeFilters.minPrice);
+        }
+        if (activeFilters.maxPrice) {
+          query = query.lte("panels.daily_price", activeFilters.maxPrice);
+        }
 
-      const { data, error, count } = await query.range(from, to);
+        const result = await query.range(from, to);
+        error = result.error;
+        data = result.data;
+        count = result.count;
+
+        if (!error) break; // Success
+        
+        if (i < retries - 1) {
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+        }
+      }
 
       if (error) throw error;
+      
       if (data) {
         const total = count ?? 0;
 
@@ -395,11 +429,11 @@ export function MapViewClient() {
         }
       }
     } catch (err: any) {
-      console.error("Detailed error fetching structures:", err);
+      console.warn("Detailed error fetching structures after retries:", err);
       // Log more details if it's a Supabase error
-      if (err.message) console.error("Error message:", err.message);
-      if (err.details) console.error("Error details:", err.details);
-      if (err.hint) console.error("Error hint:", err.hint);
+      if (err?.message) console.warn("Error message:", err.message);
+      if (err?.details) console.warn("Error details:", err.details);
+      if (err?.hint) console.warn("Error hint:", err.hint);
 
       triggerToast("Error al cargar los paneles. Por favor intenta de nuevo.");
     } finally {
@@ -630,18 +664,20 @@ export function MapViewClient() {
         }
         right={
           <div className="hidden md:flex items-center gap-2 md:gap-3">
-            <button
+            <Button
+              variant="outline"
+              size="lg"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={cn(
-                "hidden md:flex px-4 md:h-11 rounded-2xl transition-all flex items-center gap-2 text-sm font-medium border active:scale-95",
+                "hidden md:flex px-4 flex items-center gap-2 text-sm font-medium",
                 isFilterOpen 
-                  ? "bg-primary text-white border-primary shadow-[0_0_15px_hsl(var(--primary)/0.1)]" 
-                  : "bg-card/60 backdrop-blur-md border-white/5 text-foreground hover:bg-muted"
+                  ? "bg-foreground text-background border-foreground shadow-md hover:bg-foreground/90" 
+                  : "bg-card/60 backdrop-blur-md border-border text-foreground"
               )}
             >
               <Filter size={18} />
               <span>Filtros</span>
-            </button>
+            </Button>
             <AuthButton />
           </div>
         }
@@ -715,8 +751,8 @@ export function MapViewClient() {
               // Layout-matching skeleton cards
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-card border border-border rounded-lg overflow-hidden animate-pulse flex flex-row h-[120px]">
-                    <div className="w-[35%] h-full bg-muted shrink-0" />
+                  <div key={i} className="bg-card border border-border rounded-xl overflow-hidden animate-pulse flex flex-row min-h-[130px] h-auto">
+                    <div className="w-[35%] self-stretch bg-muted shrink-0" />
                     <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
                       <div>
                         <div className="h-4 bg-muted rounded w-3/4 mb-2" />
@@ -727,7 +763,7 @@ export function MapViewClient() {
                           <div className="h-2 bg-muted rounded w-1/2" />
                           <div className="h-4 bg-muted rounded w-full" />
                         </div>
-                        <div className="h-8 bg-muted rounded-lg w-16" />
+                        <div className="h-8 bg-muted rounded-xl w-16" />
                       </div>
                     </div>
                   </div>
@@ -746,22 +782,22 @@ export function MapViewClient() {
             ) : (
               <>
                 {structures.map((s) => (
-                  <div
+                  <Card
                     key={s.id}
-                    className={`rounded-lg overflow-hidden cursor-pointer transition-all flex flex-row h-[130px] border
+                    className={`cursor-pointer transition-all flex flex-row min-h-[130px] h-auto
                     ${selectedStructure?.id === s.id 
-                      ? "bg-[#0e162b] text-white border-primary shadow-sm" 
-                      : "bg-[#0e162b] text-white border-white/10 hover:border-primary/40"}`}
+                      ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/35" 
+                      : "hover:border-muted-foreground/30 hover:bg-muted/10"}`}
                     onClick={() => {
                       handleSelectStructure(s);
                       setActiveTab("map");
                     }}
                   >
-                    <div className="w-[35%] h-full relative bg-muted shrink-0">
+                    <div className="w-[35%] self-stretch relative bg-muted shrink-0">
                       {s.panels?.[0]?.photo_url ? (
                         <Image src={s.panels[0].photo_url} alt={s.address} fill className="object-cover" />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-[#1a233a]">
+                        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-muted">
                           <MapIcon size={24} className="opacity-20" />
                         </div>
                       )}
@@ -772,26 +808,26 @@ export function MapViewClient() {
                     <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
                       <div>
                         <div className="flex justify-between items-start mb-1 gap-2">
-                          <h3 className={`font-semibold truncate text-sm ${selectedStructure?.id === s.id ? "text-primary" : "text-foreground"}`} title={s.address}>{s.address}</h3>
-                          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded whitespace-nowrap shrink-0 ${selectedStructure?.id === s.id ? "bg-primary/20 text-primary border border-primary/30" : "bg-muted text-muted-foreground"}`}>{s.code}</span>
+                          <h3 className={`font-semibold line-clamp-2 text-sm ${selectedStructure?.id === s.id ? "text-foreground" : "text-foreground"}`} title={s.address}>{s.address}</h3>
+                          <Badge variant="secondary" className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded whitespace-nowrap shrink-0", selectedStructure?.id === s.id ? "bg-primary/10 text-primary border-primary/20 font-semibold" : "text-muted-foreground/80")}>{s.code}</Badge>
                         </div>
-                        <p className={`text-xs truncate ${selectedStructure?.id === s.id ? "text-white/60" : "text-muted-foreground"}`}>{s.district}</p>
+                        <p className="text-xs truncate text-muted-foreground">{s.district}</p>
                       </div>
 
                       <div className="flex justify-between items-end pt-2 border-t border-border/50">
                         <div>
-                          <p className={`text-[10px] leading-none mb-1 ${selectedStructure?.id === s.id ? "text-white/40" : "text-muted-foreground"}`}>Desde</p>
-                          <p className={`font-bold text-sm leading-none ${selectedStructure?.id === s.id ? "text-primary" : "text-primary"}`}>
+                          <p className="text-[10px] leading-none mb-1 text-muted-foreground">Desde</p>
+                          <p className="font-bold text-sm leading-none text-foreground">
                             S/ {calculateDisplayPrice(s).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
-                            <span className={`text-[10px] font-normal ${selectedStructure?.id === s.id ? "text-white/40" : "text-muted-foreground"}`}>{numberOfDays > 0 ? "" : "/día"}</span>
+                            <span className="text-[10px] font-normal text-muted-foreground">{numberOfDays > 0 ? "" : "/día"}</span>
                           </p>
                         </div>
-                        <button className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20`}>
+                        <Button size="sm" className="px-3 py-1.5 text-xs font-bold whitespace-nowrap shadow-sm">
                           Ver
-                        </button>
+                        </Button>
                       </div>
                     </div>
-                  </div>
+                  </Card>
                 ))}
 
                 {/* Infinite Scroll Trigger */}
@@ -803,12 +839,14 @@ export function MapViewClient() {
                         <span>Cargando más paneles...</span>
                       </div>
                     ) : (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={handleLoadMore}
-                        className="text-xs text-primary font-semibold hover:underline"
+                        className="text-xs text-muted-foreground hover:text-foreground font-semibold hover:bg-transparent hover:underline"
                       >
                         Cargar más
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -862,8 +900,8 @@ export function MapViewClient() {
                 >
                   <div className={`px-3 py-1.5 rounded-full shadow-md font-bold text-sm whitespace-nowrap transition-all duration-300
                   ${selectedStructure?.id === structure.id
-                      ? "bg-primary text-white shadow-[0_0_15px_rgba(98,174,64,0.4)] border-none"
-                      : "bg-white text-[#0e162b] group-hover:bg-primary group-hover:text-white group-hover:shadow-[0_0_15px_rgba(98,174,64,0.4)] group-hover:border-none"}
+                      ? "bg-primary text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border-none"
+                      : "bg-white text-brand-dark group-hover:bg-primary group-hover:text-white group-hover:shadow-[0_0_15px_rgba(37,99,235,0.4)] group-hover:border-none"}
                 `}>
                     S/ {calculateDisplayPrice(structure).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
@@ -907,21 +945,23 @@ export function MapViewClient() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 20 }}
                   transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                  className="pointer-events-auto w-full max-w-[420px] bg-card border border-border rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden"
+                  className="pointer-events-auto w-full max-w-[420px] bg-card border border-border rounded-3xl shadow-2xl flex flex-col overflow-hidden"
                 >
                   <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-primary/10 rounded-2xl text-primary">
+                      <div className="p-2.5 bg-muted rounded-2xl text-foreground">
                         <Filter size={22} />
                       </div>
                       <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Filtros</h2>
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setIsFilterOpen(false)}
-                      className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
+                      className="rounded-2xl text-muted-foreground hover:text-foreground"
                     >
                       <X size={20} />
-                    </button>
+                    </Button>
                   </div>
                   <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <FilterContent />
@@ -964,24 +1004,24 @@ export function MapViewClient() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
           {/* Search floating above navbar */}
           <div className="px-4 pb-4 pointer-events-auto">
-            <div className="relative w-full shadow-2xl rounded-2xl bg-card border border-border">
+            <div className="relative w-full shadow-2xl rounded-[calc(var(--radius)*1.0)] bg-card border border-border">
               <button
                 onClick={executeSearch}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-primary z-10 p-1.5 hover:bg-primary/10 rounded-full transition-all active:scale-90"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground z-10 p-1.5 hover:bg-muted rounded-[calc(var(--radius)*0.6875)] transition-all active:scale-90"
               >
                 <Search size={20} strokeWidth={2.5} />
               </button>
-              <input
+              <Input
                 type="text"
                 value={searchQuery || ""}
                 onChange={(e) => handleLocationSearch(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="¿Dónde quieres anunciarte?"
-                className="w-full pl-11 pr-12 py-3.5 bg-transparent rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full pl-11 pr-12 py-3.5 bg-transparent rounded-[calc(var(--radius)*1.0)] text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 shadow-none ring-offset-transparent border-none h-auto"
               />
               {/* Filter button removed from mobile search as requested */}
               {showSuggestions && suggestions.length > 0 && (
-                <ul className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto">
+                <ul className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-[calc(var(--radius)*0.6875)] shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto">
                   {suggestions.map((s: any) => (
                     <li
                       key={s.id}
@@ -997,11 +1037,11 @@ export function MapViewClient() {
           </div>
 
           {/* Bottom Nav Icons */}
-          <div className="h-16 bg-card/95 backdrop-blur border-t border-border flex items-center justify-around px-2 pointer-events-auto pb-[env(safe-area-inset-bottom)]">
+          <div className="h-[calc(4rem+env(safe-area-inset-bottom))] bg-card/95 backdrop-blur border-t border-border flex items-center justify-around px-2 pointer-events-auto pb-[env(safe-area-inset-bottom)]">
             <button
               onClick={() => setActiveTab("map")}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors
-                ${activeTab === "map" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                ${activeTab === "map" ? "text-primary font-black" : "text-muted-foreground hover:text-foreground"}`}
             >
               <MapIcon size={20} />
               <span className="text-[10px] font-medium">Mapa</span>
@@ -1010,7 +1050,7 @@ export function MapViewClient() {
             <button
               onClick={() => setActiveTab("list")}
               className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors
-                ${activeTab === "list" ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                ${activeTab === "list" ? "text-primary font-black" : "text-muted-foreground hover:text-foreground"}`}
             >
               <List size={20} />
               <span className="text-[10px] font-medium">Tarjetas</span>
@@ -1018,7 +1058,7 @@ export function MapViewClient() {
 
             <button
               onClick={() => setIsFilterOpen(true)}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors ${isFilterOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors ${isFilterOpen ? 'text-primary font-black' : 'text-muted-foreground hover:text-foreground'}`}
             >
               <Filter size={20} />
               <span className="text-[10px] font-medium">Filtros</span>
@@ -1036,355 +1076,364 @@ export function MapViewClient() {
                 </span>
               )}
             </button>
-
-            <AuthButton mode="mobile" />
-
           </div>
         </div>
       )}
 
       {/* CART MODAL */}
-      <AnimatePresence>
-        {isCartOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+      <Dialog
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        variant="fullscreen-mobile"
+        hideCloseButton={true}
+        noScroll={true}
+        className="md:flex-row p-0 overflow-hidden"
+      >
+        {/* LEFT COLUMN: Header + Cart Items */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 border-r-0 md:border-r border-border">
+          {/* Header */}
+          <div className="p-5 pt-[calc(1.25rem+env(safe-area-inset-top))] md:pt-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-muted rounded-xl">
+                <ShoppingCart size={20} className="text-foreground" />
+              </div>
+              <h2 className="text-lg font-bold text-foreground tracking-tight">Tu Carrito</h2>
+              <span className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full">{cartItemCount}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsCartOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200]"
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-0 z-[210] flex items-center justify-center pointer-events-none"
+              className="bg-background/80 hover:bg-muted backdrop-blur-sm border border-border shadow-sm text-muted-foreground hover:text-foreground transition-all duration-200"
             >
-              <div className="pointer-events-auto w-full h-full md:w-[90%] md:h-[90%] bg-card border-0 md:border border-border rounded-none md:rounded-3xl shadow-2xl flex flex-col md:flex-row">
+              <X size={20} />
+            </Button>
+          </div>
 
-                {/* LEFT COLUMN: Header + Cart Items */}
-                <div className="flex-1 flex flex-col min-w-0 min-h-0 border-r-0 md:border-r border-border">
-                  {/* Header */}
-                  <div className="p-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-primary/10 rounded-full">
-                        <ShoppingCart size={20} className="text-primary" />
-                      </div>
-                      <h2 className="text-lg font-bold text-foreground tracking-tight">Tu Carrito</h2>
-                      <span className="bg-primary text-white text-xs font-bold px-2 py-0.5 rounded-full">{cartItemCount}</span>
-                    </div>
-                    <button
-                      onClick={() => setIsCartOpen(false)}
-                      className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-
-                  {/* Scrollable Items */}
-                  <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar min-h-0">
-                    {checkoutSuccess ? (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="h-full flex flex-col items-center justify-center text-center p-8 space-y-6"
-                      >
-                        <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-                          <CheckCircle2 size={48} className="text-primary" />
-                        </div>
-                        <div className="space-y-2">
-                          <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">¡Pedido Recibido!</h3>
-                          <p className="text-sm text-muted-foreground max-w-[240px] mx-auto font-medium leading-relaxed">
-                            Tu solicitud de reserva para <span className="text-foreground font-bold">{cartItems.length} ubicaciones</span> ha sido enviada con éxito.
-                          </p>
-                        </div>
-                        <div className="bg-muted/50 p-4 rounded-lg w-full border border-border/50 text-xs text-muted-foreground">
-                          Un asesor de JMT se pondrá en contacto contigo en breve para finalizar los detalles técnicos y contractuales.
-                        </div>
-                        <button
-                          onClick={() => {
-                            setCheckoutSuccess(false);
-                            setIsCartOpen(false);
-                          }}
-                          className="w-full bg-foreground text-background py-4 rounded-lg font-black text-sm uppercase tracking-widest hover:bg-foreground/90 transition-all shadow-xl"
-                        >
-                          Volver al Mapa
-                        </button>
-                      </motion.div>
-                    ) : cartItems.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-8">
-                        <div className="relative">
-                          <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
-                          <div className="relative w-28 h-28 bg-muted rounded-full flex items-center justify-center border border-border/50 shadow-2xl">
-                            <ShoppingCart size={40} className="text-muted-foreground/30" />
-                          </div>
-                        </div>
-                        <div className="space-y-3">
-                          <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Tu Carrito está vacío</h3>
-                          <p className="text-sm text-muted-foreground max-w-[220px] mx-auto font-medium leading-relaxed">
-                            Selecciona ubicaciones estratégicas en el mapa para tu campaña.
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => setIsCartOpen(false)}
-                          className="bg-primary text-white px-10 py-4 rounded-lg font-black text-xs uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-[0_15px_30px_-10px_hsl(var(--primary)/0.5)]"
-                        >
-                          Explorar Ubicaciones
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                        {cartItems.map((item) => (
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            key={item.panelId}
-                            className="grid grid-cols-[96px_1fr] md:grid-cols-[35%_1fr] rounded-lg border border-border bg-card shadow-sm hover:shadow-md transition-all group overflow-hidden"
-                          >
-                            {/* Image: fixed square 96px on mobile, auto height on desktop spanning both rows */}
-                            <div className="relative w-24 h-24 md:w-full md:h-full md:row-span-2 shrink-0 bg-muted border-r border-border/10">
-                              {item.photoUrl ? (
-                                <Image src={item.photoUrl} alt={item.address} fill className="object-cover" />
-                              ) : (
-                                <div className="flex items-center justify-center w-full h-full bg-[#1a233a]"><MapIcon size={20} className="opacity-20" /></div>
-                              )}
-                            </div>
-
-                            {/* Top row: Basic info (Col 2 on mobile, Col 2 Row 1 on desktop) */}
-                            <div className="p-3 md:p-4 flex flex-col gap-1.5 min-w-0">
-                              <div className="flex justify-between items-start gap-2">
-                                <p className="font-bold text-sm text-foreground leading-tight line-clamp-2">{item.address}</p>
-                                <button
-                                  onClick={() => removeCartItem(item.panelId)}
-                                  className="text-red-500 hover:text-white hover:bg-red-500 transition-all p-1.5 rounded-lg bg-red-50 dark:bg-red-950/30 shrink-0"
-                                  title="Eliminar"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <MapPin size={10} className="text-primary shrink-0" />
-                                <span className="truncate">{item.district}</span>
-                              </p>
-                              <div className="pt-2 flex items-center justify-between">
-                                <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{item.panelCode}</span>
-                                <p className="font-bold text-sm text-primary">S/ {item.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
-                              </div>
-                            </div>
-
-                            {/* Bottom row: Dates (Now in Col 2 for both mobile and desktop to optimize space) */}
-                            <div className="col-start-2 p-3 md:p-4 md:pt-0 bg-muted/5 md:bg-transparent">
-                              <div className="grid grid-cols-2 gap-2">
-                                  <div className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-lg hover:border-primary/50 transition-colors cursor-pointer">
-                                    <label className="text-[10px] font-black text-primary uppercase tracking-wider flex items-center gap-1.5">
-                                      <Calendar size={11} className="text-primary" />
-                                      Inicio
-                                    </label>
-                                    <div className="text-xs font-bold text-foreground truncate pl-1">
-                                      {item.startDate ? (() => {
-                                        try {
-                                          const d = parseISO(item.startDate);
-                                          return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
-                                        } catch { return '---'; }
-                                      })() : '---'}
-                                    </div>
-                                    <input
-                                      type="date"
-                                      value={item.startDate || ""}
-                                      min={new Date().toISOString().split('T')[0]}
-                                      onChange={(e) => handleUpdateItemDates(item.panelId, e.target.value, item.endDate || "")}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const input = e.currentTarget;
-                                        if ('showPicker' in input) {
-                                          try { (input as any).showPicker(); } catch (err) { console.error(err); }
-                                        }
-                                      }}
-                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                    />
-                                  </div>
-                                  <div className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-lg hover:border-primary/50 transition-colors cursor-pointer">
-                                    <label className="text-[10px] font-black text-primary uppercase tracking-wider flex items-center gap-1.5">
-                                      <Calendar size={11} className="text-primary" />
-                                      Fin
-                                    </label>
-                                    <div className="text-xs font-bold text-foreground truncate pl-1">
-                                      {item.endDate ? (() => {
-                                        try {
-                                          const d = parseISO(item.endDate);
-                                          return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
-                                        } catch { return '---'; }
-                                      })() : '---'}
-                                    </div>
-                                    <input
-                                      type="date"
-                                      value={item.endDate || ""}
-                                      min={item.startDate || new Date().toISOString().split('T')[0]}
-                                      onChange={(e) => handleUpdateItemDates(item.panelId, item.startDate || "", e.target.value)}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const input = e.currentTarget;
-                                        if ('showPicker' in input) {
-                                          try { (input as any).showPicker(); } catch (err) { console.error(err); }
-                                        }
-                                      }}
-                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                    />
-                                  </div>
-                                </div>
-
-                                {/* Summary: Days and Daily Price - RE-INSERTED */}
-                                <div className="mt-3 flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 rounded-full text-[10px] font-black text-primary uppercase tracking-tight">
-                                    <Clock size={11} />
-                                    <span>{item.days} días</span>
-                                  </div>
-                                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter bg-muted/50 px-2 py-1 rounded">S/ {item.dailyPrice.toFixed(2)} / día</p>
-                                </div>
-                              </div>
-                            </motion.div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* MOBILE BOTTOM BAR (Only visible on small screens when cart has items) */}
-                  {cartItems.length > 0 && !checkoutSuccess && (
-                    <div className="md:hidden p-4 border-t border-border bg-background shrink-0 flex flex-col gap-3 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-10 pb-safe">
-                      <div className="flex justify-between items-end">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-0.5">Total (Inc. IGV)</span>
-                          <div className="flex items-baseline gap-0.5">
-                            <span className="text-xl font-black text-primary tracking-tighter">
-                              S/ {Math.floor(cartTotal).toLocaleString()}
-                            </span>
-                            <span className="text-sm font-black text-primary opacity-60">
-                              .{(cartTotal % 1).toFixed(2).split('.')[1]}
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          disabled={isCheckingOut}
-                          onClick={() => {
-                            setIsCheckingOut(true);
-                            router.push('/checkout');
-                            setTimeout(() => setIsCheckingOut(false), 1000);
-                          }}
-                          className="flex-1 bg-primary text-white px-4 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 shadow-md ml-4"
-                        >
-                          {isCheckingOut ? (
-                            <Loader2 size={16} className="animate-spin" />
-                          ) : (
-                            <>
-                              Pagar <ChevronRight size={14} />
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+          {/* Scrollable Items */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar min-h-0">
+            {checkoutSuccess ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="h-full flex flex-col items-center justify-center text-center p-8 space-y-6"
+              >
+                <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-2">
+                  <CheckCircle2 size={48} className="text-emerald-600" />
                 </div>
-
-                {/* RIGHT COLUMN: Payment Summary */}
-                {cartItems.length > 0 && !checkoutSuccess && (
-                  <div className="hidden md:flex w-full md:w-[340px] shrink-0 flex-col bg-muted/20">
-                    <div className="p-5 border-b border-border shrink-0">
-                      <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Resumen del Pedido</h3>
-                      <p className="text-xs text-muted-foreground mt-1">{cartItemCount} {cartItemCount === 1 ? 'panel seleccionado' : 'paneles seleccionados'}</p>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">¡Pedido Recibido!</h3>
+                  <p className="text-sm text-muted-foreground max-w-[240px] mx-auto font-medium leading-relaxed">
+                    Tu solicitud de reserva para <span className="text-foreground font-bold">{cartItems.length} ubicaciones</span> ha sido enviada con éxito.
+                  </p>
+                </div>
+                <div className="bg-muted/50 p-4 rounded-xl w-full border border-border/50 text-xs text-muted-foreground">
+                  Un asesor de JMT se pondrá en contacto contigo en breve para finalizar los detalles técnicos y contractuales.
+                </div>
+                <Button
+                  size="xl"
+                  onClick={() => {
+                    setCheckoutSuccess(false);
+                    setIsCartOpen(false);
+                  }}
+                  className="w-full bg-foreground hover:bg-foreground/90 text-background font-black text-sm uppercase tracking-widest shadow-xl"
+                >
+                  Volver al Mapa
+                </Button>
+              </motion.div>
+            ) : cartItems.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-8">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
+                  <div className="relative w-28 h-28 bg-muted rounded-full flex items-center justify-center border border-border/50 shadow-2xl">
+                    <ShoppingCart size={40} className="text-muted-foreground/30" />
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Tu Carrito está vacío</h3>
+                  <p className="text-sm text-muted-foreground max-w-[220px] mx-auto font-medium leading-relaxed">
+                    Selecciona ubicaciones estratégicas en el mapa para tu campaña.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setIsCartOpen(false)}
+                  size="xl"
+                  className="font-black text-xs uppercase tracking-[0.2em] shadow-[0_15px_30px_-10px_hsl(var(--primary)/0.3)]"
+                >
+                  Explorar Ubicaciones
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                {cartItems.map((item) => (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    key={item.panelId}
+                    className="grid grid-cols-[96px_1fr] md:grid-cols-[140px_1fr] rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-all group overflow-hidden"
+                  >
+                    {/* Image: fixed square 96px on mobile, auto height on desktop spanning both rows */}
+                    <div className="relative w-full h-full row-span-2 shrink-0 bg-muted border-r border-border/10">
+                      {item.photoUrl ? (
+                        <Image src={item.photoUrl} alt={item.address} fill className="object-cover" />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full bg-brand-blue"><MapIcon size={20} className="opacity-20" /></div>
+                      )}
                     </div>
 
-                    {/* Items list — desktop only */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar">
-                      {cartItems.map((summaryItem) => (
-                        <div key={summaryItem.panelId} className="flex justify-between items-center px-5 py-3.5 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
-                          <div className="min-w-0 flex-1 pr-3">
-                            <p className="font-bold text-sm text-foreground truncate uppercase tracking-tight">{summaryItem.panelCode}</p>
-                            <p className="text-xs text-muted-foreground truncate font-medium">{summaryItem.address}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase">{summaryItem.days} días</span>
-                               <p className="text-[10px] text-muted-foreground font-bold tracking-tight">
-                                {summaryItem.startDate ? (() => {
-                                  try {
-                                    const d = parseISO(summaryItem.startDate);
-                                    return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
-                                  } catch { return '---'; }
-                                })() : '---'} al {summaryItem.endDate ? (() => {
-                                  try {
-                                    const d = parseISO(summaryItem.endDate);
-                                    return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
-                                  } catch { return '---'; }
-                                })() : '---'}
-                              </p>
-                            </div>
-                          </div>
-                          <p className="font-black text-sm text-foreground whitespace-nowrap">S/ {summaryItem.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
-                        </div>
-                      ))}
+                    {/* Top row: Basic info (Col 2 on mobile, Col 2 Row 1 on desktop) */}
+                    <div className="p-3 md:p-4 flex flex-col gap-1.5 min-w-0">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="font-bold text-sm text-foreground leading-tight line-clamp-2">{item.address}</p>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => removeCartItem(item.panelId)}
+                          className="text-red-500 hover:text-white hover:bg-red-500 transition-all bg-red-50 dark:bg-red-950/30 shrink-0"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={15} />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin size={10} className="text-muted-foreground shrink-0" />
+                        <span className="truncate">{item.district}</span>
+                      </p>
+                      <div className="pt-2 flex items-center justify-between">
+                        <Badge variant="secondary" className="text-xs font-mono px-1.5 py-0.5 rounded">{item.panelCode}</Badge>
+                        <p className="font-bold text-sm text-foreground">S/ {item.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                      </div>
                     </div>
 
-                    <div className="p-5 border-t border-border bg-card/80 backdrop-blur-md shrink-0">
-                      <div className="space-y-3 mb-6">
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Subtotal</span>
-                          <span className="text-foreground font-bold">S/ {(cartTotal / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>IGV (18%)</span>
-                          <span className="text-foreground font-bold">S/ {(cartTotal - (cartTotal / 1.18)).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
-                        <div className="pt-3 border-t border-border/50 flex justify-between items-end">
-                          <div>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em] mb-1">Inversión Total</p>
-                            <div className="flex items-baseline gap-0.5">
-                              <p className="text-2xl font-black text-primary tracking-tighter">
-                                S/ {Number(cartTotal.toFixed(2).split('.')[0]).toLocaleString()}
-                              </p>
-                              <p className="text-base font-black text-primary opacity-60">
-                                .{cartTotal.toFixed(2).split('.')[1]}
-                              </p>
-                            </div>
+                    {/* Bottom row: Dates & Summary Wrapper */}
+                    <div className="px-3 pb-3 md:px-4 md:pb-4 md:pt-0 flex flex-col gap-3 min-w-0">
+                      {/* Dates Grid */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Start Date */}
+                        <div
+                          className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-xl hover:border-primary/50 transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            const input = e.currentTarget.querySelector('input');
+                            if (input && 'showPicker' in input) {
+                              try { (input as any).showPicker(); } catch (err) { console.warn(err); }
+                            }
+                          }}
+                        >
+                          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+                            <Calendar size={11} className="text-muted-foreground" />
+                            Inicio
+                          </label>
+                          <div className="text-xs font-bold text-foreground truncate pl-1">
+                            {item.startDate ? (() => {
+                              try {
+                                const d = parseISO(item.startDate);
+                                return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
+                              } catch { return '---'; }
+                            })() : '---'}
                           </div>
-                          <div className="bg-primary/10 text-primary px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-primary/20">
-                            <CreditCard size={10} />
-                            Cotización
+                          <Input
+                            type="date"
+                            value={item.startDate || ""}
+                            min={new Date().toISOString().split('T')[0]}
+                            onChange={(e) => handleUpdateItemDates(item.panelId, e.target.value, item.endDate || "")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if ('showPicker' in e.currentTarget) {
+                                try { (e.currentTarget as any).showPicker(); } catch (err) { console.warn(err); }
+                              }
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 shadow-none ring-offset-transparent focus-visible:ring-0"
+                          />
+                        </div>
+
+                        {/* End Date */}
+                        <div
+                          className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-xl hover:border-primary/50 transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            const input = e.currentTarget.querySelector('input');
+                            if (input && 'showPicker' in input) {
+                              try { (input as any).showPicker(); } catch (err) { console.warn(err); }
+                            }
+                          }}
+                        >
+                          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+                            <Calendar size={11} className="text-muted-foreground" />
+                            Fin
+                          </label>
+                          <div className="text-xs font-bold text-foreground truncate pl-1">
+                            {item.endDate ? (() => {
+                              try {
+                                const d = parseISO(item.endDate);
+                                return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
+                              } catch { return '---'; }
+                            })() : '---'}
                           </div>
+                          <Input
+                            type="date"
+                            value={item.endDate || ""}
+                            min={item.startDate || new Date().toISOString().split('T')[0]}
+                            onChange={(e) => handleUpdateItemDates(item.panelId, item.startDate || "", e.target.value)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if ('showPicker' in e.currentTarget) {
+                                try { (e.currentTarget as any).showPicker(); } catch (err) { console.warn(err); }
+                              }
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 shadow-none ring-offset-transparent focus-visible:ring-0"
+                          />
                         </div>
                       </div>
-                      <button
-                        disabled={isCheckingOut}
-                        onClick={() => {
-                          setIsCheckingOut(true);
-                          router.push('/checkout');
-                          setTimeout(() => setIsCheckingOut(false), 1000);
-                        }}
-                        className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-2xl font-black text-sm transition-all shadow-[0_15px_30px_-10px_hsl(var(--primary)/0.5)] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
-                      >
-                        {isCheckingOut ? (
-                          <>
-                            <Loader2 size={20} className="animate-spin" />
-                            <span className="uppercase tracking-widest text-xs">Procesando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Proceder al Pago</span>
-                            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                          </>
-                        )}
-                      </button>
-                      <p className="text-center text-[10px] text-muted-foreground mt-3 font-medium italic">
-                        * Precios incluyen IGV. Sujeto a disponibilidad.
+
+                      {/* Summary: Days and Daily Price */}
+                      <div className="mt-3 flex items-center justify-between">
+                        <Badge variant="outline" className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-[10px] font-black text-primary border-primary/20 uppercase tracking-tight">
+                          <Clock size={11} />
+                          <span>{item.days} días</span>
+                        </Badge>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter bg-muted/50 px-2 py-1 rounded">
+                          S/ {item.dailyPrice.toFixed(2)} / día
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* MOBILE BOTTOM BAR (Only visible on small screens when cart has items) */}
+          {cartItems.length > 0 && !checkoutSuccess && (
+            <div className="md:hidden p-4 border-t border-border bg-background shrink-0 flex flex-col gap-3 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-10 pb-safe">
+              <div className="flex justify-between items-end">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-0.5">Total (Inc. IGV)</span>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-xl font-black text-foreground tracking-tighter">
+                      S/ {Math.floor(cartTotal).toLocaleString()}
+                    </span>
+                    <span className="text-sm font-black text-foreground opacity-60">
+                      .{(cartTotal % 1).toFixed(2).split('.')[1]}
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  disabled={isCheckingOut}
+                  size="lg"
+                  onClick={() => {
+                    setIsCheckingOut(true);
+                    router.push('/checkout');
+                    setTimeout(() => setIsCheckingOut(false), 1000);
+                  }}
+                  className="flex-1 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md ml-4"
+                >
+                  {isCheckingOut ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <>
+                      Pagar <ChevronRight size={14} />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN: Payment Summary */}
+        {cartItems.length > 0 && !checkoutSuccess && (
+          <div className="hidden md:flex w-full md:w-[340px] shrink-0 flex-col bg-muted/20">
+            <div className="p-5 border-b border-border shrink-0">
+              <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Resumen del Pedido</h3>
+              <p className="text-xs text-muted-foreground mt-1">{cartItemCount} {cartItemCount === 1 ? 'panel seleccionado' : 'paneles seleccionados'}</p>
+            </div>
+
+            {/* Items list — desktop only */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              {cartItems.map((summaryItem) => (
+                <div key={summaryItem.panelId} className="flex justify-between items-center px-5 py-3.5 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
+                  <div className="min-w-0 flex-1 pr-3">
+                    <p className="font-bold text-sm text-foreground truncate uppercase tracking-tight">{summaryItem.panelCode}</p>
+                    <p className="text-xs text-muted-foreground truncate font-medium">{summaryItem.address}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-[10px] font-black text-primary bg-primary/10 border-primary/20 px-1.5 py-0.5 rounded uppercase">{summaryItem.days} días</Badge>
+                      <p className="text-[10px] text-muted-foreground font-bold tracking-tight">
+                        {summaryItem.startDate ? (() => {
+                          try {
+                            const d = parseISO(summaryItem.startDate);
+                            return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
+                          } catch { return '---'; }
+                        })() : '---'} al {summaryItem.endDate ? (() => {
+                          try {
+                            const d = parseISO(summaryItem.endDate);
+                            return isNaN(d.getTime()) ? '---' : format(d, 'dd/MM');
+                          } catch { return '---'; }
+                        })() : '---'}
                       </p>
                     </div>
                   </div>
-                )}
+                  <p className="font-black text-sm text-foreground whitespace-nowrap">S/ {summaryItem.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-5 border-t border-border bg-card/80 backdrop-blur-md shrink-0">
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span className="text-foreground font-bold">S/ {(cartTotal / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>IGV (18%)</span>
+                  <span className="text-foreground font-bold">S/ {(cartTotal - (cartTotal / 1.18)).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="pt-3 border-t border-border/50 flex justify-between items-end">
+                  <div>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em] mb-1">Inversión Total</p>
+                    <div className="flex items-baseline gap-0.5">
+                      <p className="text-2xl font-black text-foreground tracking-tighter">
+                        S/ {Number(cartTotal.toFixed(2).split('.')[0]).toLocaleString()}
+                      </p>
+                      <p className="text-base font-black text-foreground opacity-60">
+                        .{cartTotal.toFixed(2).split('.')[1]}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 border-border">
+                    <CreditCard size={10} />
+                    Cotización
+                  </Badge>
+                </div>
               </div>
-            </motion.div>
-          </>
+              <Button
+                disabled={isCheckingOut}
+                size="xl"
+                onClick={() => {
+                  setIsCheckingOut(true);
+                  router.push('/checkout');
+                  setTimeout(() => setIsCheckingOut(false), 1000);
+                }}
+                className="w-full font-black text-sm shadow-[0_15px_30px_-10px_hsl(var(--primary)/0.5)] flex items-center justify-center gap-3 group"
+              >
+                {isCheckingOut ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    <span className="uppercase tracking-widest text-xs">Procesando...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Proceder al Pago</span>
+                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </Button>
+              <p className="text-center text-[10px] text-muted-foreground mt-3 font-medium italic">
+                * Precios incluyen IGV. Sujeto a disponibilidad.
+              </p>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+      </Dialog>
 
       {/* TOAST NOTIFICATION */}
       <AnimatePresence>
@@ -1395,21 +1444,23 @@ export function MapViewClient() {
             exit={{ opacity: 0, scale: 0.9 }}
             className="fixed bottom-24 md:bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-foreground text-background px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-border min-w-[300px]"
           >
-            <div className="bg-primary p-1 rounded-full">
+            <div className="bg-emerald-600 p-1 rounded-full">
               <CheckCircle2 size={18} className="text-white" />
             </div>
             <div className="flex-1">
               <p className="font-bold text-sm leading-tight">{showToast.message}</p>
             </div>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => {
                 setIsCartOpen(true);
                 setShowToast({ show: false, message: "" });
               }}
-              className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+              className="bg-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/20 hover:text-white border-white/10"
             >
               Ver Carrito
-            </button>
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1423,9 +1474,10 @@ export function MapViewClient() {
             exit={{ y: 100, opacity: 0, x: "-50%" }}
             className="hidden md:flex fixed bottom-0 left-1/2 z-[100]"
           >
-            <button
+            <Button
               onClick={() => setIsCartOpen(true)}
-              className="flex items-center gap-4 px-10 py-5 bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-[0_20px_50px_-10px_hsl(var(--primary)/0.7)] font-bold text-lg transition-all hover:scale-105 active:scale-95 group"
+              size="2xl"
+              className="flex items-center gap-4 shadow-[0_20px_50px_-10px_hsl(var(--primary)/0.7)] group"
             >
               <div className="bg-white/20 p-2 rounded-xl group-hover:bg-white/30 transition-colors">
                 <ShoppingCart size={24} />
@@ -1434,7 +1486,7 @@ export function MapViewClient() {
                 <span className="text-white/80 text-xs font-medium uppercase tracking-widest">Resumen de Selección</span>
                 <span>Ver Carrito ({cartItemCount} {cartItemCount === 1 ? 'panel seleccionado' : 'paneles seleccionados'})</span>
               </div>
-            </button>
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1447,11 +1499,11 @@ export function MapViewClient() {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: hsl(var(--primary)/0.1);
+          background: rgba(15, 23, 42, 0.1);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: hsl(var(--primary)/0.1);
+          background: rgba(15, 23, 42, 0.2);
         }
       `}</style>
     </div>

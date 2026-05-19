@@ -99,13 +99,20 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
               <div className="h-full w-full rounded-lg overflow-hidden bg-black relative">
                 {videoUrl ? (
                   <video 
+                    key={videoUrl}
                     src={videoUrl} 
                     className="w-full h-full object-cover"
-                    controls={false}
+                    controls
                     playsInline
                     autoPlay
                     muted
                     loop
+                    preload="auto"
+                    crossOrigin="anonymous"
+                    onCanPlay={(e) => {
+                      const vid = e.currentTarget
+                      vid.play().catch(() => {/* silent: autoplay policy */})
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 gap-4">
@@ -123,7 +130,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                 <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
                   <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[9px] font-black text-white uppercase tracking-wider">PREVIEW DIGITAL</span>
+                    <span className="text-[9px] font-bold text-white uppercase tracking-wider">PREVIEW DIGITAL</span>
                   </div>
                   <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
                     <Sparkles size={14} className="text-white" />
@@ -132,8 +139,8 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
 
                 {/* Bottom Order ID */}
                 <div className="absolute bottom-4 left-4 right-4 z-20">
-                  <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-0.5">Campaña Activa</p>
-                  <p className="text-base font-black text-white tracking-tight">#{orderId?.slice(0, 8).toUpperCase()}</p>
+                  <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em] mb-0.5">Campaña Activa</p>
+                  <p className="text-base font-bold text-white tracking-tight">#{orderId?.slice(0, 8).toUpperCase()}</p>
                 </div>
               </div>
               
@@ -158,14 +165,14 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring" as const, stiffness: 200, delay: 0.3 }}
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-2 md:mb-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em]"
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-2 md:mb-4 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em]"
               >
                 <Check size={12} strokeWidth={3} />
                 <span>Material Recibido</span>
               </motion.div>
 
-              <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-foreground mb-2 md:mb-4 tracking-tight leading-[0.95] uppercase">
-                TODO <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60 italic underline decoration-primary/20 underline-offset-4 md:underline-offset-8">LISTO.</span>
+              <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground mb-2 md:mb-4 tracking-tight leading-[0.95]">
+                Todo <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60 italic underline decoration-primary/20 underline-offset-4 md:underline-offset-8">listo.</span>
               </h2>
 
               <p className="text-sm md:text-lg text-muted-foreground leading-relaxed mb-3 md:mb-6 max-w-md font-medium opacity-80">
@@ -180,7 +187,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[8px] uppercase tracking-wider font-bold text-muted-foreground/60">Estado</span>
-                    <p className="text-[10px] md:text-xs font-black">{currentStatus.label}</p>
+                    <p className="text-[10px] md:text-xs font-bold">{currentStatus.label}</p>
                   </div>
                 </div>
 
@@ -190,7 +197,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[8px] uppercase tracking-wider font-bold text-muted-foreground/60">Próximo Paso</span>
-                    <p className="text-[10px] md:text-xs font-black">Validación</p>
+                    <p className="text-[10px] md:text-xs font-bold">Validación</p>
                   </div>
                 </div>
               </div>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createRequire } from 'module'
-import { writeFile, unlink, mkdir } from 'fs/promises'
+import { writeFile, unlink, mkdir, readFile } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -20,7 +20,7 @@ ffmpeg.setFfprobePath(ffprobeInstaller.path)
 const r2 = new S3Client({
   region: 'auto',
   endpoint: process.env.CLOUDFLARE_ENDPOINT?.trim(),
-  forcePathStyle: true, // Required for many R2 configurations
+  forcePathStyle: true,
   credentials: {
     accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID?.trim() || '',
     secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY?.trim() || '',
@@ -30,19 +30,11 @@ const r2 = new S3Client({
 const BUCKET = process.env.CLOUDFLARE_BUCKET_NAME?.trim() || ''
 
 console.log(`[upload-video] R2 Client initialized. Bucket: ${BUCKET}, Endpoint: ${process.env.CLOUDFLARE_ENDPOINT?.trim()}`)
-console.log(`[upload-video] Access Key ID starts with: ${process.env.CLOUDFLARE_ACCESS_KEY_ID?.trim().substring(0, 4)}...`)
-
 
 // R2 public URL base
 function buildPublicUrl(key: string): string {
-  // Use the public R2 URL defined in .env.local
   const publicBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim()?.replace(/\/$/, '')
-  
-  if (publicBase) {
-    return `${publicBase}/${key}`
-  }
-
-  // Fallback to internal endpoint (less desirable for public access)
+  if (publicBase) return `${publicBase}/${key}`
   const base = process.env.CLOUDFLARE_ENDPOINT!.replace(/\/$/, '')
   return `${base}/${BUCKET}/${key}`
 }
@@ -51,17 +43,52 @@ function buildPublicUrl(key: string): string {
 function probeVideo(filePath: string): Promise<{ duration: number }> {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(filePath, (err: Error | null, metadata: { format?: { duration?: number } }) => {
-      if (err) {
-        reject(err)
-      } else {
-        resolve({ duration: metadata?.format?.duration ?? 0 })
-      }
+      if (err) reject(err)
+      else resolve({ duration: metadata?.format?.duration ?? 0 })
     })
   })
 }
 
-// Expanded accepted MIME types (all common video formats ffmpeg supports)
+/**
+ * Convierte una imagen estática (PNG/JPEG) a un video MP4 de duración fija en el servidor.
+ * Usa fluent-ffmpeg que ya está instalado como server-external-package.
+ */
+function imageToVideoServer(
+  inputPath: string,
+  outputPath: string,
+  durationSeconds: number = 7,
+  width: number = 1280,
+  height: number = 720
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    ffmpeg(inputPath)
+      .inputOption('-loop', '1')
+      .inputOption('-framerate', '25')
+      .outputOptions([
+        `-t ${durationSeconds}`,
+        `-vf scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`,
+        '-c:v libx264',
+        '-preset ultrafast',
+        '-pix_fmt yuv420p',
+        '-movflags +faststart',
+      ])
+      .on('start', (cmd: string) => console.log('[upload-video] ffmpeg image→video cmd:', cmd))
+      .on('error', (err: Error) => {
+        console.error('[upload-video] ffmpeg image→video error:', err.message)
+        reject(err)
+      })
+      .on('end', () => resolve())
+      .save(outputPath)
+  })
+}
+
+// Accepted MIME types — ahora incluye imágenes (el servidor las convierte a video)
 const ALLOWED_MIME_TYPES = new Set([
+  // Imágenes — convertidas a video de 7s en el servidor
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  // Videos — procesados normalmente
   'video/mp4',
   'video/quicktime',      // .mov
   'video/x-msvideo',     // .avi
@@ -76,11 +103,12 @@ const ALLOWED_MIME_TYPES = new Set([
   'video/ogg',
   'video/x-m4v',         // .m4v
   'video/MP2T',          // .ts
-  'application/octet-stream', // fallback for some browsers that mis-detect MIME
+  'application/octet-stream', // fallback
 ])
 
 export async function POST(req: NextRequest) {
-  let tempPath: string | null = null
+  let tempInputPath: string | null = null
+  let tempOutputPath: string | null = null
 
   try {
     const formData = await req.formData()
@@ -94,10 +122,12 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    console.log(`[upload-video] Received file: name=${file.name}, type=${file.type}, size=${file.size}`)
+
     // ── MIME type validation ───────────────────────────────────────────────────
     if (!ALLOWED_MIME_TYPES.has(file.type)) {
       return NextResponse.json(
-        { error: `Formato no soportado: "${file.type}". Usa MP4, MOV, AVI, WebM, MKV, MPEG u otro formato de video estándar.` },
+        { error: `Formato no soportado: "${file.type}". Usa imágenes (PNG/JPEG) o videos (MP4, MOV, etc.).` },
         { status: 400 }
       )
     }
@@ -106,47 +136,55 @@ export async function POST(req: NextRequest) {
     const MAX_BYTES = 50 * 1024 * 1024 // 50 MB
     if (file.size > MAX_BYTES) {
       return NextResponse.json(
-        { error: 'El video supera el límite de 50 MB.' },
+        { error: 'El archivo supera el límite de 50 MB.' },
         { status: 400 }
       )
     }
 
-    // ── Write to temp file preserving the original extension ───────────────────
+    const isImage = file.type.startsWith('image/')
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'mp4'
 
     const tmpDir = join(tmpdir(), 'mixooh-uploads')
     await mkdir(tmpDir, { recursive: true })
-    // Use real extension so ffprobe can detect the container format
-    tempPath = join(tmpDir, `${orderId}-${Date.now()}.${fileExt}`)
-    await writeFile(tempPath, buffer)
 
-    console.log(`[upload-video] Temp file written: ${tempPath} (${buffer.byteLength} bytes)`)
+    const inputExt = isImage ? (file.type === 'image/png' ? 'png' : 'jpg') : (file.name.split('.').pop()?.toLowerCase() || 'mp4')
+    tempInputPath = join(tmpDir, `${orderId}-${Date.now()}-input.${inputExt}`)
+    await writeFile(tempInputPath, buffer)
+    console.log(`[upload-video] Temp input written: ${tempInputPath} (${buffer.byteLength} bytes)`)
 
-    // ── ffprobe: validate duration ─────────────────────────────────────────────
-    let duration = 0
-    try {
-      const meta = await probeVideo(tempPath)
-      duration = meta.duration
-      console.log(`[upload-video] Duration detected: ${duration}s`)
-    } catch (probeErr) {
-      console.error('[upload-video] ffprobe error:', probeErr)
-      // If ffprobe fails, skip duration check but still allow the upload
-      // (some valid videos have metadata issues that don't affect playback)
-      console.warn('[upload-video] Skipping duration validation due to probe error. Proceeding with upload.')
-    }
+    // ── Imagen → Convertir a video MP4 en el servidor ─────────────────────────
+    let finalBuffer: Buffer
+    let duration = 7
 
-    const MAX_DURATION = 300 // 5 minutes — relaxed limit
-    if (duration > 0 && duration > MAX_DURATION) {
-      return NextResponse.json(
-        { error: `El video no puede superar ${MAX_DURATION / 60} minutos. Duración detectada: ${Math.round(duration)}s.` },
-        { status: 400 }
-      )
+    if (isImage) {
+      tempOutputPath = join(tmpDir, `${orderId}-${Date.now()}-output.mp4`)
+      console.log('[upload-video] Convirtiendo imagen a video MP4 (7s)...')
+      await imageToVideoServer(tempInputPath, tempOutputPath, 7, 1280, 720)
+      finalBuffer = await readFile(tempOutputPath)
+      console.log(`[upload-video] Video generado: ${finalBuffer.byteLength} bytes`)
+    } else {
+      // ── Video: validar duración con ffprobe ───────────────────────────────
+      finalBuffer = buffer
+      try {
+        const meta = await probeVideo(tempInputPath)
+        duration = meta.duration
+        console.log(`[upload-video] Duration detected: ${duration}s`)
+      } catch (probeErr) {
+        console.warn('[upload-video] ffprobe error (skipping duration check):', probeErr)
+      }
+
+      const MAX_DURATION = 300
+      if (duration > 0 && duration > MAX_DURATION) {
+        return NextResponse.json(
+          { error: `El video no puede superar ${MAX_DURATION / 60} minutos. Duración detectada: ${Math.round(duration)}s.` },
+          { status: 400 }
+        )
+      }
     }
 
     // ── Upload to Cloudflare R2 ────────────────────────────────────────────────
-    const key = `campaign-videos/${orderId}-${Date.now()}.${fileExt}`
+    const key = `campaign-videos/${orderId}-${Date.now()}.mp4`
     console.log(`[upload-video] Uploading to R2: ${key}`)
 
     try {
@@ -154,38 +192,35 @@ export async function POST(req: NextRequest) {
         new PutObjectCommand({
           Bucket: BUCKET,
           Key: key,
-          Body: buffer,
-          ContentType: file.type, 
-          ContentLength: buffer.byteLength,
+          Body: finalBuffer,
+          ContentType: 'video/mp4',
+          ContentLength: finalBuffer.byteLength,
+          CacheControl: 'public, max-age=31536000',
+          Metadata: {
+            'x-amz-meta-source': 'jmt-marketplace',
+          },
         })
       )
     } catch (s3Err: any) {
-      console.error('[upload-video] R2 Upload Error Details:', {
+      console.error('[upload-video] R2 Upload Error:', {
         message: s3Err.message,
         code: s3Err.Code || s3Err.name,
         requestId: s3Err.$metadata?.requestId,
-        extendedRequestId: s3Err.$metadata?.extendedRequestId,
-        cfId: s3Err.$metadata?.cfId,
       })
-      throw s3Err // Rethrow to be caught by the outer catch
+      throw s3Err
     }
 
     const videoUrl = buildPublicUrl(key)
     console.log(`[upload-video] Uploaded successfully: ${videoUrl}`)
 
-    // ── Update Supabase orders table (using service_role to bypass RLS) ─────────
+    // ── Update Supabase ────────────────────────────────────────────────────────
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || ''
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || ''
 
-    if (!serviceRoleKey || serviceRoleKey === 'PEGAR_AQUI_TU_SERVICE_ROLE_KEY' || !supabaseUrl) {
-      const missing = []
-      if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL')
-      if (!serviceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY')
-      if (serviceRoleKey === 'PEGAR_AQUI_TU_SERVICE_ROLE_KEY') missing.push('SUPABASE_SERVICE_ROLE_KEY (placeholder)')
-      
-      console.error('[upload-video] Configuración incompleta:', { missing })
+    if (!serviceRoleKey || !supabaseUrl) {
+      console.error('[upload-video] Missing env vars for Supabase update')
       return NextResponse.json(
-        { error: `Configuración del servidor incompleta. Faltan: ${missing.join(', ')}` },
+        { error: 'Configuración del servidor incompleta.' },
         { status: 500 }
       )
     }
@@ -194,29 +229,24 @@ export async function POST(req: NextRequest) {
       auth: { persistSession: false },
     })
 
-    console.log(`[upload-video] Updating order ${orderId} in Supabase...`)
-    console.log(`[upload-video] video_url: ${videoUrl}`)
-
     const { data: updateData, error: dbError } = await supabase
       .from('orders')
-      .update({
-        status: 'VIDEO_SENT',
-        video_url: videoUrl,
-      })
+      .update({ status: 'VIDEO_SENT', video_url: videoUrl })
       .eq('id', orderId)
       .select()
 
     if (dbError) {
-      console.error('[upload-video] Supabase update error:', JSON.stringify(dbError, null, 2))
+      console.error('[upload-video] Supabase update error:', dbError)
       return NextResponse.json(
-        { error: `Video subido a Cloudflare pero no se pudo actualizar el pedido: ${dbError.message}` },
+        { error: `Video subido pero no se actualizó el pedido: ${dbError.message}` },
         { status: 500 }
       )
     }
 
-    console.log('[upload-video] Supabase update result:', JSON.stringify(updateData, null, 2))
     if (!updateData || updateData.length === 0) {
-      console.warn(`[upload-video] WARNING: No rows updated for orderId=${orderId}. Check if the order exists.`)
+      console.warn(`[upload-video] WARNING: No rows updated for orderId=${orderId}`)
+    } else {
+      console.log('[upload-video] Supabase updated OK')
     }
 
     return NextResponse.json({
@@ -231,9 +261,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 })
 
   } finally {
-    // Always clean up temp file
-    if (tempPath) {
-      unlink(tempPath).catch(() => {})
-    }
+    if (tempInputPath) unlink(tempInputPath).catch(() => {})
+    if (tempOutputPath) unlink(tempOutputPath).catch(() => {})
   }
 }
