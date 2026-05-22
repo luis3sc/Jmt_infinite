@@ -71,6 +71,7 @@ interface ConsentCheckboxesProps {
   setAcceptedTerms: (val: boolean) => void
   acceptedNoLogos: boolean
   setAcceptedNoLogos: (val: boolean) => void
+  userType: string
 }
 
 function ConsentCheckboxes({
@@ -78,7 +79,32 @@ function ConsentCheckboxes({
   setAcceptedTerms,
   acceptedNoLogos,
   setAcceptedNoLogos,
+  userType,
 }: ConsentCheckboxesProps) {
+  const getLogosLabel = () => {
+    switch (userType) {
+      case 'entrepreneur':
+        return (
+          <>
+            Reconozco que poseo los <span className="text-foreground font-semibold">derechos y autorizaciones comerciales</span> sobre los logotipos y marcas de mi negocio que aparecen en mi diseño.*
+          </>
+        )
+      case 'influencer':
+        return (
+          <>
+            Reconozco que el material promueve <span className="text-foreground font-semibold">mis propios canales, redes sociales o marca personal</span>, y no publicidad no autorizada de terceros.*
+          </>
+        )
+      case 'individual':
+      default:
+        return (
+          <>
+            Reconozco que mi foto/video <span className="text-foreground font-semibold">no contiene marcas ni logotipos comerciales de terceros</span>; si así fuera, sé que será rechazado.*
+          </>
+        )
+    }
+  }
+
   return (
     <div className="bg-card/45 backdrop-blur-md border border-border/50 rounded-2xl p-4 sm:p-5 my-4 space-y-3.5 shadow-sm relative overflow-hidden group/consent">
       {/* Glow sutil en el fondo del consentimiento */}
@@ -104,9 +130,52 @@ function ConsentCheckboxes({
           className="mt-0.5"
         />
         <label htmlFor="logos-check" className="text-[11px] sm:text-xs text-muted-foreground leading-normal cursor-pointer select-none">
-          Reconozco que mi foto/video <span className="text-foreground font-semibold">no contiene marcas ni logotipos comerciales</span>; si así fuera, sé que será rechazado.*
+          {getLogosLabel()}
         </label>
       </div>
+    </div>
+  )
+}
+
+function ImportantNote({ userType }: { userType: string }) {
+  const getNoteContent = () => {
+    switch (userType) {
+      case 'entrepreneur':
+        return {
+          title: '⚠️ REGLAS COMERCIALES',
+          body: 'Asegúrate de que el logotipo y branding pertenezcan a tu negocio. No se permite publicidad de tabaco, violencia, desnudos ni vulgaridad.',
+          benefit: '✅ ¡Sube tu logo, promociones, dirección y redes de tu negocio para captar clientes!'
+        }
+      case 'influencer':
+        return {
+          title: '⚠️ REGLAS CREADOR',
+          body: 'Asegúrate de promover tu propia cuenta, redes o canal. No se permite spam de terceros, tabaco, violencia ni vulgaridad.',
+          benefit: '✅ ¡Sí se permite e incentiva poner tus redes sociales (@usuario), códigos QR y llamadas a la acción!'
+        }
+      case 'individual':
+      default:
+        return {
+          title: '⚠️ SÚPER IMPORTANTE',
+          body: 'NO SE ACEPTAN MARCAS/LOGOS COMERCIALES DE TERCEROS, TABACO, VIOLENCIA, DESNUDOS NI VULGARIDAD. Si hay alguno, tu material será rechazado.',
+          benefit: '✅ ¡Sí se permite poner tu propio texto y tu @usuario personal de redes sociales!'
+        }
+    }
+  }
+
+  const note = getNoteContent()
+
+  return (
+    <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-3.5 space-y-1.5 mt-2">
+      <p className="text-[10px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
+        {note.title}
+      </p>
+      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+        {note.body}
+      </p>
+      <div className="h-px bg-border/40 my-1" />
+      <p className="text-[11px] text-primary/90 font-semibold leading-relaxed">
+        {note.benefit}
+      </p>
     </div>
   )
 }
@@ -415,10 +484,18 @@ export default function OrderSuccessPage() {
                   {contentType === 'idle' ? (
                     <>
                       <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight leading-tight max-w-xl">
-                        ¿Qué tipo de material subirás?
+                        {userType === 'entrepreneur'
+                          ? 'Sube el anuncio de tu negocio'
+                          : userType === 'influencer'
+                            ? 'Comparte tu contenido con el mundo'
+                            : '¿Qué tipo de material subirás?'}
                       </h1>
                       <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground max-w-2xl font-medium leading-relaxed opacity-80 mt-1">
-                        Elige tu formato de video o foto
+                        {userType === 'entrepreneur'
+                          ? 'Elige si deseas subir una imagen publicitaria de tu marca o tu video promocional'
+                          : userType === 'influencer'
+                            ? 'Elige si deseas subir un banner de tus redes o tu video promocional'
+                            : 'Elige tu formato de video o foto'}
                       </p>
                     </>
                   ) : (
@@ -477,17 +554,31 @@ export default function OrderSuccessPage() {
                         <PhotoDropzone onFile={handlePhotoSelected} />
 
                         {/* Nota Importante */}
-                        <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-3.5 space-y-1.5 mt-2">
-                          <p className="text-[10px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
-                            ⚠️ SÚPER IMPORTANTE
-                          </p>
-                          <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                            NO SE ACEPTAN MARCAS/LOGOS COMERCIALES, TABACO, VIOLENCIA, DESNUDOS NI VULGARIDAD. Si hay alguno, tu foto será rechazada.
-                          </p>
-                          <div className="h-px bg-border/40 my-1" />
-                          <p className="text-[11px] text-primary/90 font-semibold leading-relaxed">
-                            ✅ ¡Sí se permite poner tu propio texto y tu @usuario personal de redes sociales!
-                          </p>
+                        <ImportantNote userType={userType} />
+
+                        <ConsentCheckboxes
+                          acceptedTerms={acceptedTerms}
+                          setAcceptedTerms={setAcceptedTerms}
+                          acceptedNoLogos={acceptedNoLogos}
+                          setAcceptedNoLogos={setAcceptedNoLogos}
+                          userType={userType}
+                        />
+
+                        <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
+                          <motion.button
+                            whileHover={(photoFile && acceptedTerms && acceptedNoLogos) ? { scale: 1.01 } : {}}
+                            whileTap={(photoFile && acceptedTerms && acceptedNoLogos) ? { scale: 0.98 } : {}}
+                            disabled={!photoFile || !acceptedTerms || !acceptedNoLogos}
+                            onClick={handlePhotoUpload}
+                            className={`w-full sm:w-fit flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl transition-all text-sm font-bold shadow-lg
+                              ${(photoFile && acceptedTerms && acceptedNoLogos)
+                                ? 'bg-primary text-white border border-primary/20 shadow-primary/20 cursor-pointer hover:shadow-primary/30'
+                                : 'bg-muted/20 border-border/20 text-muted-foreground cursor-not-allowed opacity-50 shadow-none'
+                              }`}
+                          >
+                            <Send size={18} className={(photoFile && acceptedTerms && acceptedNoLogos) ? 'text-white group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform' : ''} />
+                            <span>Enviar Material</span>
+                          </motion.button>
                         </div>
                       </>
                     )}
@@ -513,6 +604,7 @@ export default function OrderSuccessPage() {
                           setAcceptedTerms={setAcceptedTerms}
                           acceptedNoLogos={acceptedNoLogos}
                           setAcceptedNoLogos={setAcceptedNoLogos}
+                          userType={userType}
                         />
 
                         <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
@@ -558,24 +650,14 @@ export default function OrderSuccessPage() {
                     />
 
                     {/* Nota Importante */}
-                    <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-3.5 space-y-1.5 mt-2">
-                      <p className="text-[10px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
-                        ⚠️ SÚPER IMPORTANTE
-                      </p>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                        NO SE ACEPTAN MARCAS/LOGOS COMERCIALES, TABACO, VIOLENCIA, DESNUDOS NI VULGARIDAD. Si hay alguno, tu video será rechazado.
-                      </p>
-                      <div className="h-px bg-border/40 my-1" />
-                      <p className="text-[11px] text-primary/90 font-semibold leading-relaxed">
-                        ✅ ¡Sí se permite poner tu propio texto y tu @usuario personal de redes sociales!
-                      </p>
-                    </div>
+                     <ImportantNote userType={userType} />
 
                     <ConsentCheckboxes
                       acceptedTerms={acceptedTerms}
                       setAcceptedTerms={setAcceptedTerms}
                       acceptedNoLogos={acceptedNoLogos}
                       setAcceptedNoLogos={setAcceptedNoLogos}
+                      userType={userType}
                     />
 
                     <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">

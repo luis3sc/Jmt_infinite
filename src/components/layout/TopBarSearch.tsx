@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -48,8 +48,17 @@ export default function TopBarSearch({
           onChange={(e) => onLocationSearch(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="¿Dónde quieres anunciarte?"
-          className="w-full px-4 py-2 bg-transparent border-none text-sm focus-visible:ring-0 h-[44px] font-medium placeholder:text-muted-foreground/60 shadow-none"
+          className="w-full pl-4 pr-10 py-2 bg-transparent border-none text-sm focus-visible:ring-0 h-[44px] font-medium placeholder:text-muted-foreground/60 shadow-none"
         />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => onLocationSearch("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10 p-1 hover:bg-muted rounded-full transition-all active:scale-90"
+          >
+            <X size={16} />
+          </button>
+        )}
         {showSuggestions && suggestions.length > 0 && (
           <ul className="absolute top-[calc(100%+12px)] left-0 right-0 bg-card border border-border rounded-[calc(var(--radius)*1.0)] shadow-xl overflow-hidden z-[100] max-h-60 overflow-y-auto">
             {suggestions.map((s: any) => (

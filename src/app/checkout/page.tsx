@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, CreditCard, Loader2, ChevronDown, ChevronUp, ShoppingCart, X, QrCode, CheckCircle2, Lock, User, Briefcase, Star, Building2, UserCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CreditCard, Loader2, ChevronDown, ChevronUp, ShoppingCart, X, QrCode, CheckCircle2, Lock, User, Briefcase, Star, Building2, UserCircle, Heart, Share2 } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
 import { PhoneInput, defaultCountries } from 'react-international-phone'
 import 'react-international-phone/style.css'
@@ -425,13 +425,13 @@ export default function CheckoutPage() {
                 {/* Tipo de Usuario */}
                 <div>
                   <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3">
-                    ¿Cómo te identificas?
+                    ¿Cuál es tu objetivo?
                   </label>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { id: 'individual', label: 'Persona', sub: 'Uso personal', icon: User },
-                      { id: 'entrepreneur', label: 'Negocio', sub: 'Empresa/Emprendedor', icon: Briefcase },
-                      { id: 'influencer', label: 'Creador', sub: 'Influencer/Artista', icon: Star }
+                      { id: 'individual', label: 'Momento Especial', sub: 'Mensaje personalizado', icon: Heart },
+                      { id: 'entrepreneur', label: 'Mi Negocio', sub: 'Compartir anuncio', icon: Briefcase },
+                      { id: 'influencer', label: 'Mis Redes', sub: 'Perfil de creador', icon: Share2 }
                     ].map((type) => {
                       const Icon = type.icon
                       return (

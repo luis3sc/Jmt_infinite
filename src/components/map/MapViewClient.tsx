@@ -1019,6 +1019,19 @@ export function MapViewClient() {
                 placeholder="¿Dónde quieres anunciarte?"
                 className="w-full pl-11 pr-12 py-3.5 bg-transparent rounded-[calc(var(--radius)*1.0)] text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 shadow-none ring-offset-transparent border-none h-auto"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleLocationSearch("");
+                    setShowSuggestions(false);
+                    setPendingLocation(null);
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10 p-1.5 hover:bg-muted rounded-full transition-all active:scale-90"
+                >
+                  <X size={16} />
+                </button>
+              )}
               {/* Filter button removed from mobile search as requested */}
               {showSuggestions && suggestions.length > 0 && (
                 <ul className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-[calc(var(--radius)*0.6875)] shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto">

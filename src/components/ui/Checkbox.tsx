@@ -33,7 +33,10 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       >
         <input
           type="checkbox"
-          className="absolute opacity-0 w-0 h-0"
+          className={cn(
+            "absolute inset-0 opacity-0 w-full h-full m-0 p-0 z-10",
+            disabled ? "cursor-not-allowed" : "cursor-pointer"
+          )}
           checked={isChecked}
           onChange={handleChange}
           disabled={disabled}
@@ -42,6 +45,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         />
         {isChecked && (
           <motion.div
+            className="pointer-events-none z-0"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
