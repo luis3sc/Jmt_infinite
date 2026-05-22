@@ -29,6 +29,7 @@ export default function CheckoutPage() {
   const [fullName, setFullName] = useState('')
   const [docNumber, setDocNumber] = useState('')
   const [phone, setPhone] = useState('')
+  const [selectedCountry, setSelectedCountry] = useState('pe')
   const [showSummary, setShowSummary] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentTab, setPaymentTab] = useState<'card' | 'qr'>('card')
@@ -318,6 +319,17 @@ export default function CheckoutPage() {
       setPaymentLoading(false)
     }
   }
+
+  const countryLimits: Record<string, number> = {
+    pe: 9, ar: 10, bo: 8, br: 11, cl: 9, co: 10, cr: 8, cu: 8, do: 10, ec: 9,
+    sv: 8, gt: 8, hn: 8, mx: 10, ni: 8, pa: 8, py: 9, uy: 9, ve: 10,
+    us: 10, ca: 10, es: 9, pr: 10, bz: 7
+  };
+
+  const countryData = defaultCountries.find(c => c[1] === selectedCountry);
+  const currentDialCode = countryData ? (countryData[2] as string) : '51';
+  const currentLimit = countryLimits[selectedCountry] || 9;
+  const maxPhoneLength = 1 + currentDialCode.length + currentLimit; // e.g. + (1) + 51 (2) + 9 (9) = 12
 
   if (!isMounted) return null
 
@@ -659,6 +671,7 @@ export default function CheckoutPage() {
                     className="custom-phone-input"
                     value={phone}
                     onChange={(phone, { country }) => {
+                      setSelectedCountry(country.iso2);
                       const format = country.format;
                       const mask = (typeof format === 'string' ? format : format?.default || '') as string;
 
@@ -678,6 +691,9 @@ export default function CheckoutPage() {
 
                       if (rawNumber.length <= maxDigits) {
                         setPhone(phone);
+                      } else {
+                        const truncatedRaw = rawNumber.slice(0, maxDigits);
+                        setPhone(dialCodeWithPlus + truncatedRaw);
                       }
                     }}
                     countries={defaultCountries.filter((c) =>
@@ -691,6 +707,7 @@ export default function CheckoutPage() {
                     inputProps={{
                       placeholder: '999999999',
                       required: true,
+                      maxLength: maxPhoneLength,
                     }}
                   />
                 </div>
@@ -817,8 +834,8 @@ export default function CheckoutPage() {
         onClose={() => setShowPaymentModal(false)}
         title="Elige tu método de pago"
         description="Paso final"
-        variant="bottom-sheet"
-        className="sm:max-w-md"
+        variant="default"
+        className="sm:max-w-lg"
       >
         {/* Total */}
         <div className="mx-6 mt-4 mb-4 bg-primary/10 border border-primary/20 rounded-[calc(var(--radius)*0.75)] px-5 py-3 flex items-center justify-between">

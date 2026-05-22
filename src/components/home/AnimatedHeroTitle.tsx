@@ -41,7 +41,7 @@ export function AnimatedHeroTitle() {
           </motion.span>
         </AnimatePresence>
       </span>
-      <span>en nuestras pantallas.</span>
+      <span>en nuestros paneles.</span>
     </h1>
   )
 }
