@@ -272,8 +272,8 @@ export default function StructureDetailModal({
                       type="button"
                       onClick={() => handlePanelChange(idx)}
                       className={`relative px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-300 whitespace-nowrap outline-none select-none ${isActive
-                          ? "text-black font-extrabold"
-                          : "text-white/70 hover:text-white font-bold"
+                        ? "text-black font-extrabold"
+                        : "text-white/70 hover:text-white font-bold"
                         }`}
                     >
                       {isActive && (
@@ -470,12 +470,12 @@ export default function StructureDetailModal({
             {currentIsInCart ? (
               <motion.div key="in-cart" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex items-center gap-3">
                 <CheckCircle2 size={22} className="text-emerald-600" />
-                <span>Ir al Carrito</span>
+                <span>Ir a Campaña</span>
               </motion.div>
             ) : (
               <motion.div key="add-to-cart" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex items-center gap-3">
                 <ShoppingCart size={22} />
-                <span>Añadir al Carrito</span>
+                <span>Añadir a Campaña</span>
               </motion.div>
             )}
           </AnimatePresence>

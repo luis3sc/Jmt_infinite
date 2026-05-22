@@ -740,7 +740,7 @@ export function MapViewClient() {
           {/* Scrollable List */}
           <div
             ref={listScrollRef}
-            className="flex-1 overflow-y-auto p-4 space-y-3 pb-24 md:pb-4"
+            className="flex-1 overflow-y-auto p-4 space-y-3 pb-[180px] md:pb-4"
             onScroll={(e) => {
               const el = e.currentTarget;
               const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
@@ -751,8 +751,8 @@ export function MapViewClient() {
               // Layout-matching skeleton cards
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-card border border-border rounded-xl overflow-hidden animate-pulse flex flex-row min-h-[130px] h-auto">
-                    <div className="w-[35%] self-stretch bg-muted shrink-0" />
+                  <div key={i} className="bg-card border border-border rounded-xl overflow-hidden animate-pulse flex flex-col h-auto">
+                    <div className="w-full h-[180px] bg-muted shrink-0" />
                     <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
                       <div>
                         <div className="h-4 bg-muted rounded w-3/4 mb-2" />
@@ -784,7 +784,7 @@ export function MapViewClient() {
                 {structures.map((s) => (
                   <Card
                     key={s.id}
-                    className={`cursor-pointer transition-all flex flex-row min-h-[130px] h-auto
+                    className={`cursor-pointer transition-all flex flex-col h-auto overflow-hidden
                     ${selectedStructure?.id === s.id
                         ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/35"
                         : "hover:border-muted-foreground/30 hover:bg-muted/10"}`}
@@ -793,7 +793,7 @@ export function MapViewClient() {
                       setActiveTab("map");
                     }}
                   >
-                    <div className="w-[35%] self-stretch relative bg-muted shrink-0">
+                    <div className="w-full h-[180px] relative bg-muted shrink-0 border-b border-border/10">
                       {s.panels?.[0]?.photo_url ? (
                         <Image src={s.panels[0].photo_url} alt={s.address} fill className="object-cover" />
                       ) : (
@@ -1082,7 +1082,7 @@ export function MapViewClient() {
               className="flex flex-col items-center justify-center w-16 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors relative"
             >
               <ShoppingCart size={20} />
-              <span className="text-[10px] font-medium">Carrito</span>
+              <span className="text-[10px] font-medium">Campaña</span>
               {cartItemCount > 0 && (
                 <span className="absolute top-1 right-3 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white">
                   {cartItemCount}
@@ -1110,7 +1110,7 @@ export function MapViewClient() {
               <div className="p-2 bg-muted rounded-xl">
                 <ShoppingCart size={20} className="text-foreground" />
               </div>
-              <h2 className="text-lg font-bold text-foreground tracking-tight">Tu Carrito</h2>
+              <h2 className="text-lg font-bold text-foreground tracking-tight">Tu Campaña</h2>
               <span className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full">{cartItemCount}</span>
             </div>
             <Button
@@ -1163,7 +1163,7 @@ export function MapViewClient() {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Tu Carrito está vacío</h3>
+                  <h3 className="text-xl font-black text-foreground uppercase tracking-tight">Tu Campaña está vacío</h3>
                   <p className="text-sm text-muted-foreground max-w-[220px] mx-auto font-medium leading-relaxed">
                     Selecciona ubicaciones estratégicas en el mapa para tu campaña.
                   </p>
@@ -1177,17 +1177,17 @@ export function MapViewClient() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
                 {cartItems.map((item) => (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                     key={item.panelId}
-                    className="grid grid-cols-[96px_1fr] md:grid-cols-[140px_1fr] rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-all group overflow-hidden"
+                    className="flex flex-col md:grid md:grid-cols-[160px_1fr] rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-all group overflow-hidden"
                   >
-                    {/* Image: fixed square 96px on mobile, auto height on desktop spanning both rows */}
-                    <div className="relative w-full h-full row-span-2 shrink-0 bg-muted border-r border-border/10">
+                    {/* Image: fixed height on mobile, auto height on desktop spanning both rows */}
+                    <div className="relative w-full h-[180px] md:h-full md:row-span-2 shrink-0 bg-muted border-b md:border-b-0 md:border-r border-border/10">
                       {item.photoUrl ? (
                         <Image src={item.photoUrl} alt={item.address} fill className="object-cover" />
                       ) : (
@@ -1463,7 +1463,7 @@ export function MapViewClient() {
               }}
               className="bg-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/20 hover:text-white border-white/10"
             >
-              Ver Carrito
+              Ver Campaña
             </Button>
           </motion.div>
         )}
@@ -1488,7 +1488,7 @@ export function MapViewClient() {
               </div>
               <div className="flex flex-col items-start leading-tight">
                 <span className="text-white/80 text-xs font-medium uppercase tracking-widest">Resumen de Selección</span>
-                <span>Ver Carrito ({cartItemCount} {cartItemCount === 1 ? 'panel seleccionado' : 'paneles seleccionados'})</span>
+                <span>Ver Campaña ({cartItemCount} {cartItemCount === 1 ? 'panel seleccionado' : 'paneles seleccionados'})</span>
               </div>
             </Button>
           </motion.div>

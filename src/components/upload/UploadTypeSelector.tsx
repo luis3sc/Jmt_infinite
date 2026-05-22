@@ -6,24 +6,41 @@ import { ImageIcon, Video } from 'lucide-react'
 
 interface UploadTypeSelectorProps {
   onSelect: (type: 'photo' | 'video') => void
+  userType?: string
 }
 
-const OPTIONS = [
-  {
-    type: 'photo' as const,
-    icon: ImageIcon,
-    title: 'Foto',
-    subtitle: 'JPG/PNG',
-    description: 'Sube una imagen. La convertiremos en video.',
-  },
-  {
-    type: 'video' as const,
-    icon: Video,
-    title: 'Video',
-    subtitle: 'MP4/MOV',
-    description: 'Sube tu video. Lo optimizaremos a 7 segundos.',
-  },
-]
+const getOptions = (userType?: string) => {
+  let photoDescription = 'Sube una imagen. La convertiremos en video.'
+  let videoDescription = 'Sube tu video. Lo optimizaremos a 7 segundos.'
+
+  if (userType === 'entrepreneur') {
+    photoDescription = 'Sube la imagen publicitaria o el logo de tu negocio. Lo adaptaremos para la pantalla gigante.'
+    videoDescription = 'Sube el video o spot promocional de tu negocio. Lo ajustaremos al formato ideal.'
+  } else if (userType === 'influencer') {
+    photoDescription = 'Sube la foto o banner de tus redes sociales. Lo adaptaremos para que se vea genial.'
+    videoDescription = 'Sube tu clip o video. Lo optimizaremos para que destaque en la calle.'
+  } else {
+    photoDescription = 'Sube una foto con tu mensaje o saludo especial. La adaptaremos para la pantalla gigante.'
+    videoDescription = 'Sube tu video. Lo optimizaremos a 7 segundos.'
+  }
+
+  return [
+    {
+      type: 'photo' as const,
+      icon: ImageIcon,
+      title: 'Foto',
+      subtitle: 'JPG/PNG',
+      description: photoDescription,
+    },
+    {
+      type: 'video' as const,
+      icon: Video,
+      title: 'Video',
+      subtitle: 'MP4/MOV',
+      description: videoDescription,
+    },
+  ]
+}
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -35,7 +52,9 @@ const cardVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { type: 'spring', damping: 20, stiffness: 260 } },
 }
 
-export function UploadTypeSelector({ onSelect }: UploadTypeSelectorProps) {
+export function UploadTypeSelector({ onSelect, userType }: UploadTypeSelectorProps) {
+  const options = getOptions(userType)
+
   return (
     <motion.div
       variants={containerVariants}
@@ -44,7 +63,7 @@ export function UploadTypeSelector({ onSelect }: UploadTypeSelectorProps) {
       className="flex flex-col items-center gap-4 md:gap-6 w-full max-w-2xl mx-auto py-2 md:py-4"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 w-full">
-        {OPTIONS.map(({ type, icon: Icon, title, subtitle, description }) => (
+        {options.map(({ type, icon: Icon, title, subtitle, description }) => (
           <motion.button
             key={type}
             variants={cardVariants}

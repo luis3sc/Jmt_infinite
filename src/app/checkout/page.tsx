@@ -45,12 +45,12 @@ export default function CheckoutPage() {
     setIsMounted(true)
     const initSession = async () => {
       const supabase = createClient()
-      
+
       // Utilizamos getUser() en lugar de getSession() para forzar la validación con el servidor.
       // Si eliminaste al usuario de auth.users, el token en localStorage será inválido,
       // esto dará error y automáticamente limpiaremos el localStorage (signOut).
       const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
+
       if (authError || !user) {
         // Limpiamos la sesión "fantasma" que quedó en localStorage
         await supabase.auth.signOut()
@@ -58,10 +58,10 @@ export default function CheckoutPage() {
         setIsInitialLoading(false)
         return
       }
-      
+
       setUser(user)
       setEmail(user.email || '')
-      
+
       // Pre-llenar datos del perfil si existen y validar si el perfil existe en DB
       try {
         const { data: profile } = await supabase
@@ -81,7 +81,7 @@ export default function CheckoutPage() {
           // El perfil no existe en DB (puede haberse eliminado manualmente de 'profiles')
           setProfileExists(false)
           console.warn('Perfil no encontrado en DB para el usuario autenticado. Se creará al confirmar.')
-          
+
           // NOTA: El usuario aún existe en auth.users, por lo que la sesión es válida.
           // Si quisieras que el usuario sea desconectado también cuando borras su perfil,
           // se podría agregar un signOut() aquí, pero es mejor solo recrear el perfil.
@@ -89,7 +89,7 @@ export default function CheckoutPage() {
       } catch (err) {
         console.warn("No se pudo cargar el perfil:", err)
       }
-      
+
       setIsInitialLoading(false)
     }
 
@@ -124,7 +124,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     if (e) e.preventDefault()
-    
+
     if (loading) return
     setLoading(true)
 
@@ -305,8 +305,8 @@ export default function CheckoutPage() {
           throw new Error(`Error al registrar las pantallas: ${bookingError.message}`)
         }
       }
-      
-      // 3. Limpiar carrito
+
+      // 3. Limpiar Campaña
       useCartStore.getState().clearCart()
 
       setShowPaymentModal(false)
@@ -439,14 +439,13 @@ export default function CheckoutPage() {
                           key={type.id}
                           type="button"
                           onClick={() => setUserType(type.id as any)}
-                          className={`flex flex-col items-center justify-center p-3 rounded-[calc(var(--radius)*0.75)] border transition-all gap-1.5 ${
-                            userType === type.id
+                          className={`flex flex-col items-center justify-center p-3 rounded-[calc(var(--radius)*0.75)] border transition-all gap-1.5 ${userType === type.id
                               ? 'border-primary bg-primary/5 text-primary shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
                               : 'bg-card text-muted-foreground border-border hover:bg-muted'
-                          }`}
+                            }`}
                         >
                           <div className={`p-2 rounded-[calc(var(--radius)*0.5)] ${userType === type.id ? 'bg-primary/20' : 'bg-muted'}`}>
-                             <Icon size={18} />
+                            <Icon size={18} />
                           </div>
                           <div className="text-center">
                             <p className="text-[10px] font-black uppercase tracking-tight leading-none">{type.label}</p>
@@ -495,8 +494,8 @@ export default function CheckoutPage() {
                     type="button"
                     onClick={() => setReceiptType('boleta')}
                     className={`py-3 rounded-[calc(var(--radius)*0.6875)] text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'boleta'
-                        ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                        : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                      ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
+                      : 'bg-card text-muted-foreground border-border hover:bg-muted'
                       }`}
                   >
                     Boleta
@@ -505,8 +504,8 @@ export default function CheckoutPage() {
                     type="button"
                     onClick={() => setReceiptType('factura')}
                     className={`py-3 rounded-[calc(var(--radius)*0.6875)] text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'factura'
-                        ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                        : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                      ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
+                      : 'bg-card text-muted-foreground border-border hover:bg-muted'
                       }`}
                   >
                     Factura
@@ -567,7 +566,8 @@ export default function CheckoutPage() {
                   <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5 flex justify-between">
                     <span>Teléfono <span className="text-primary">*</span></span>
                   </label>
-                  <style dangerouslySetInnerHTML={{__html: `
+                  <style dangerouslySetInnerHTML={{
+                    __html: `
                     .custom-phone-input {
                       width: 100%;
                       display: flex !important;
@@ -696,15 +696,15 @@ export default function CheckoutPage() {
                 </div>
               </form>
             </div>
-        )}
-      </div>
+          )}
+        </div>
 
         {/* SECCIÓN DERECHA: RESUMEN Y PAGO (Desktop) */}
         <div className="hidden md:flex md:w-[400px] lg:w-[480px] bg-card border-l border-border p-8 flex-col shrink-0">
           <div className="flex-1 overflow-y-auto mb-6 pr-2 custom-scrollbar">
             <h3 className="text-sm font-bold text-foreground uppercase tracking-widest mb-4">Resumen del Pedido</h3>
             {cartItems.length === 0 ? (
-              <p className="text-muted-foreground text-sm italic">Tu carrito está vacío.</p>
+              <p className="text-muted-foreground text-sm italic">Tu Campaña está vacío.</p>
             ) : (
               <div className="space-y-4">
                 {cartItems.map((item) => (
@@ -833,18 +833,16 @@ export default function CheckoutPage() {
           <Button
             variant={paymentTab === 'card' ? 'default' : 'secondary'}
             onClick={() => setPaymentTab('card')}
-            className={`flex-1 py-2.5 rounded-[calc(var(--radius)*0.625)] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${
-              paymentTab === 'card' ? 'shadow-lg shadow-primary/30' : ''
-            }`}
+            className={`flex-1 py-2.5 rounded-[calc(var(--radius)*0.625)] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${paymentTab === 'card' ? 'shadow-lg shadow-primary/30' : ''
+              }`}
           >
             <CreditCard size={14} /> Tarjeta
           </Button>
           <Button
             variant={paymentTab === 'qr' ? 'default' : 'secondary'}
             onClick={() => setPaymentTab('qr')}
-            className={`flex-1 py-2.5 rounded-[calc(var(--radius)*0.625)] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${
-              paymentTab === 'qr' ? 'shadow-lg shadow-primary/30' : ''
-            }`}
+            className={`flex-1 py-2.5 rounded-[calc(var(--radius)*0.625)] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${paymentTab === 'qr' ? 'shadow-lg shadow-primary/30' : ''
+              }`}
           >
             <QrCode size={14} /> QR / Yape
           </Button>
@@ -889,9 +887,9 @@ export default function CheckoutPage() {
               <div className="w-44 h-44 bg-white rounded-[calc(var(--radius)*0.75)] p-3 mb-4 border border-border">
                 <svg viewBox="0 0 200 200" className="w-full h-full">
                   {/* Simple QR pattern mockup */}
-                  {[0,1,2,3,4,5,6].map(r => [0,1,2,3,4,5,6].map(c => {
+                  {[0, 1, 2, 3, 4, 5, 6].map(r => [0, 1, 2, 3, 4, 5, 6].map(c => {
                     const inFinder = (r < 2 && c < 2) || (r < 2 && c > 4) || (r > 4 && c < 2)
-                    return <rect key={`${r}-${c}`} x={r*27+5} y={c*27+5} width={22} height={22} fill={inFinder ? 'hsl(var(--primary))' : (Math.random() > 0.5 ? 'hsl(var(--foreground))' : 'transparent')} rx={2} />
+                    return <rect key={`${r}-${c}`} x={r * 27 + 5} y={c * 27 + 5} width={22} height={22} fill={inFinder ? 'hsl(var(--primary))' : (Math.random() > 0.5 ? 'hsl(var(--foreground))' : 'transparent')} rx={2} />
                   }))}
                   <rect x={5} y={5} width={74} height={74} fill="none" stroke="hsl(var(--foreground))" strokeWidth={6} rx={4} />
                   <rect x={121} y={5} width={74} height={74} fill="none" stroke="hsl(var(--foreground))" strokeWidth={6} rx={4} />

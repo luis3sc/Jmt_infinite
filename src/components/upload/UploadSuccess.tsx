@@ -6,6 +6,7 @@ import { motion, AnimatePresence, Variants } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
+import { Button } from '@/components/ui/Button'
 
 interface UploadSuccessProps {
   videoUrl?: string;
@@ -17,7 +18,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
   const router = useRouter()
   const [loadingBtn, setLoadingBtn] = useState(false)
   const [isVideoHovered, setIsVideoHovered] = useState(false)
-  
+
   const handleFinish = async () => {
     setLoadingBtn(true)
     try {
@@ -35,9 +36,9 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
-    visible: { 
+    visible: {
       opacity: 1,
-      transition: { 
+      transition: {
         staggerChildren: 0.1,
         delayChildren: 0.1
       }
@@ -46,10 +47,10 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
 
   const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { 
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
         type: "spring",
         stiffness: 120,
         damping: 20
@@ -67,30 +68,30 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
   const trackingStatus = (status as OrderStatus) || 'VIDEO_SENT'
 
   return (
-    <motion.div 
+    <motion.div
       initial="hidden"
       animate="visible"
       variants={containerVariants}
       className="w-full max-w-7xl mx-auto relative px-4"
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16 items-center">
-        
+
         {/* VIDEO PREVIEW - ON TOP ON MOBILE */}
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="w-full flex justify-center lg:justify-end order-1 lg:order-2"
         >
-          <div 
+          <div
             className="relative w-full max-w-2xl group perspective-2000"
             onMouseEnter={() => setIsVideoHovered(true)}
             onMouseLeave={() => setIsVideoHovered(false)}
           >
             {/* Glow Effect */}
             <div className="absolute -inset-4 bg-primary/20 rounded-lg blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-            
+
             {/* Panel/Screen Mockup Frame - HORIZONTAL Aspect Ratio */}
-            <motion.div 
-              animate={{ 
+            <motion.div
+              animate={{
                 rotateY: isVideoHovered ? 2 : 0,
                 rotateX: isVideoHovered ? -2 : 0,
                 scale: isVideoHovered ? 1.01 : 1
@@ -100,9 +101,9 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
               {/* Inner Bezel */}
               <div className="h-full w-full rounded-lg overflow-hidden bg-black relative">
                 {videoUrl ? (
-                  <video 
+                  <video
                     key={videoUrl}
-                    src={videoUrl} 
+                    src={videoUrl}
                     className="w-full h-full object-cover"
                     controls
                     playsInline
@@ -113,7 +114,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                     crossOrigin="anonymous"
                     onCanPlay={(e) => {
                       const vid = e.currentTarget
-                      vid.play().catch(() => {/* silent: autoplay policy */})
+                      vid.play().catch(() => {/* silent: autoplay policy */ })
                     }}
                   />
                 ) : (
@@ -127,7 +128,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
 
                 {/* Overlays */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-                
+
                 {/* Status Badge in Video */}
                 <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
                   <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center gap-2">
@@ -145,15 +146,15 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                   <p className="text-base font-bold text-white tracking-tight">#{orderId?.slice(0, 8).toUpperCase()}</p>
                 </div>
               </div>
-              
+
               {/* Screen Glare & Overlay */}
               <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none z-30" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.05),transparent_70%)] pointer-events-none z-30" />
-              
+
               {/* Premium Reflection Effect */}
               <div className="absolute -inset-x-20 top-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent -rotate-12 pointer-events-none z-20" />
             </motion.div>
-            
+
             {/* Ambient Shadow/Glow */}
             <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-4/5 h-4 bg-primary/10 blur-2xl rounded-full pointer-events-none" />
           </div>
@@ -163,23 +164,12 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
         <div className="flex flex-col gap-4 md:gap-8 order-2">
           <motion.div variants={itemVariants} className="space-y-3 md:space-y-6">
             <div className="flex flex-col items-start">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring" as const, stiffness: 200, delay: 0.3 }}
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-2 md:mb-4 text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em]"
-              >
-                <Check size={12} strokeWidth={3} />
-                <span>Material Recibido</span>
-              </motion.div>
 
-              <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-foreground mb-2 md:mb-4 tracking-tight leading-[0.95]">
-                Todo <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/60 italic underline decoration-primary/20 underline-offset-4 md:underline-offset-8">listo.</span>
+
+              <h2 className="text-3xl md:text-5xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4 tracking-tight leading-[0.95]">
+                ¡Tu anuncio <span className="text-primary font-bold">ya está listo!</span>
               </h2>
 
-              <p className="text-sm md:text-lg text-muted-foreground leading-relaxed mb-3 md:mb-6 max-w-md font-medium opacity-80">
-                Material recibido. Lo validaremos en las próximas horas.
-              </p>
 
               {/* Order Tracking Stepper */}
               <div className="w-full mb-3 md:mb-6 p-3 md:p-4 rounded-xl bg-muted/30 border border-border/50">
@@ -189,38 +179,28 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                 <OrderTrackingStepper status={trackingStatus} layout="auto" />
               </div>
 
-              {/* Status Pills — compact on mobile */}
-              <div className="flex flex-wrap gap-2 md:gap-4 mb-3 md:mb-6 w-full">
-                <div className="bg-background/40 border border-border/40 px-3 py-2 rounded-lg flex items-center gap-2 flex-1 min-w-[130px]">
-                  <div className={`w-6 h-6 md:w-10 md:h-10 rounded-lg md:rounded-lg ${currentStatus.color} flex items-center justify-center shrink-0`}>
-                    <currentStatus.icon size={14} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[8px] uppercase tracking-wider font-bold text-muted-foreground/60">Estado</span>
-                    <p className="text-[10px] md:text-xs font-bold">{currentStatus.label}</p>
-                  </div>
-                </div>
 
-                <div className="bg-background/40 border border-border/40 px-3 py-2 rounded-lg flex items-center gap-2 flex-1 min-w-[130px]">
-                  <div className="w-6 h-6 md:w-10 md:h-10 rounded-lg md:rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <Clock size={14} />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[8px] uppercase tracking-wider font-bold text-muted-foreground/60">Próximo Paso</span>
-                    <p className="text-[10px] md:text-xs font-bold">Validación</p>
-                  </div>
-                </div>
-              </div>
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-                <button
-                  onClick={() => window.open(videoUrl, '_blank')}
-                  className="w-full sm:w-fit flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted hover:border-primary/20 transition-all active:scale-95 group text-sm font-semibold"
+                <Button
+                  disabled={loadingBtn}
+                  onClick={handleFinish}
+                  isLoading={loadingBtn}
+                  className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] h-auto rounded-[calc(var(--radius)*0.875)]"
                 >
-                  <ExternalLink size={16} className="text-primary" />
-                  <span className="text-muted-foreground group-hover:text-foreground">Ver Video</span>
-                </button>
+                  Listo, ir a Mis Pedidos
+                </Button>
+                {videoUrl && (
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(videoUrl, '_blank')}
+                    className="w-full sm:w-auto px-5 py-3 text-xs font-black uppercase tracking-widest gap-2 h-auto rounded-[calc(var(--radius)*0.875)]"
+                  >
+                    <ExternalLink size={14} className="text-primary" />
+                    <span>Ver mi diseño</span>
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>
@@ -233,7 +213,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
               <Info size={14} />
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-              Te notificaremos cuando el material sea aprobado. Tiempo estimado: <span className="text-foreground font-bold">24 hrs hábiles</span>.
+              Te avisaremos al WhatsApp y correo de inmediato cuando tu anuncio sea aprobado. Tiempo estimado: <span className="text-foreground font-bold">24 horas útiles</span>.
             </p>
           </motion.div>
         </div>

@@ -17,20 +17,20 @@ import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
-  CONFIRMED:          { label: 'Activo',            color: 'text-emerald-600', dot: 'bg-emerald-500' },
-  PENDING_UPLOAD:     { label: 'Pendiente de video', color: 'text-amber-600',  dot: 'bg-amber-500' },
-  VIDEO_SENT:         { label: 'Video enviado',      color: 'text-muted-foreground', dot: 'bg-muted-foreground/60' },
-  PENDING_VALIDATION: { label: 'En validación',      color: 'text-purple-600', dot: 'bg-purple-500' },
-  REJECTED:           { label: 'Rechazado',          color: 'text-red-600',    dot: 'bg-red-500' },
-  CANCELLED:          { label: 'Cancelado',          color: 'text-muted-foreground/80',  dot: 'bg-muted/80' },
+  CONFIRMED:          { label: '¡Al aire!',          color: 'text-emerald-500', dot: 'bg-emerald-500' },
+  PENDING_UPLOAD:     { label: 'Falta subir foto/video', color: 'text-amber-500',  dot: 'bg-amber-500' },
+  VIDEO_SENT:         { label: 'Revisando diseño',   color: 'text-blue-400',    dot: 'bg-blue-400' },
+  PENDING_VALIDATION: { label: 'Revisando diseño',   color: 'text-blue-400',    dot: 'bg-blue-400' },
+  REJECTED:           { label: 'Observado (Por corregir)', color: 'text-red-500',    dot: 'bg-red-500' },
+  CANCELLED:          { label: 'Cancelado',          color: 'text-muted-foreground',  dot: 'bg-muted-foreground/60' },
 }
 
 const FILTERS = [
   { value: 'ALL',                label: 'Todos' },
-  { value: 'CONFIRMED',          label: 'Activos' },
-  { value: 'PENDING_UPLOAD',     label: 'Sin video' },
+  { value: 'CONFIRMED',          label: 'Al aire' },
+  { value: 'PENDING_UPLOAD',     label: 'Falta subir' },
   { value: 'VIDEO_SENT',         label: 'En revisión' },
-  { value: 'REJECTED',           label: 'Rechazados' },
+  { value: 'REJECTED',           label: 'Por corregir' },
 ]
 
 export function OrdersList({ initialOrders }: OrdersListProps) {
@@ -176,7 +176,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                         {/* Order Tracking Stepper */}
                         <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
                           <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-3">
-                            Estado de la campaña
+                            Seguimiento de tu anuncio
                           </p>
                           <OrderTrackingStepper
                             status={order.status as OrderStatus}
@@ -209,7 +209,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all active:scale-95 shadow-sm"
                             >
                               <Upload size={13} />
-                              Subir Video
+                              Subir Foto o Video
                             </Link>
                           )}
                           {order.status === 'REJECTED' && (
@@ -218,7 +218,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all active:scale-95 shadow-sm"
                             >
                               <AlertCircle size={13} />
-                              Corregir Video
+                              Corregir Foto o Video
                             </Link>
                           )}
                           {(order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
@@ -227,7 +227,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted border border-border text-foreground text-[10px] font-black uppercase tracking-widest hover:bg-muted/80 transition-all active:scale-95"
                             >
                               <ExternalLink size={13} />
-                              Ver Campaña
+                              Ver mi Anuncio
                             </Link>
                           )}
                           <Button

@@ -18,7 +18,7 @@ El siguiente diagrama ilustra el flujo transaccional y la sincronización de cre
 
 ```mermaid
 graph TD
-    A[Buscador / Mapa Mapbox] -->|Selección de Paneles| B[Carrito de Compras]
+    A[Buscador / Mapa Mapbox] -->|Selección de Paneles| B[Campaña de Compras]
     B -->|Checkout transaccional| C[Pago seguro con Culqi]
     C -->|Auto-creación de cuenta| D[Supabase Auth & DB]
     D -->|Redirección| E[Upload Bridge / Success]
@@ -96,7 +96,7 @@ Para evitar pantallas en blanco por fallos en servicios de terceros o caídas de
 │   │   ├── ffmpegClient.ts # Procesamiento e inicialización de FFmpeg.wasm
 │   │   ├── imageComposer.ts# Composición Canvas 2D de fotos y marcos PNG
 │   │   └── videoAnalyzer.ts# Extracción nativa de metadata de video
-│   ├── store/              # Stores globales de Zustand (carrito, ui)
+│   ├── store/              # Stores globales de Zustand (Campaña, ui)
 │   └── types/              # Definición de tipos estrictos TypeScript
 ├── tailwind.config.ts      # Configuración de diseño y tokens visuales de Tailwind
 ├── tsconfig.json           # Configuración estricta de compilación TypeScript

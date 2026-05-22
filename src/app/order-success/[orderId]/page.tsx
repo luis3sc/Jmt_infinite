@@ -12,7 +12,6 @@ import { createClient } from '@/lib/supabase/client'
 
 // Upload sub-components
 import { UploadDropzone } from '@/components/upload/UploadDropzone'
-import { UploadFallback } from '@/components/upload/UploadFallback'
 import { UploadLoading } from '@/components/upload/UploadLoading'
 import { UploadSuccess } from '@/components/upload/UploadSuccess'
 import { UploadTypeSelector } from '@/components/upload/UploadTypeSelector'
@@ -21,6 +20,7 @@ import { PhotoCropEditor } from '@/components/upload/PhotoCropEditor'
 import { FrameSelector, AVAILABLE_FRAMES } from '@/components/upload/FrameSelector'
 import type { Frame } from '@/components/upload/FrameSelector'
 import { Checkbox } from '@/components/ui/Checkbox'
+import { Button } from '@/components/ui/Button'
 
 // Libs
 import { composeImage } from '@/lib/imageComposer'
@@ -86,50 +86,50 @@ function ConsentCheckboxes({
       case 'entrepreneur':
         return (
           <>
-            Reconozco que poseo los <span className="text-foreground font-semibold">derechos y autorizaciones comerciales</span> sobre los logotipos y marcas de mi negocio que aparecen en mi diseño.*
+            Confirmo que el logo y las imágenes que estoy subiendo <span className="text-foreground font-semibold">pertenecen a mi negocio</span>.*
           </>
         )
       case 'influencer':
         return (
           <>
-            Reconozco que el material promueve <span className="text-foreground font-semibold">mis propios canales, redes sociales o marca personal</span>, y no publicidad no autorizada de terceros.*
+            Confirmo que este material <span className="text-foreground font-semibold">promueve mi propia marca personal o redes</span> y no publicidad de otras empresas.*
           </>
         )
       case 'individual':
       default:
         return (
           <>
-            Reconozco que mi foto/video <span className="text-foreground font-semibold">no contiene marcas ni logotipos comerciales de terceros</span>; si así fuera, sé que será rechazado.*
+            Confirmo que mi foto o video es de uso personal y <span className="text-foreground font-semibold">no contiene logotipos ni marcas de otras empresas</span>.*
           </>
         )
     }
   }
 
   return (
-    <div className="bg-card/45 backdrop-blur-md border border-border/50 rounded-2xl p-4 sm:p-5 my-4 space-y-3.5 shadow-sm relative overflow-hidden group/consent">
+    <div className="bg-card/45 backdrop-blur-md border border-border/50 rounded-2xl p-4 sm:p-5 my-4 space-y-4 shadow-sm relative overflow-hidden group/consent">
       {/* Glow sutil en el fondo del consentimiento */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50 pointer-events-none" />
 
-      <div className="grid grid-cols-[20px_1fr] items-start gap-3 relative z-10">
+      <div className="grid grid-cols-[24px_1fr] items-start gap-3 relative z-10">
         <Checkbox
           id="terms-check"
           checked={acceptedTerms}
           onChange={(e) => setAcceptedTerms(e.target.checked)}
           className="mt-0.5"
         />
-        <label htmlFor="terms-check" className="text-[11px] sm:text-xs text-muted-foreground leading-normal cursor-pointer select-none">
-          He leído y acepto las <span className="text-primary font-semibold hover:underline">condiciones generales del servicio</span>.*
+        <label htmlFor="terms-check" className="text-xs sm:text-sm text-muted-foreground leading-snug cursor-pointer select-none font-medium">
+          Acepto las <span className="text-primary font-bold hover:underline">normas de uso y condiciones</span> de las pantallas de JMT.*
         </label>
       </div>
 
-      <div className="grid grid-cols-[20px_1fr] items-start gap-3 relative z-10">
+      <div className="grid grid-cols-[24px_1fr] items-start gap-3 relative z-10">
         <Checkbox
           id="logos-check"
           checked={acceptedNoLogos}
           onChange={(e) => setAcceptedNoLogos(e.target.checked)}
           className="mt-0.5"
         />
-        <label htmlFor="logos-check" className="text-[11px] sm:text-xs text-muted-foreground leading-normal cursor-pointer select-none">
+        <label htmlFor="logos-check" className="text-xs sm:text-sm text-muted-foreground leading-snug cursor-pointer select-none font-medium">
           {getLogosLabel()}
         </label>
       </div>
@@ -142,22 +142,43 @@ function ImportantNote({ userType }: { userType: string }) {
     switch (userType) {
       case 'entrepreneur':
         return {
-          title: '⚠️ REGLAS COMERCIALES',
-          body: 'Asegúrate de que el logotipo y branding pertenezcan a tu negocio. No se permite publicidad de tabaco, violencia, desnudos ni vulgaridad.',
-          benefit: '✅ ¡Sube tu logo, promociones, dirección y redes de tu negocio para captar clientes!'
+          title: '⚠️ REGLAS IMPORTANTES PARA TU NEGOCIO',
+          allowed: [
+            'El logo, redes y nombre de tu negocio',
+            'Fotos de tus propios productos o local comercial',
+            'Precios, promociones o llamadas a la acción'
+          ],
+          forbidden: [
+            'Logotipos de marcas famosas ajenas (Coca-Cola, Nike, etc.)',
+            'Promoción de tabaco, alcohol, violencia o groserías'
+          ]
         }
       case 'influencer':
         return {
-          title: '⚠️ REGLAS CREADOR',
-          body: 'Asegúrate de promover tu propia cuenta, redes o canal. No se permite spam de terceros, tabaco, violencia ni vulgaridad.',
-          benefit: '✅ ¡Sí se permite e incentiva poner tus redes sociales (@usuario), códigos QR y llamadas a la acción!'
+          title: '⚠️ REGLAS IMPORTANTES PARA CREADORES',
+          allowed: [
+            'Tu usuario de redes sociales (ej: @miusuario)',
+            'Códigos QR grandes y fáciles de escanear en la calle',
+            'Fotos o videos tuyos promoviendo tu canal'
+          ],
+          forbidden: [
+            'Publicidad no autorizada de marcas externas',
+            'Groserías, contenido inapropiado o tabaco'
+          ]
         }
       case 'individual':
       default:
         return {
-          title: '⚠️ SÚPER IMPORTANTE',
-          body: 'NO SE ACEPTAN MARCAS/LOGOS COMERCIALES DE TERCEROS, TABACO, VIOLENCIA, DESNUDOS NI VULGARIDAD. Si hay alguno, tu material será rechazado.',
-          benefit: '✅ ¡Sí se permite poner tu propio texto y tu @usuario personal de redes sociales!'
+          title: '⚠️ REGLAS SÚPER IMPORTANTES',
+          allowed: [
+            'Fotos tuyas, familiares o con amigos para saludos',
+            'Tu nombre, dedicatorias o mensajes de celebración',
+            'Tu usuario personal de redes sociales (ej: @miusuario)'
+          ],
+          forbidden: [
+            'Logos comerciales o publicidad de marcas/empresas',
+            'Cigarros, alcohol, tabaco, violencia o groserías'
+          ]
         }
     }
   }
@@ -165,16 +186,45 @@ function ImportantNote({ userType }: { userType: string }) {
   const note = getNoteContent()
 
   return (
-    <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-3.5 space-y-1.5 mt-2">
-      <p className="text-[10px] font-bold text-destructive uppercase tracking-wider flex items-center gap-1.5">
+    <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-4 space-y-3 mt-3 shadow-inner">
+      <p className="text-xs font-extrabold text-destructive uppercase tracking-wider flex items-center gap-2">
         {note.title}
       </p>
-      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-        {note.body}
-      </p>
-      <div className="h-px bg-border/40 my-1" />
-      <p className="text-[11px] text-primary/90 font-semibold leading-relaxed">
-        {note.benefit}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+        {/* Columna de Permitidos */}
+        <div className="space-y-2">
+          <p className="text-[11px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest leading-none">
+            ✅ Lo que SÍ puedes subir:
+          </p>
+          <ul className="space-y-1.5">
+            {note.allowed.map((item, idx) => (
+              <li key={idx} className="text-xs text-muted-foreground font-medium leading-tight flex items-start gap-1.5">
+                <span className="text-emerald-500 select-none shrink-0">•</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Columna de Prohibidos */}
+        <div className="space-y-2">
+          <p className="text-[11px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest leading-none">
+            ❌ Lo que NO está permitido:
+          </p>
+          <ul className="space-y-1.5">
+            {note.forbidden.map((item, idx) => (
+              <li key={idx} className="text-xs text-muted-foreground font-medium leading-tight flex items-start gap-1.5">
+                <span className="text-rose-500 select-none shrink-0">•</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      
+      <p className="text-[11px] text-muted-foreground/80 font-semibold leading-relaxed pt-1.5 border-t border-border/40">
+        * Si tu anuncio contiene elementos no permitidos, será observado por nuestro equipo y te pediremos cambiarlo.
       </p>
     </div>
   )
@@ -423,13 +473,15 @@ export default function OrderSuccessPage() {
       <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col p-3 md:p-6 relative z-10">
 
         {/* Botón volver */}
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => router.push('/dashboard/orders')}
-          className="w-fit flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-xl bg-card/50 backdrop-blur-sm border border-border shadow-sm hover:bg-muted transition-all active:scale-95 group text-[10px] md:text-xs font-bold mb-2 md:mb-4"
+          className="w-fit flex items-center gap-2 font-bold mb-2 md:mb-4 group text-[10px] md:text-xs px-3 py-1.5 md:px-4 md:py-2 rounded-xl bg-card/50 backdrop-blur-sm border border-border"
         >
           <ArrowLeft size={14} className="text-primary group-hover:-translate-x-1 transition-transform" />
           <span className="text-muted-foreground group-hover:text-foreground">Volver a Pedidos</span>
-        </button>
+        </Button>
 
         <AnimatePresence mode="wait">
 
@@ -464,10 +516,10 @@ export default function OrderSuccessPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col lg:grid lg:grid-cols-12 gap-4 lg:gap-8 w-full"
+              className="flex flex-col w-full max-w-3xl mx-auto"
             >
               {/* ── LEFT: Estudio de Creación ───────────────────────── */}
-              <section className="lg:col-span-8 flex flex-col bg-card/40 backdrop-blur-xl border border-border/50 rounded-3xl md:rounded-[2rem] p-3 md:p-6 lg:p-8 shadow-2xl relative overflow-hidden">
+              <section className="w-full flex flex-col bg-card/40 backdrop-blur-xl border border-border/50 rounded-3xl md:rounded-[2rem] p-3 md:p-6 lg:p-8 shadow-2xl relative overflow-hidden">
                 <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/5 rounded-full blur-[80px]" />
 
                 {/* Header */}
@@ -520,12 +572,17 @@ export default function OrderSuccessPage() {
                       )}
                       <div>
                         <h1 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-tight leading-none">
-                          {contentType === 'photo' ? 'Tu foto' : 'Tu video'}
+                          {contentType === 'photo'
+                            ? userType === 'entrepreneur' ? 'Tu anuncio'
+                              : userType === 'influencer' ? 'Tu banner'
+                                : 'Tu foto'
+                            : userType === 'entrepreneur' ? 'Tu spot promocional'
+                              : 'Tu video'}
                         </h1>
                         <p className="hidden sm:block text-[10px] sm:text-xs text-muted-foreground font-medium mt-0.5">
                           {contentType === 'photo'
-                            ? 'Recorta y añade un marco'
-                            : 'Optimizaremos la duración'}
+                            ? 'Ajusta la imagen al formato de nuestras pantallas'
+                            : 'Optimizaremos la duración a 7 segundos'}
                         </p>
                       </div>
                     </div>
@@ -535,7 +592,7 @@ export default function OrderSuccessPage() {
                 {/* ── SELECTOR TIPO (solo si order.status === PENDING_UPLOAD) ── */}
                 {order?.status === 'PENDING_UPLOAD' && contentType === 'idle' && (
                   <div className="relative z-10">
-                    <UploadTypeSelector onSelect={setContentType} />
+                    <UploadTypeSelector onSelect={setContentType} userType={userType} />
                   </div>
                 )}
 
@@ -565,20 +622,20 @@ export default function OrderSuccessPage() {
                         />
 
                         <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
-                          <motion.button
-                            whileHover={(photoFile && acceptedTerms && acceptedNoLogos) ? { scale: 1.01 } : {}}
-                            whileTap={(photoFile && acceptedTerms && acceptedNoLogos) ? { scale: 0.98 } : {}}
+                          <Button
                             disabled={!photoFile || !acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
-                            className={`w-full sm:w-fit flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl transition-all text-sm font-bold shadow-lg
-                              ${(photoFile && acceptedTerms && acceptedNoLogos)
-                                ? 'bg-primary text-white border border-primary/20 shadow-primary/20 cursor-pointer hover:shadow-primary/30'
-                                : 'bg-muted/20 border-border/20 text-muted-foreground cursor-not-allowed opacity-50 shadow-none'
-                              }`}
+                            className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-[calc(var(--radius)*0.875)] shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                           >
-                            <Send size={18} className={(photoFile && acceptedTerms && acceptedNoLogos) ? 'text-white group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform' : ''} />
-                            <span>Enviar Material</span>
-                          </motion.button>
+                            <Send size={14} className="mr-2" />
+                            <span>
+                              {!photoFile
+                                ? '☝️ Primero selecciona tu foto'
+                                : (!acceptedTerms || !acceptedNoLogos)
+                                  ? '👉 Marca las casillas de abajo'
+                                  : '🚀 ¡Listo! Enviar mi anuncio'}
+                            </span>
+                          </Button>
                         </div>
                       </>
                     )}
@@ -608,26 +665,25 @@ export default function OrderSuccessPage() {
                         />
 
                         <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
-                          <motion.button
-                            whileHover={acceptedTerms && acceptedNoLogos ? { scale: 1.01 } : {}}
-                            whileTap={acceptedTerms && acceptedNoLogos ? { scale: 0.98 } : {}}
+                          <Button
                             disabled={!acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
-                            className={`w-full sm:w-fit flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl transition-all text-sm font-bold shadow-lg
-                              ${(acceptedTerms && acceptedNoLogos)
-                                ? 'bg-primary text-white border border-primary/20 shadow-primary/20 cursor-pointer hover:shadow-primary/30'
-                                : 'bg-muted/20 border-border/20 text-muted-foreground cursor-not-allowed opacity-50 shadow-none'
-                              }`}
+                            className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-[calc(var(--radius)*0.875)] shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                           >
-                            <Send size={18} />
-                            <span>Enviar Material</span>
-                          </motion.button>
-                          <button
+                            <Send size={14} className="mr-2" />
+                            <span>
+                              {(!acceptedTerms || !acceptedNoLogos)
+                                ? '👉 Marca las casillas de abajo'
+                                : '🚀 ¡Listo! Enviar mi anuncio'}
+                            </span>
+                          </Button>
+                          <Button
+                            variant="link"
                             onClick={() => setPhotoStep('crop')}
-                            className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
+                            className="text-xs font-bold text-muted-foreground hover:text-foreground py-2 px-1 h-auto"
                           >
                             ← Volver al recorte
-                          </button>
+                          </Button>
                         </div>
                       </>
                     )}
@@ -661,29 +717,24 @@ export default function OrderSuccessPage() {
                     />
 
                     <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
-                      <motion.button
-                        whileHover={(videoFile && acceptedTerms && acceptedNoLogos) ? { scale: 1.01 } : {}}
-                        whileTap={(videoFile && acceptedTerms && acceptedNoLogos) ? { scale: 0.98 } : {}}
+                      <Button
                         disabled={!videoFile || !acceptedTerms || !acceptedNoLogos}
                         onClick={handleVideoUpload}
-                        className={`w-full sm:w-fit flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl transition-all text-sm font-bold shadow-lg
-                          ${(videoFile && acceptedTerms && acceptedNoLogos)
-                            ? 'bg-primary text-white border border-primary/20 shadow-primary/20 cursor-pointer hover:shadow-primary/30'
-                            : 'bg-muted/20 border-border/20 text-muted-foreground cursor-not-allowed opacity-50 shadow-none'
-                          }`}
+                        className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-[calc(var(--radius)*0.875)] shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                       >
-                        <Send size={18} className={(videoFile && acceptedTerms && acceptedNoLogos) ? 'text-white group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform' : ''} />
-                        <span>Enviar Material</span>
-                      </motion.button>
+                        <Send size={14} className="mr-2" />
+                        <span>
+                          {!videoFile
+                            ? '☝️ Primero selecciona tu video'
+                            : (!acceptedTerms || !acceptedNoLogos)
+                              ? '👉 Marca las casillas de abajo'
+                              : '🚀 ¡Listo! Enviar mi anuncio'}
+                        </span>
+                      </Button>
                     </div>
                   </div>
                 )}
               </section>
-
-              {/* ── RIGHT: Fallback/Share ──────────────────────────────── */}
-              <aside className="lg:col-span-4 h-full">
-                <UploadFallback orderId={orderId} />
-              </aside>
             </motion.div>
           )}
 
