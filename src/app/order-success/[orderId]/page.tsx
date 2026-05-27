@@ -25,17 +25,19 @@ import { Button } from '@/components/ui/Button'
 // Libs
 import { composeImage } from '@/lib/imageComposer'
 import { analyzeVideoFile, isAspectRatioCompatible } from '@/lib/videoAnalyzer'
+import { processVideo, imageToVideo } from '@/lib/ffmpegClient'
 
 // ─── Tipos locales ──────────────────────────────────────────────────────────
 
 type ContentType = 'idle' | 'photo' | 'video'
-type UploadStatus = 'idle' | 'processing' | 'uploading' | 'success'
+type UploadStatus = 'idle' | 'processing' | 'uploading' | 'success' | 'processing_background' | 'processing_client'
 
 interface Order {
   id: string
   status: string
   video_url: string | null
   rejection_reason?: string | null
+  bookings?: any[]
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -44,14 +46,14 @@ const VIDEO_SPECS = [
   { label: 'Resolución', val: '1280×720', icon: ShieldCheck },
   { label: 'Duración', val: '7 Seg', icon: Clock },
   { label: 'Formato', val: 'MP4 ', icon: CheckCircle2 },
-  { label: 'Peso Máx', val: '50MB', icon: ShieldCheck },
+  { label: 'Peso Máx', val: '100MB', icon: ShieldCheck },
 ]
 
 const PHOTO_SPECS = [
   { label: 'Resolución', val: '1280×720', icon: ShieldCheck },
   { label: 'Orientación', val: 'Horizontal 16:9', icon: Clock },
   { label: 'Formato', val: 'JPG / PNG', icon: CheckCircle2 },
-  { label: 'Peso Máx', val: '20MB', icon: ShieldCheck },
+  { label: 'Peso Máx', val: '100MB', icon: ShieldCheck },
 ]
 
 function Spec({ label, val, icon: Icon }: { label: string; val: string; icon: typeof ShieldCheck }) {
@@ -190,7 +192,7 @@ function ImportantNote({ userType }: { userType: string }) {
       <p className="text-xs font-extrabold text-destructive uppercase tracking-wider flex items-center gap-2">
         {note.title}
       </p>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
         {/* Columna de Permitidos */}
         <div className="space-y-2">
@@ -222,7 +224,7 @@ function ImportantNote({ userType }: { userType: string }) {
           </ul>
         </div>
       </div>
-      
+
       <p className="text-[11px] text-muted-foreground/80 font-semibold leading-relaxed pt-1.5 border-t border-border/40">
         * Si tu anuncio contiene elementos no permitidos, será observado por nuestro equipo y te pediremos cambiarlo.
       </p>
@@ -246,6 +248,8 @@ export default function OrderSuccessPage() {
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle')
   const [progress, setProgress] = useState(0)
   const [userType, setUserType] = useState<string>('individual')
+  const processingStartTimeRef = useRef<number | null>(null)
+  const isImageUploadRef = useRef(false)
   const [panelDetails, setPanelDetails] = useState<{
     resolutionWidth: number | null
     resolutionHeight: number | null
@@ -259,18 +263,18 @@ export default function OrderSuccessPage() {
     { label: 'Resolución', val: panelDetails?.resolutionWidth && panelDetails?.resolutionHeight ? `${panelDetails.resolutionWidth}×${panelDetails.resolutionHeight}` : '1280×720', icon: ShieldCheck },
     { label: 'Duración', val: panelDetails?.slotDurationSeconds ? `${panelDetails.slotDurationSeconds} Seg` : '7 Seg', icon: Clock },
     { label: 'Formato', val: 'MP4 ', icon: CheckCircle2 },
-    { label: 'Peso Máx', val: '50MB', icon: ShieldCheck },
+    { label: 'Peso Máx', val: '100MB', icon: ShieldCheck },
   ]
 
   const dynamicPhotoSpecs = [
     { label: 'Resolución', val: panelDetails?.resolutionWidth && panelDetails?.resolutionHeight ? `${panelDetails.resolutionWidth}×${panelDetails.resolutionHeight}` : '1280×720', icon: ShieldCheck },
     { label: 'Orientación', val: panelDetails?.resolutionWidth && panelDetails?.resolutionHeight && panelDetails.resolutionWidth < panelDetails.resolutionHeight ? 'Vertical 9:16' : 'Horizontal 16:9', icon: Clock },
     { label: 'Formato', val: 'JPG / PNG', icon: CheckCircle2 },
-    { label: 'Peso Máx', val: '20MB', icon: ShieldCheck },
+    { label: 'Peso Máx', val: '100MB', icon: ShieldCheck },
   ]
 
-  const cropAspectRatio = panelDetails?.resolutionWidth && panelDetails?.resolutionHeight 
-    ? panelDetails.resolutionWidth / panelDetails.resolutionHeight 
+  const cropAspectRatio = panelDetails?.resolutionWidth && panelDetails?.resolutionHeight
+    ? panelDetails.resolutionWidth / panelDetails.resolutionHeight
     : 16 / 9
 
   // Video flow
@@ -358,12 +362,12 @@ export default function OrderSuccessPage() {
     if (orderId) fetchOrder()
   }, [orderId])
 
-  // Prevenir navegación accidental durante la subida activa del archivo
+  // Prevenir navegación accidental durante la subida activa o procesamiento del archivo
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (uploadStatus === 'uploading') {
+      if (uploadStatus === 'uploading' || uploadStatus === 'processing_client') {
         e.preventDefault()
-        e.returnValue = 'La subida de tu archivo está en progreso. Si sales ahora se cancelará. ¿Seguro que deseas salir?'
+        e.returnValue = 'El procesamiento o subida de tu archivo está en progreso. Si sales ahora se cancelará. ¿Seguro que deseas salir?'
         return e.returnValue
       }
     }
@@ -391,8 +395,8 @@ export default function OrderSuccessPage() {
         (payload: any) => {
           console.log('[realtime] Order updated:', payload.new)
           const updatedOrder = payload.new as Order
-          setOrder(updatedOrder)
-          
+          setOrder(prev => prev ? { ...prev, ...updatedOrder } : updatedOrder)
+
           // Ignorar actualizaciones si hay una subida local activa para evitar estados de éxito falsos (stale status)
           if (isUploadingNewRef.current) {
             console.log('[realtime] Ignorando actualización de estado porque hay una subida local activa.')
@@ -404,9 +408,15 @@ export default function OrderSuccessPage() {
             setProgress(100)
           } else if (updatedOrder.status === 'PROCESSING_VIDEO') {
             setUploadStatus('processing')
-            // Simular un avance visual de procesamiento (hasta que termine)
-            setProgress((prev) => (prev < 90 ? prev + 10 : prev))
+            // Simular un avance visual de procesamiento suave (nunca llega al 100 — lo hace solo VIDEO_SENT)
+            setProgress((prev) => {
+              if (prev < 70) return prev + 8
+              if (prev < 85) return prev + 3
+              if (prev < 92) return prev + 1
+              return prev // Se queda en 92 esperando VIDEO_SENT
+            })
           } else if (updatedOrder.status === 'PENDING_UPLOAD') {
+            processingStartTimeRef.current = null
             setUploadStatus('idle')
             setProgress(0)
             if (updatedOrder.rejection_reason) {
@@ -426,6 +436,16 @@ export default function OrderSuccessPage() {
   useEffect(() => {
     if (!orderId || uploadStatus !== 'processing') return
 
+    // Registrar el momento en que empieza el procesamiento
+    if (!processingStartTimeRef.current) {
+      processingStartTimeRef.current = Date.now()
+    }
+
+    // Timeout máximo: 90s para video, 45s para imagen
+    // En Vercel/serverless, si el proceso FFmpeg se corta antes de actualizar la BD,
+    // la UI se quedaría en 90% infinitamente. Este timeout actúa como red de seguridad.
+    const MAX_WAIT_MS = isImageUploadRef.current ? 45_000 : 90_000
+
     console.log('[polling] Activando fallback de consulta de estado cada 3s...')
     const checkStatus = async () => {
       try {
@@ -443,21 +463,43 @@ export default function OrderSuccessPage() {
 
         if (data) {
           console.log('[polling] Estado actual en base de datos:', data.status)
-          
+
           // Ignorar actualización si hay una subida local activa para evitar estados falsos de éxito antiguo
           if (isUploadingNewRef.current) {
             console.log('[polling] Ignorando actualización de estado porque hay una subida local activa.')
             return
           }
-          
+
           if (data.status === 'VIDEO_SENT' && data.video_url) {
             console.log('[polling] ¡Éxito detectado! Redirigiendo a pantalla de éxito.')
+            processingStartTimeRef.current = null
+            setOrder(prev => prev ? { ...prev, status: data.status, video_url: data.video_url } : (data as Order))
             setUploadStatus('success')
             setProgress(100)
           } else if (data.status === 'PROCESSING_VIDEO') {
-            // Avanzar el progreso visual poco a poco mientras se procesa
-            setProgress((prev) => (prev < 90 ? prev + 10 : prev))
+            setOrder(prev => prev ? { ...prev, status: data.status } : (data as Order))
+            // Avanzar el progreso visual poco a poco mientras se procesa (tope 92%)
+            setProgress((prev) => {
+              if (prev < 70) return prev + 5
+              if (prev < 85) return prev + 2
+              if (prev < 92) return prev + 0.5
+              return prev
+            })
+
+            // ── Red de seguridad contra Vercel timeout ─────────────────────
+            // Si llevamos más del tiempo máximo en PROCESSING_VIDEO y el status
+            // en DB sigue siendo PROCESSING_VIDEO, es probable que el proceso
+            // FFmpeg fue cortado por el serverless runtime. Mostramos estado
+            // 'processing_background' para informar al usuario que puede cerrar.
+            const elapsed = Date.now() - (processingStartTimeRef.current ?? Date.now())
+            if (elapsed > MAX_WAIT_MS) {
+              console.warn(`[polling] Timeout de ${MAX_WAIT_MS / 1000}s alcanzado. El proceso serverless probablemente fue cortado. Mostrando estado background.`)
+              processingStartTimeRef.current = null
+              setUploadStatus('processing_background')
+            }
           } else if (data.status === 'PENDING_UPLOAD') {
+            processingStartTimeRef.current = null
+            setOrder(prev => prev ? { ...prev, status: data.status, rejection_reason: data.rejection_reason } : (data as Order))
             setUploadStatus('idle')
             setProgress(0)
             if (data.rejection_reason) {
@@ -472,9 +514,9 @@ export default function OrderSuccessPage() {
 
     // Ejecutar inmediatamente al entrar en estado 'processing'
     checkStatus()
-    
-    // Y luego ejecutarlo en bucle cada 3 segundos
-    const interval = setInterval(checkStatus, 3000)
+
+    // Y luego ejecutarlo en bucle cada 2 segundos (más agresivo para detectar VIDEO_SENT antes)
+    const interval = setInterval(checkStatus, 2000)
 
     return () => clearInterval(interval)
   }, [orderId, uploadStatus])
@@ -484,16 +526,12 @@ export default function OrderSuccessPage() {
   // en las acciones del usuario (handlePhotoSelected y handleCropConfirmed)
   // para evitar problemas con el Strict Mode de React.
 
-  // ── Subida directa a Cloudflare R2 vía URL firmada y orquestación asíncrona ─
-  async function uploadBlobToServer(blob: Blob): Promise<void> {
-    const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/jpeg' ? 'jpg' : 'mp4'
-    const fileName = `creative-${orderId}.${ext}`
-    
+  // ── Subida directa a Cloudflare R2 vía URL firmada y fallback de Servidor Proxy ─
+  async function uploadBlobToR2(blob: Blob, fileName: string): Promise<string> {
     let keyToUse = ''
-    let directUploadSuccess = false
 
     try {
-      console.log('[upload] Intentando subida directa a R2 vía pre-signed URL...')
+      console.log('[upload] Intentando subida directa a R2 vía pre-signed URL para:', fileName)
       // 1. Solicitar URL firmada al backend
       const res = await fetch('/api/upload-video/presigned-url', {
         method: 'POST',
@@ -504,12 +542,12 @@ export default function OrderSuccessPage() {
           fileType: blob.type,
         }),
       })
-      
+
       if (!res.ok) {
         const errData = await res.json()
         throw new Error(errData.error || 'No se pudo generar la URL de subida.')
       }
-      
+
       const { uploadUrl, key } = await res.json()
       keyToUse = key
 
@@ -532,17 +570,16 @@ export default function OrderSuccessPage() {
         }
 
         xhr.onerror = () => reject(new Error('Error de red al conectar con Cloudflare R2.'))
-        
+
         xhr.open('PUT', uploadUrl)
         xhr.setRequestHeader('Content-Type', blob.type)
         xhr.send(blob)
       })
 
-      directUploadSuccess = true
       console.log('[upload] Subida directa a R2 completada con éxito.')
     } catch (directErr) {
       console.warn('[upload] Falló la subida directa a R2 (posible problema de CORS o red). Iniciando fallback vía Servidor Proxy...', directErr)
-      
+
       // Fallback: Subir a través del API proxy en el servidor
       const formData = new FormData()
       formData.append('file', blob, fileName)
@@ -577,7 +614,7 @@ export default function OrderSuccessPage() {
         }
 
         xhr.onerror = () => resolve({ success: false, error: 'Error de red al conectar con el servidor proxy.' })
-        
+
         xhr.open('POST', '/api/upload-video/proxy')
         xhr.send(formData)
       })
@@ -590,26 +627,7 @@ export default function OrderSuccessPage() {
       console.log('[upload] Subida vía Servidor Proxy completada con éxito.')
     }
 
-    // 3. Notificar al orquestador backend para iniciar la transcodificación asíncrona
-    console.log('[upload] Iniciando transcodificación asíncrona con key:', keyToUse)
-    const orchestratorRes = await fetch('/api/upload-video', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        orderId,
-        rawKey: keyToUse,
-        isImage: blob.type.startsWith('image/'),
-        fileType: blob.type,
-      }),
-    })
-
-    if (!orchestratorRes.ok) {
-      const errData = await orchestratorRes.json()
-      throw new Error(errData.error || 'Error al iniciar el procesamiento de video en el servidor.')
-    }
-
-    // Ya inició la transcodificación asíncrona en el servidor
-    isUploadingNewRef.current = false
+    return keyToUse
   }
 
   // ── Flujo de VIDEO ───────────────────────────────────────────────────────
@@ -619,6 +637,11 @@ export default function OrderSuccessPage() {
       alert("Por favor, acepta las condiciones generales y confirma que tu video no tiene logotipos antes de continuar.")
       return
     }
+    if (!order?.bookings || order.bookings.length === 0) {
+      alert("No se encontraron reservas vinculadas a este pedido.")
+      return
+    }
+
     setProgress(0)
     isUploadingNewRef.current = true
 
@@ -628,26 +651,92 @@ export default function OrderSuccessPage() {
       const panelRatio = 16 / 9
       if (!isAspectRatioCompatible(meta.aspectRatio, panelRatio)) {
         const ok = window.confirm(
-          `El aspect ratio de tu video (${meta.width}×${meta.height}) no coincide exactamente con el panel (16:9).\n\nEl sistema lo ajustará automáticamente con barras negras. ¿Continuar?`
+          `El aspect ratio de tu video (${meta.width}×${meta.height}) no coincide exactamente con el panel (16:9).\n\nEl sistema lo ajustará automáticamente con barras negras en tu dispositivo. ¿Continuar?`
         )
-        if (!ok) return
+        if (!ok) {
+          isUploadingNewRef.current = false
+          return
+        }
       }
     } catch {
       // Si falla el análisis, continuamos igual
     }
 
     try {
-      // Subida directa del video original sin procesamiento pesado client-side
-      setUploadStatus('uploading')
-      await uploadBlobToServer(videoFile)
+      isImageUploadRef.current = false
+      setUploadStatus('processing_client')
+      console.log('[video-transcode] Iniciando procesamiento de video en cliente...')
 
-      // Cambiamos el estado a 'processing' en espera de la actualización realtime del servidor
-      setUploadStatus('processing')
-      setProgress(0)
+      const processedVideos: { bookingId: string; key: string }[] = []
+
+      // Procesar cada reserva según la resolución de su panel
+      for (let i = 0; i < order.bookings.length; i++) {
+        const booking = order.bookings[i]
+        let width = booking.panels?.resolution_width || 1280
+        let height = booking.panels?.resolution_height || 720
+
+        // Garantizar dimensiones pares para libx264
+        if (width % 2 !== 0) width = width - 1
+        if (height % 2 !== 0) height = height - 1
+
+        console.log(`[video-transcode] Procesando para booking ${booking.id} (${width}x${height})...`)
+
+        // 1. Transcodificación client-side (con FFmpeg)
+        const processedBlob = await processVideo(videoFile, width, height, (p) => {
+          // El progreso total considera el número de bookings
+          const baseProgress = (i / order.bookings.length) * 100
+          const currentStepProgress = p / order.bookings.length
+          setProgress(Math.round(baseProgress + currentStepProgress))
+        })
+
+        // 2. Subir a R2
+        setUploadStatus('uploading')
+        const fileName = `processed-${orderId}-${booking.id}.mp4`
+        const key = await uploadBlobToR2(processedBlob, fileName)
+        processedVideos.push({ bookingId: booking.id, key })
+
+        // Volver a estado de procesamiento para el siguiente booking si queda alguno
+        if (i < order.bookings.length - 1) {
+          setUploadStatus('processing_client')
+        }
+      }
+
+      // 3. Notificar al backend de los videos procesados
+      console.log('[video-transcode] Notificando videos listos al servidor...')
+      const res = await fetch('/api/upload-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          processedVideos,
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'Error al guardar los videos procesados en el servidor.')
+      }
+
+      const resData = await res.json()
+      const serverVideoUrl = resData.videoUrl
+
+      // Éxito inmediato: actualizar estado del pedido localmente
+      setOrder(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          status: 'VIDEO_SENT',
+          video_url: serverVideoUrl || prev.video_url
+        }
+      })
+
+      isUploadingNewRef.current = false
+      setUploadStatus('success')
+      setProgress(100)
     } catch (err) {
       isUploadingNewRef.current = false
       console.error('Video upload error:', err)
-      alert(err instanceof Error ? err.message : 'Error al subir el video.')
+      alert(err instanceof Error ? err.message : 'Error al procesar el video.')
       setUploadStatus('idle')
       setProgress(0)
     }
@@ -685,14 +774,19 @@ export default function OrderSuccessPage() {
       alert("Por favor, acepta las condiciones generales y confirma que tu foto no tiene logotipos antes de continuar.")
       return
     }
+    if (!order?.bookings || order.bookings.length === 0) {
+      alert("No se encontraron reservas vinculadas a este pedido.")
+      return
+    }
     setProgress(0)
     isUploadingNewRef.current = true
 
     try {
       // 1. Composición: crop + marco en canvas (client-side, sin FFmpeg)
-      setUploadStatus('processing')
-      setProgress(15)
-      console.log('[upload] Paso 1: composición de imagen...')
+      isImageUploadRef.current = true
+      setUploadStatus('processing_client')
+      setProgress(5)
+      console.log('[photo-transcode] Paso 1: composición de imagen...')
 
       const composedBlob = await composeImage(
         photoObjectUrl,
@@ -701,17 +795,74 @@ export default function OrderSuccessPage() {
         1280,
         720
       )
-      console.log('[upload] Paso 1 OK — composedBlob size:', composedBlob.size, 'type:', composedBlob.type)
-      setProgress(30)
+      console.log('[photo-transcode] Paso 1 OK — composedBlob size:', composedBlob.size)
+      setProgress(15)
 
-      // 2. Subir directamente a R2 y desencadenar conversión asíncrona
-      console.log('[upload] Paso 2: subiendo imagen y disparando transcodificación asíncrona...')
-      setUploadStatus('uploading')
-      await uploadBlobToServer(composedBlob)
+      const processedVideos: { bookingId: string; key: string }[] = []
 
-      // Cambiamos a 'processing' en espera de la actualización realtime del servidor
-      setUploadStatus('processing')
-      setProgress(0)
+      // 2. Convertir imagen a video para cada booking según su resolución
+      for (let i = 0; i < order.bookings.length; i++) {
+        const booking = order.bookings[i]
+        let width = booking.panels?.resolution_width || 1280
+        let height = booking.panels?.resolution_height || 720
+        const duration = booking.panels?.slot_duration_seconds || 7
+
+        if (width % 2 !== 0) width = width - 1
+        if (height % 2 !== 0) height = height - 1
+
+        console.log(`[photo-transcode] Convirtiendo imagen a video para booking ${booking.id} (${width}x${height})...`)
+
+        const processedBlob = await imageToVideo(composedBlob, duration, width, height, (p) => {
+          // Progreso compuesto (15% composición, 85% conversión/subida)
+          const baseProgress = 15 + (i / order.bookings.length) * 80
+          const currentStepProgress = (p / order.bookings.length) * 0.8
+          setProgress(Math.round(baseProgress + currentStepProgress))
+        })
+
+        // Subir a R2
+        setUploadStatus('uploading')
+        const fileName = `processed-${orderId}-${booking.id}.mp4`
+        const key = await uploadBlobToR2(processedBlob, fileName)
+        processedVideos.push({ bookingId: booking.id, key })
+
+        if (i < order.bookings.length - 1) {
+          setUploadStatus('processing_client')
+        }
+      }
+
+      // 3. Notificar al backend
+      console.log('[photo-transcode] Notificando videos listos al servidor...')
+      const res = await fetch('/api/upload-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          processedVideos,
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'Error al guardar los videos procesados en el servidor.')
+      }
+
+      const resData = await res.json()
+      const serverVideoUrl = resData.videoUrl
+
+      // Éxito inmediato: actualizar estado del pedido localmente
+      setOrder(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          status: 'VIDEO_SENT',
+          video_url: serverVideoUrl || prev.video_url
+        }
+      })
+
+      // Éxito inmediato
+      isUploadingNewRef.current = false
+      setUploadStatus('success')
+      setProgress(100)
     } catch (err) {
       isUploadingNewRef.current = false
       console.error('Photo upload error:', err)
@@ -771,7 +922,7 @@ export default function OrderSuccessPage() {
           )}
 
           {/* ── PROCESANDO / SUBIENDO ─────────────────────────────────────── */}
-          {(uploadStatus === 'processing' || uploadStatus === 'uploading') && (
+          {(uploadStatus === 'processing' || uploadStatus === 'uploading' || uploadStatus === 'processing_client') && (
             <motion.div
               key="loading"
               initial={{ opacity: 0 }}
@@ -779,7 +930,41 @@ export default function OrderSuccessPage() {
               exit={{ opacity: 0 }}
               className="w-full flex items-center justify-center min-h-[500px]"
             >
-              <UploadLoading progress={progress} stage={uploadStatus} />
+              <UploadLoading progress={progress} stage={uploadStatus === 'uploading' ? 'uploading' : uploadStatus === 'processing_client' ? 'processing_client' : 'processing'} />
+            </motion.div>
+          )}
+
+          {/* ── PROCESAMIENTO EN SEGUNDO PLANO (timeout serverless) ───────── */}
+          {uploadStatus === 'processing_background' && (
+            <motion.div
+              key="background"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full flex items-center justify-center min-h-[500px]"
+            >
+              <div className="bg-card/40 backdrop-blur-2xl border border-border/50 rounded-lg p-10 md:p-16 max-w-lg w-full shadow-2xl flex flex-col items-center text-center">
+                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                    className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full"
+                  />
+                </div>
+                <h2 className="text-2xl font-bold mb-3">Procesando en segundo plano</h2>
+                <p className="text-muted-foreground text-sm mb-2 font-medium">
+                  El servidor está convirtiendo tu material. Esto puede tomar unos minutos adicionales.
+                </p>
+                <p className="text-xs text-muted-foreground/70 italic mb-8">
+                  ✅ Ya puedes cerrar esta pestaña con seguridad. Cuando esté listo verás tu video en la sección de pedidos.
+                </p>
+                <button
+                  onClick={() => router.push('/dashboard/orders')}
+                  className="px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity"
+                >
+                  Ver mis pedidos
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -996,7 +1181,7 @@ export default function OrderSuccessPage() {
                     />
 
                     {/* Nota Importante */}
-                     <ImportantNote userType={userType} />
+                    <ImportantNote userType={userType} />
 
                     <ConsentCheckboxes
                       acceptedTerms={acceptedTerms}

@@ -21,6 +21,7 @@
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "latest",
     "@tailwindcss/postcss": "^4.2.4",
+    "@vercel/functions": "^3.6.0",
     "clsx": "latest",
     "date-fns": "^4.1.0",
     "fluent-ffmpeg": "^2.1.3",

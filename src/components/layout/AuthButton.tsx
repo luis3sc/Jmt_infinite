@@ -114,9 +114,9 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
       <AnimatePresence>
         {isOpen && (
           <>
-            <div 
-              className="fixed inset-0 z-40 cursor-default" 
-              onClick={() => setIsOpen(false)} 
+            <div
+              className="fixed inset-0 z-40 cursor-default"
+              onClick={() => setIsOpen(false)}
             />
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -129,7 +129,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Bienvenido</p>
                 <p className="text-sm font-bold text-foreground truncate">{user.email}</p>
               </div>
-              
+
               <div className="p-2.5 space-y-1.5">
                 {isGestor ? (
                   <Link
@@ -167,7 +167,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                     </Link>
                   </>
                 )}
-                
+
                 <Button
                   variant="ghost"
                   onClick={handleLogout}

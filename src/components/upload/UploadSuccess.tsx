@@ -25,7 +25,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        router.push('/dashboard')
+        router.push('/dashboard/orders')
       } else {
         router.push('/')
       }
@@ -111,7 +111,6 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                     muted
                     loop
                     preload="auto"
-                    crossOrigin="anonymous"
                     onCanPlay={(e) => {
                       const vid = e.currentTarget
                       vid.play().catch(() => {/* silent: autoplay policy */ })

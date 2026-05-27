@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
@@ -254,11 +255,12 @@ async function processMediaBackground(
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, rawKey, isImage, fileType } = await req.json()
+    const body = await req.json()
+    const { orderId, rawKey, isImage, fileType, processedVideos } = body
 
-    if (!orderId || !rawKey || isImage === undefined || !fileType) {
+    if (!orderId) {
       return NextResponse.json(
-        { error: 'Parámetros incompletos. Se requiere orderId, rawKey, isImage y fileType.' },
+        { error: 'Falta parámetro orderId.' },
         { status: 400 }
       )
     }
@@ -319,6 +321,59 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Flujo 1: Si ya viene procesado desde el cliente ──────────────────────────
+    if (processedVideos && Array.isArray(processedVideos)) {
+      console.log(`[upload-video] Procesado en cliente. Guardando ${processedVideos.length} videos para el pedido ${orderId}`)
+
+      let primaryVideoUrl = ''
+      for (const item of processedVideos) {
+        if (!item.bookingId || !item.key) {
+          return NextResponse.json(
+            { error: 'Formato inválido en processedVideos. Cada objeto debe tener bookingId y key.' },
+            { status: 400 }
+          )
+        }
+
+        const publicVideoUrl = buildPublicUrl(item.key)
+        if (!primaryVideoUrl) primaryVideoUrl = publicVideoUrl
+
+        console.log(`[upload-video] Actualizando booking ${item.bookingId} con video procesado: ${publicVideoUrl}`)
+        const { error: bookingErr } = await adminSupabase
+          .from('bookings')
+          .update({ video_url: publicVideoUrl })
+          .eq('id', item.bookingId)
+
+        if (bookingErr) throw bookingErr
+      }
+
+      if (primaryVideoUrl) {
+        console.log(`[upload-video] Actualizando pedido ${orderId} con status VIDEO_SENT y video: ${primaryVideoUrl}`)
+        const { error: orderErr } = await adminSupabase
+          .from('orders')
+          .update({ status: 'VIDEO_SENT', video_url: primaryVideoUrl })
+          .eq('id', orderId)
+
+        if (orderErr) throw orderErr
+      }
+
+      return NextResponse.json(
+        { 
+          success: true, 
+          message: 'Videos procesados guardados exitosamente.',
+          videoUrl: primaryVideoUrl 
+        },
+        { status: 200 }
+      )
+    }
+
+    // ── Flujo 2: Transcodificación en servidor (Fallback clásico) ───────────────
+    if (!rawKey || isImage === undefined || !fileType) {
+      return NextResponse.json(
+        { error: 'Parámetros incompletos. Se requiere rawKey, isImage y fileType para transcodificar en servidor.' },
+        { status: 400 }
+      )
+    }
+
     // Obtener los bookings y las resoluciones/duraciones nativas de las pantallas asociadas
     const { data: bookings, error: bookingsError } = await adminSupabase
       .from('bookings')
@@ -332,11 +387,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Disparar proceso asíncrono sin bloquear la respuesta HTTP (202 Accepted)
-    processMediaBackground(orderId, rawKey, isImage, fileType, bookings, adminSupabase)
+    // Disparar proceso asíncrono
+    waitUntil(processMediaBackground(orderId, rawKey, isImage, fileType, bookings, adminSupabase))
 
     return NextResponse.json(
-      { success: true, message: 'Procesamiento asíncrono iniciado con éxito.' },
+      { success: true, message: 'Procesamiento asíncrono en servidor iniciado.' },
       { status: 202 }
     )
 

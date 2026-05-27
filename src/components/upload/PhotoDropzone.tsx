@@ -23,7 +23,7 @@ export function PhotoDropzone({ onFile }: PhotoDropzoneProps) {
       if (code === 'file-invalid-type') {
         alert('Solo se aceptan imágenes JPG o PNG. Si tienes un video, vuelve y selecciona "Video".')
       } else if (code === 'file-too-large') {
-        alert('La imagen supera el límite de 20 MB.')
+        alert('La imagen supera el límite de 100 MB.')
       }
       return
     }
@@ -40,7 +40,7 @@ export function PhotoDropzone({ onFile }: PhotoDropzoneProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: ACCEPTED_TYPES,
-    maxSize: 20 * 1024 * 1024,
+    maxSize: 100 * 1024 * 1024,
     maxFiles: 1,
   })
 
@@ -78,7 +78,7 @@ export function PhotoDropzone({ onFile }: PhotoDropzoneProps) {
                   {isDragActive ? 'Suelta la imagen aquí' : 'Arrastra tu imagen aquí'}
                 </p>
                 <p className="text-muted-foreground text-xs">
-                  O haz click para seleccionar · JPG o PNG · Máx. 20 MB
+                  O haz click para seleccionar · JPG o PNG · Máx. 100 MB
                 </p>
               </div>
               {!isDragActive && (

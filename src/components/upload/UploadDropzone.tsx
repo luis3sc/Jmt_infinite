@@ -14,8 +14,8 @@ export function UploadDropzone({ file, setFile }: UploadDropzoneProps) {
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles && acceptedFiles.length > 0) {
       const droppedFile = acceptedFiles[0]
-      if (droppedFile.size > 50 * 1024 * 1024) {
-        alert("El archivo excede el tamaño máximo permitido de 50MB.")
+      if (droppedFile.size > 100 * 1024 * 1024) {
+        alert("El archivo excede el tamaño máximo permitido de 100MB.")
         return
       }
       setFile(droppedFile)
@@ -33,7 +33,7 @@ export function UploadDropzone({ file, setFile }: UploadDropzoneProps) {
       'video/x-matroska': ['.mkv'],
     },
     maxFiles: 1,
-    maxSize: 50 * 1024 * 1024 // 50MB
+    maxSize: 100 * 1024 * 1024 // 100MB
   })
 
   return (

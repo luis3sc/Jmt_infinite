@@ -3,7 +3,7 @@
 import { Cpu, FileVideo, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-type Stage = 'processing' | 'uploading'
+type Stage = 'processing' | 'uploading' | 'processing_client'
 
 interface UploadLoadingProps {
   progress: number
@@ -18,6 +18,14 @@ const STAGE_CONFIG = {
     note: '¡Subida completada! Ya puedes cerrar esta pestaña o salir de la app de forma segura. El servidor terminará el procesamiento en segundo plano.',
     badge: 'Procesamiento en Servidor (AI-First)',
     spinLabel: 'Adaptando',
+  },
+  processing_client: {
+    icon: Cpu,
+    title: 'Optimizando Anuncio',
+    subtitle: 'Tu dispositivo está procesando y adaptando el material en alta calidad.',
+    note: 'Por favor no cierres esta pestaña. La conversión ocurre localmente.',
+    badge: 'Procesamiento Local (Client-Side FFmpeg)',
+    spinLabel: 'Procesando',
   },
   uploading: {
     icon: FileVideo,

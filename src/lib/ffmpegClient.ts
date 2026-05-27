@@ -167,7 +167,7 @@ export async function processVideo(
     '-vf', `scale=${panelWidth}:${panelHeight}:force_original_aspect_ratio=decrease,pad=${panelWidth}:${panelHeight}:(ow-iw)/2:(oh-ih)/2`,
     '-c:v', 'libx264',
     '-preset', 'ultrafast',
-    '-c:a', 'aac',
+    '-an', // REMOVE AUDIO channel (DOOH standards)
     '-r', '25',
     '-pix_fmt', 'yuv420p',
     '-movflags', '+faststart',
