@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Download, Printer, ArrowLeft, Loader2, Sparkles } from 'lucide-react'
 import html2canvas from 'html2canvas-pro'
@@ -12,7 +12,33 @@ interface OrderNotaClientProps {
 
 export default function OrderNotaClient({ order }: OrderNotaClientProps) {
   const documentRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [generating, setGenerating] = useState(false)
+  const [scale, setScale] = useState(1)
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (!containerRef.current) return
+      const parentWidth = containerRef.current.clientWidth
+      // Subtracting padding (48px for p-6, 32px for p-4)
+      const availableWidth = parentWidth - 48
+      if (availableWidth < 1050) {
+        setScale(Math.max(0.25, availableWidth / 1050))
+      } else {
+        setScale(1)
+      }
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    // Run after a short delay to ensure correct parent width measurements
+    const timer = setTimeout(handleResize, 100)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      clearTimeout(timer)
+    }
+  }, [])
 
   // 1. Datos del cliente e identificación
   const shortId = order.id.slice(0, 8).toUpperCase()
@@ -126,8 +152,8 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
             <ArrowLeft size={14} />
             <span>Volver a Pedidos</span>
           </Link>
-          <div className="h-4 w-[1px] bg-slate-700" />
-          <div className="flex items-center gap-1">
+          <div className="hidden sm:block h-4 w-[1px] bg-slate-700" />
+          <div className="hidden sm:flex items-center gap-1">
             <span className="text-xs font-bold text-slate-400">PEDIDO:</span>
             <span className="text-xs font-mono font-bold bg-slate-800 px-2 py-0.5 rounded text-[#00e165]">
               #{shortId}
@@ -138,7 +164,7 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-xs font-semibold transition-all active:scale-95 border border-slate-700 cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-xs font-semibold transition-all active:scale-95 border border-slate-700 cursor-pointer"
           >
             <Printer size={14} className="text-slate-300" />
             <span>Imprimir / Guardar</span>
@@ -164,12 +190,26 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
       </div>
 
       {/* CONTENEDOR CENTRAL DE LA NOTA */}
-      <div className="flex-1 flex justify-center items-start p-6 print:p-0 overflow-auto">
+      <div
+        ref={containerRef}
+        className="flex-1 flex justify-center items-start p-6 print:p-0 overflow-auto"
+      >
         <div
-          ref={documentRef}
-          className="w-[1050px] min-w-[1050px] aspect-[1.414/1] bg-white text-black p-8 border border-slate-200 shadow-lg rounded-sm print:shadow-none print:border-none print:p-4 print:mx-auto relative overflow-hidden"
-          style={{ contentVisibility: 'auto' }}
+          style={{
+            width: `${1050 * scale}px`,
+            height: `${743 * scale}px`,
+            position: 'relative',
+          }}
+          className="print:w-auto print:h-auto"
         >
+          <div
+            ref={documentRef}
+            className="w-[1050px] min-w-[1050px] aspect-[1.414/1] bg-white text-black p-8 border border-slate-200 shadow-lg rounded-sm print:shadow-none print:border-none print:p-4 print:mx-auto absolute left-0 top-0 origin-top-left print:relative print:transform-none"
+            style={{
+              transform: `scale(${scale})`,
+              contentVisibility: 'auto',
+            }}
+          >
           {/* LOGO DE AGUA DECORATIVO (Solo pantalla) */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.015] pointer-events-none print:hidden">
             <img src="/assets/images/jmtinfinite_logo.svg" alt="" className="w-[500px]" />
@@ -470,6 +510,7 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
               <div className="w-full border-t border-dashed border-slate-300 mb-2" />
               <span>Firma y Sello Asesor Comercial</span>
             </div>
+          </div>
           </div>
         </div>
       </div>
