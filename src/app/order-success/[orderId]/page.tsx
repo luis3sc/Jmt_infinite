@@ -527,7 +527,7 @@ export default function OrderSuccessPage() {
   // para evitar problemas con el Strict Mode de React.
 
   // ── Subida directa a Cloudflare R2 vía URL firmada y fallback de Servidor Proxy ─
-  async function uploadBlobToR2(blob: Blob, fileName: string): Promise<string> {
+  async function uploadBlobToR2(blob: Blob, fileName: string, onProgress?: (p: number) => void): Promise<string> {
     let keyToUse = ''
 
     try {
@@ -556,8 +556,8 @@ export default function OrderSuccessPage() {
         const xhr = new XMLHttpRequest()
 
         xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            setProgress(Math.round((e.loaded / e.total) * 100))
+          if (e.lengthComputable && onProgress) {
+            onProgress(Math.round((e.loaded / e.total) * 100))
           }
         }
 
@@ -590,8 +590,8 @@ export default function OrderSuccessPage() {
         const xhr = new XMLHttpRequest()
 
         xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            setProgress(Math.round((e.loaded / e.total) * 100))
+          if (e.lengthComputable && onProgress) {
+            onProgress(Math.round((e.loaded / e.total) * 100))
           }
         }
 
@@ -681,18 +681,25 @@ export default function OrderSuccessPage() {
 
         console.log(`[video-transcode] Procesando para booking ${booking.id} (${width}x${height})...`)
 
+        const bookingWeight = 100 / order.bookings.length
+        const bookingBase = i * bookingWeight
+
         // 1. Transcodificación client-side (con FFmpeg)
         const processedBlob = await processVideo(videoFile, width, height, (p) => {
           // El progreso total considera el número de bookings
-          const baseProgress = (i / order.bookings.length) * 100
-          const currentStepProgress = p / order.bookings.length
-          setProgress(Math.round(baseProgress + currentStepProgress))
+          // Transcodificación representa el 60% de este booking
+          const currentStepProgress = (p / 100) * 0.6 * bookingWeight
+          setProgress(Math.round(bookingBase + currentStepProgress))
         })
 
         // 2. Subir a R2
         setUploadStatus('uploading')
         const fileName = `processed-${orderId}-${booking.id}.mp4`
-        const key = await uploadBlobToR2(processedBlob, fileName)
+        const key = await uploadBlobToR2(processedBlob, fileName, (u) => {
+          // La subida representa el restante 40% de este booking
+          const currentStepProgress = 0.6 * bookingWeight + (u / 100) * 0.4 * bookingWeight
+          setProgress(Math.round(bookingBase + currentStepProgress))
+        })
         processedVideos.push({ bookingId: booking.id, key })
 
         // Volver a estado de procesamiento para el siguiente booking si queda alguno
@@ -812,17 +819,24 @@ export default function OrderSuccessPage() {
 
         console.log(`[photo-transcode] Convirtiendo imagen a video para booking ${booking.id} (${width}x${height})...`)
 
+        const bookingsSpan = 85
+        const bookingWeight = bookingsSpan / order.bookings.length
+        const bookingBase = 15 + i * bookingWeight
+
         const processedBlob = await imageToVideo(composedBlob, duration, width, height, (p) => {
-          // Progreso compuesto (15% composición, 85% conversión/subida)
-          const baseProgress = 15 + (i / order.bookings.length) * 80
-          const currentStepProgress = (p / order.bookings.length) * 0.8
-          setProgress(Math.round(baseProgress + currentStepProgress))
+          // Transcodificación representa el 60% del peso de este booking
+          const currentStepProgress = (p / 100) * 0.6 * bookingWeight
+          setProgress(Math.round(bookingBase + currentStepProgress))
         })
 
         // Subir a R2
         setUploadStatus('uploading')
         const fileName = `processed-${orderId}-${booking.id}.mp4`
-        const key = await uploadBlobToR2(processedBlob, fileName)
+        const key = await uploadBlobToR2(processedBlob, fileName, (u) => {
+          // La subida representa el restante 40% del peso de este booking
+          const currentStepProgress = 0.6 * bookingWeight + (u / 100) * 0.4 * bookingWeight
+          setProgress(Math.round(bookingBase + currentStepProgress))
+        })
         processedVideos.push({ bookingId: booking.id, key })
 
         if (i < order.bookings.length - 1) {

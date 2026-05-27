@@ -21,6 +21,15 @@ export default async function OrdersPage() {
     .from('orders')
     .select(`
       *,
+      profiles (
+        full_name,
+        company_name,
+        document_type,
+        document_number,
+        phone,
+        receipt_type,
+        email
+      ),
       bookings (
         id,
         start_date,
@@ -28,9 +37,17 @@ export default async function OrdersPage() {
         amount,
         panels (
           panel_code,
+          width,
+          height,
+          format,
+          face,
           structures (
             address,
-            district
+            district,
+            organization_id,
+            organizations (
+              name
+            )
           )
         )
       )

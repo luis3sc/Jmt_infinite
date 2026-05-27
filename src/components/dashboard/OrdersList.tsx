@@ -230,14 +230,15 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                               Ver mi Anuncio
                             </Link>
                           )}
-                          <Button
-                            variant="outline"
-                            onClick={e => { e.stopPropagation(); alert(`Preparando factura #${order.id.slice(0, 8).toUpperCase()}...`) }}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest h-auto bg-muted/40"
+                          <Link
+                            href={`/dashboard/orders/${order.id}/nota`}
+                            target="_blank"
+                            onClick={e => e.stopPropagation()}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest bg-muted/40 border border-border text-foreground hover:bg-muted/65 transition-all active:scale-95"
                           >
                             <FileText size={13} />
                             Nota de Pedido
-                          </Button>
+                          </Link>
                         </div>
 
                       </div>
