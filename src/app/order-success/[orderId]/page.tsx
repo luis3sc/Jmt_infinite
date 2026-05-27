@@ -24,7 +24,6 @@ import { Button } from '@/components/ui/Button'
 
 // Libs
 import { composeImage } from '@/lib/imageComposer'
-import { processVideo } from '@/lib/ffmpegClient'
 import { analyzeVideoFile, isAspectRatioCompatible } from '@/lib/videoAnalyzer'
 
 // ─── Tipos locales ──────────────────────────────────────────────────────────
@@ -36,6 +35,7 @@ interface Order {
   id: string
   status: string
   video_url: string | null
+  rejection_reason?: string | null
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -246,6 +246,32 @@ export default function OrderSuccessPage() {
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle')
   const [progress, setProgress] = useState(0)
   const [userType, setUserType] = useState<string>('individual')
+  const [panelDetails, setPanelDetails] = useState<{
+    resolutionWidth: number | null
+    resolutionHeight: number | null
+    slotDurationSeconds: number | null
+    maxSlots: number | null
+    operatingStartTime: string | null
+    operatingEndTime: string | null
+  } | null>(null)
+
+  const dynamicVideoSpecs = [
+    { label: 'Resolución', val: panelDetails?.resolutionWidth && panelDetails?.resolutionHeight ? `${panelDetails.resolutionWidth}×${panelDetails.resolutionHeight}` : '1280×720', icon: ShieldCheck },
+    { label: 'Duración', val: panelDetails?.slotDurationSeconds ? `${panelDetails.slotDurationSeconds} Seg` : '7 Seg', icon: Clock },
+    { label: 'Formato', val: 'MP4 ', icon: CheckCircle2 },
+    { label: 'Peso Máx', val: '50MB', icon: ShieldCheck },
+  ]
+
+  const dynamicPhotoSpecs = [
+    { label: 'Resolución', val: panelDetails?.resolutionWidth && panelDetails?.resolutionHeight ? `${panelDetails.resolutionWidth}×${panelDetails.resolutionHeight}` : '1280×720', icon: ShieldCheck },
+    { label: 'Orientación', val: panelDetails?.resolutionWidth && panelDetails?.resolutionHeight && panelDetails.resolutionWidth < panelDetails.resolutionHeight ? 'Vertical 9:16' : 'Horizontal 16:9', icon: Clock },
+    { label: 'Formato', val: 'JPG / PNG', icon: CheckCircle2 },
+    { label: 'Peso Máx', val: '20MB', icon: ShieldCheck },
+  ]
+
+  const cropAspectRatio = panelDetails?.resolutionWidth && panelDetails?.resolutionHeight 
+    ? panelDetails.resolutionWidth / panelDetails.resolutionHeight 
+    : 16 / 9
 
   // Video flow
   const [videoFile, setVideoFile] = useState<File | null>(null)
@@ -263,6 +289,8 @@ export default function OrderSuccessPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [acceptedNoLogos, setAcceptedNoLogos] = useState(false)
 
+  const isUploadingNewRef = useRef(false)
+
   // Fetch order on mount
   useEffect(() => {
     const fetchOrder = async () => {
@@ -270,7 +298,23 @@ export default function OrderSuccessPage() {
         const supabase = createClient()
         const { data } = await supabase
           .from('orders')
-          .select('id, status, video_url, user_id, profiles(user_type)')
+          .select(`
+            id, status, video_url, user_id, 
+            profiles(user_type),
+            bookings(
+              id,
+              panels(
+                id,
+                panel_code,
+                resolution_width,
+                resolution_height,
+                slot_duration_seconds,
+                max_slots,
+                operating_start_time,
+                operating_end_time
+              )
+            )
+          `)
           .eq('id', orderId)
           .single()
 
@@ -278,11 +322,27 @@ export default function OrderSuccessPage() {
           const profile = data.profiles as any
           if (profile?.user_type) setUserType(profile.user_type)
           setOrder(data as Order)
+
+          // Extraer especificaciones del primer panel asociado para renderizado dinámico
+          const firstBooking = (data.bookings as any[])?.[0]
+          const firstPanel = firstBooking?.panels
+          if (firstPanel) {
+            setPanelDetails({
+              resolutionWidth: firstPanel.resolution_width,
+              resolutionHeight: firstPanel.resolution_height,
+              slotDurationSeconds: firstPanel.slot_duration_seconds,
+              maxSlots: firstPanel.max_slots,
+              operatingStartTime: firstPanel.operating_start_time,
+              operatingEndTime: firstPanel.operating_end_time,
+            })
+          }
+
           // Si ya tiene video o ya pasó de PENDING_UPLOAD → mostrar éxito directamente
+          // Solo si el estado NO es PENDING_UPLOAD, para evitar estados de éxito falsos tras un error anterior
           if (
             (data.status === 'VIDEO_SENT' ||
               data.status === 'PENDING_VALIDATION' ||
-              data.video_url) &&
+              (data.video_url && data.status !== 'PENDING_UPLOAD')) &&
             data.status !== 'REJECTED'
           ) {
             setUploadStatus('success')
@@ -298,43 +358,258 @@ export default function OrderSuccessPage() {
     if (orderId) fetchOrder()
   }, [orderId])
 
+  // Prevenir navegación accidental durante la subida activa del archivo
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (uploadStatus === 'uploading') {
+        e.preventDefault()
+        e.returnValue = 'La subida de tu archivo está en progreso. Si sales ahora se cancelará. ¿Seguro que deseas salir?'
+        return e.returnValue
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [uploadStatus])
+
+  // ── Suscripción en tiempo real al estado de procesamiento del video ────────
+  useEffect(() => {
+    if (!orderId) return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`order-status-${orderId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${orderId}`,
+        },
+        (payload: any) => {
+          console.log('[realtime] Order updated:', payload.new)
+          const updatedOrder = payload.new as Order
+          setOrder(updatedOrder)
+          
+          // Ignorar actualizaciones si hay una subida local activa para evitar estados de éxito falsos (stale status)
+          if (isUploadingNewRef.current) {
+            console.log('[realtime] Ignorando actualización de estado porque hay una subida local activa.')
+            return
+          }
+
+          if (updatedOrder.status === 'VIDEO_SENT' && updatedOrder.video_url) {
+            setUploadStatus('success')
+            setProgress(100)
+          } else if (updatedOrder.status === 'PROCESSING_VIDEO') {
+            setUploadStatus('processing')
+            // Simular un avance visual de procesamiento (hasta que termine)
+            setProgress((prev) => (prev < 90 ? prev + 10 : prev))
+          } else if (updatedOrder.status === 'PENDING_UPLOAD') {
+            setUploadStatus('idle')
+            setProgress(0)
+            if (updatedOrder.rejection_reason) {
+              alert(`Error al procesar material: ${updatedOrder.rejection_reason}`)
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [orderId])
+
+  // ── Polling Fallback para mayor robustez (por si falla WebSockets o ya terminó antes de suscribirse) ──
+  useEffect(() => {
+    if (!orderId || uploadStatus !== 'processing') return
+
+    console.log('[polling] Activando fallback de consulta de estado cada 3s...')
+    const checkStatus = async () => {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('orders')
+          .select('status, video_url, rejection_reason')
+          .eq('id', orderId)
+          .single()
+
+        if (error) {
+          console.error('[polling] Error al obtener el estado del pedido:', error)
+          return
+        }
+
+        if (data) {
+          console.log('[polling] Estado actual en base de datos:', data.status)
+          
+          // Ignorar actualización si hay una subida local activa para evitar estados falsos de éxito antiguo
+          if (isUploadingNewRef.current) {
+            console.log('[polling] Ignorando actualización de estado porque hay una subida local activa.')
+            return
+          }
+          
+          if (data.status === 'VIDEO_SENT' && data.video_url) {
+            console.log('[polling] ¡Éxito detectado! Redirigiendo a pantalla de éxito.')
+            setUploadStatus('success')
+            setProgress(100)
+          } else if (data.status === 'PROCESSING_VIDEO') {
+            // Avanzar el progreso visual poco a poco mientras se procesa
+            setProgress((prev) => (prev < 90 ? prev + 10 : prev))
+          } else if (data.status === 'PENDING_UPLOAD') {
+            setUploadStatus('idle')
+            setProgress(0)
+            if (data.rejection_reason) {
+              alert(`Error al procesar material: ${data.rejection_reason}`)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[polling] Error inesperado en fallback de consulta:', err)
+      }
+    }
+
+    // Ejecutar inmediatamente al entrar en estado 'processing'
+    checkStatus()
+    
+    // Y luego ejecutarlo en bucle cada 3 segundos
+    const interval = setInterval(checkStatus, 3000)
+
+    return () => clearInterval(interval)
+  }, [orderId, uploadStatus])
+
   // ── Se eliminaron los useEffects que revocaban los Object URLs ──
   // En su lugar, el ciclo de vida de los Object URLs se maneja manualmente
   // en las acciones del usuario (handlePhotoSelected y handleCropConfirmed)
   // para evitar problemas con el Strict Mode de React.
 
-  // ── Subida final a R2 usando XHR para progreso real ──────────────────────
+  // ── Subida directa a Cloudflare R2 vía URL firmada y orquestación asíncrona ─
   async function uploadBlobToServer(blob: Blob): Promise<void> {
-    return new Promise((resolve, reject) => {
+    const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/jpeg' ? 'jpg' : 'mp4'
+    const fileName = `creative-${orderId}.${ext}`
+    
+    let keyToUse = ''
+    let directUploadSuccess = false
+
+    try {
+      console.log('[upload] Intentando subida directa a R2 vía pre-signed URL...')
+      // 1. Solicitar URL firmada al backend
+      const res = await fetch('/api/upload-video/presigned-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          fileName,
+          fileType: blob.type,
+        }),
+      })
+      
+      if (!res.ok) {
+        const errData = await res.json()
+        throw new Error(errData.error || 'No se pudo generar la URL de subida.')
+      }
+      
+      const { uploadUrl, key } = await res.json()
+      keyToUse = key
+
+      // 2. Subir directamente a Cloudflare R2 mediante XHR (para progreso real)
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setProgress(Math.round((e.loaded / e.total) * 100))
+          }
+        }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve()
+          } else {
+            reject(new Error('Fallo al subir el archivo directamente a Cloudflare R2.'))
+          }
+        }
+
+        xhr.onerror = () => reject(new Error('Error de red al conectar con Cloudflare R2.'))
+        
+        xhr.open('PUT', uploadUrl)
+        xhr.setRequestHeader('Content-Type', blob.type)
+        xhr.send(blob)
+      })
+
+      directUploadSuccess = true
+      console.log('[upload] Subida directa a R2 completada con éxito.')
+    } catch (directErr) {
+      console.warn('[upload] Falló la subida directa a R2 (posible problema de CORS o red). Iniciando fallback vía Servidor Proxy...', directErr)
+      
+      // Fallback: Subir a través del API proxy en el servidor
       const formData = new FormData()
-      // Usar la extensión correcta según el tipo de blob para que el servidor identifique el formato
-      const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/jpeg' ? 'jpg' : 'mp4'
-      formData.append('file', blob, `creative-${orderId}.${ext}`)
+      formData.append('file', blob, fileName)
       formData.append('orderId', orderId)
+      formData.append('fileName', fileName)
 
-      const xhr = new XMLHttpRequest()
+      const proxyRes = await new Promise<{ success: boolean; key?: string; error?: string }>((resolve) => {
+        const xhr = new XMLHttpRequest()
 
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          setProgress(Math.round((e.loaded / e.total) * 100))
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setProgress(Math.round((e.loaded / e.total) * 100))
+          }
         }
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText)
+              resolve(data)
+            } catch {
+              resolve({ success: false, error: 'Respuesta inválida del proxy de subida.' })
+            }
+          } else {
+            try {
+              const data = JSON.parse(xhr.responseText)
+              resolve({ success: false, error: data.error || 'Fallo en la subida vía proxy.' })
+            } catch {
+              resolve({ success: false, error: `Código de error HTTP: ${xhr.status}` })
+            }
+          }
+        }
+
+        xhr.onerror = () => resolve({ success: false, error: 'Error de red al conectar con el servidor proxy.' })
+        
+        xhr.open('POST', '/api/upload-video/proxy')
+        xhr.send(formData)
+      })
+
+      if (!proxyRes.success) {
+        throw new Error(proxyRes.error || 'No se pudo subir el archivo a través del proxy del servidor.')
       }
 
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const data = JSON.parse(xhr.responseText)
-          setOrder((prev) => prev ? { ...prev, video_url: data.videoUrl, status: 'VIDEO_SENT' } : prev)
-          resolve()
-        } else {
-          const data = JSON.parse(xhr.responseText)
-          reject(new Error(data.error || 'Error al subir el archivo.'))
-        }
-      }
+      keyToUse = proxyRes.key!
+      console.log('[upload] Subida vía Servidor Proxy completada con éxito.')
+    }
 
-      xhr.onerror = () => reject(new Error('Error de red al subir el archivo.'))
-      xhr.open('POST', '/api/upload-video')
-      xhr.send(formData)
+    // 3. Notificar al orquestador backend para iniciar la transcodificación asíncrona
+    console.log('[upload] Iniciando transcodificación asíncrona con key:', keyToUse)
+    const orchestratorRes = await fetch('/api/upload-video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId,
+        rawKey: keyToUse,
+        isImage: blob.type.startsWith('image/'),
+        fileType: blob.type,
+      }),
     })
+
+    if (!orchestratorRes.ok) {
+      const errData = await orchestratorRes.json()
+      throw new Error(errData.error || 'Error al iniciar el procesamiento de video en el servidor.')
+    }
+
+    // Ya inició la transcodificación asíncrona en el servidor
+    isUploadingNewRef.current = false
   }
 
   // ── Flujo de VIDEO ───────────────────────────────────────────────────────
@@ -345,6 +620,7 @@ export default function OrderSuccessPage() {
       return
     }
     setProgress(0)
+    isUploadingNewRef.current = true
 
     // Análisis rápido de aspect ratio (no bloqueante)
     try {
@@ -361,20 +637,17 @@ export default function OrderSuccessPage() {
     }
 
     try {
-      // 1. Procesamiento client-side con ffmpeg.wasm
-      setUploadStatus('processing')
-      const processed = await processVideo(videoFile, 1280, 720, (p) => setProgress(p))
-
-      // 2. Subida a R2
+      // Subida directa del video original sin procesamiento pesado client-side
       setUploadStatus('uploading')
-      setProgress(0)
-      await uploadBlobToServer(processed)
+      await uploadBlobToServer(videoFile)
 
-      setProgress(100)
-      setTimeout(() => setUploadStatus('success'), 400)
+      // Cambiamos el estado a 'processing' en espera de la actualización realtime del servidor
+      setUploadStatus('processing')
+      setProgress(0)
     } catch (err) {
+      isUploadingNewRef.current = false
       console.error('Video upload error:', err)
-      alert(err instanceof Error ? err.message : 'Error al procesar el video.')
+      alert(err instanceof Error ? err.message : 'Error al subir el video.')
       setUploadStatus('idle')
       setProgress(0)
     }
@@ -413,6 +686,7 @@ export default function OrderSuccessPage() {
       return
     }
     setProgress(0)
+    isUploadingNewRef.current = true
 
     try {
       // 1. Composición: crop + marco en canvas (client-side, sin FFmpeg)
@@ -430,16 +704,16 @@ export default function OrderSuccessPage() {
       console.log('[upload] Paso 1 OK — composedBlob size:', composedBlob.size, 'type:', composedBlob.type)
       setProgress(30)
 
-      // 2. Subir PNG al servidor — el servidor convierte a video MP4 con fluent-ffmpeg
-      // No se usa FFmpeg.wasm en el cliente (evita problemas de SharedArrayBuffer/Turbopack)
-      console.log('[upload] Paso 2: subiendo PNG al servidor para conversión a video...')
+      // 2. Subir directamente a R2 y desencadenar conversión asíncrona
+      console.log('[upload] Paso 2: subiendo imagen y disparando transcodificación asíncrona...')
       setUploadStatus('uploading')
       await uploadBlobToServer(composedBlob)
 
-      setProgress(100)
-      console.log('[upload] Paso 2 OK — proceso completo')
-      setTimeout(() => setUploadStatus('success'), 400)
+      // Cambiamos a 'processing' en espera de la actualización realtime del servidor
+      setUploadStatus('processing')
+      setProgress(0)
     } catch (err) {
+      isUploadingNewRef.current = false
       console.error('Photo upload error:', err)
       alert(err instanceof Error ? err.message : 'Error al procesar la imagen.')
       setUploadStatus('idle')
@@ -582,7 +856,7 @@ export default function OrderSuccessPage() {
                         <p className="hidden sm:block text-[10px] sm:text-xs text-muted-foreground font-medium mt-0.5">
                           {contentType === 'photo'
                             ? 'Ajusta la imagen al formato de nuestras pantallas'
-                            : 'Optimizaremos la duración a 7 segundos'}
+                            : `Optimizaremos la duración a ${panelDetails?.slotDurationSeconds || 7} segundos`}
                         </p>
                       </div>
                     </div>
@@ -603,10 +877,18 @@ export default function OrderSuccessPage() {
                       <>
                         {/* Specs del panel */}
                         <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2">
-                          {PHOTO_SPECS.map((s, i) => (
+                          {dynamicPhotoSpecs.map((s, i) => (
                             <Spec key={i} {...s} />
                           ))}
                         </div>
+                        {panelDetails?.operatingStartTime && (
+                          <div className="text-[10px] md:text-xs bg-slate-50 border border-slate-200 text-slate-600 rounded-xl px-3 py-2 flex items-center gap-2 font-medium">
+                            <Clock size={12} className="text-primary shrink-0" />
+                            <span>
+                              Transmisión activa: <strong>{panelDetails.operatingStartTime.substring(0, 5)}</strong> a <strong>{panelDetails.operatingEndTime === '00:00:00' ? '12:00 AM' : panelDetails.operatingEndTime.substring(0, 5)}</strong>. El anuncio se reproducirá en un bucle dinámico de <strong>{panelDetails.maxSlots || 23} campañas</strong>.
+                            </span>
+                          </div>
+                        )}
 
                         <PhotoDropzone onFile={handlePhotoSelected} />
 
@@ -643,7 +925,7 @@ export default function OrderSuccessPage() {
                     {photoStep === 'crop' && photoObjectUrl && (
                       <PhotoCropEditor
                         imageSrc={photoObjectUrl}
-                        aspectRatio={16 / 9}
+                        aspectRatio={cropAspectRatio}
                         onCropComplete={handleCropConfirmed}
                       />
                     )}
@@ -695,10 +977,18 @@ export default function OrderSuccessPage() {
                   <div className="relative z-10 space-y-4 md:space-y-5">
                     {/* Specs del panel */}
                     <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2">
-                      {VIDEO_SPECS.map((s, i) => (
+                      {dynamicVideoSpecs.map((s, i) => (
                         <Spec key={i} {...s} />
                       ))}
                     </div>
+                    {panelDetails?.operatingStartTime && (
+                      <div className="text-[10px] md:text-xs bg-slate-50 border border-slate-200 text-slate-600 rounded-xl px-3 py-2 flex items-center gap-2 font-medium">
+                        <Clock size={12} className="text-primary shrink-0" />
+                        <span>
+                          Transmisión activa: <strong>{panelDetails.operatingStartTime.substring(0, 5)}</strong> a <strong>{panelDetails.operatingEndTime === '00:00:00' ? '12:00 AM' : panelDetails.operatingEndTime.substring(0, 5)}</strong>. El video se reproducirá en un bucle dinámico de <strong>{panelDetails.maxSlots || 23} campañas</strong>.
+                        </span>
+                      </div>
+                    )}
 
                     <UploadDropzone
                       file={videoFile}

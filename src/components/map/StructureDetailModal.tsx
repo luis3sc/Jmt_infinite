@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Map as MapIcon, Users, Maximize, Navigation, List, ShoppingCart, CheckCircle2, ChevronLeft, ChevronRight, WifiOff, RefreshCw } from "lucide-react";
+import {
+  X, MapPin, Map as MapIcon, Users, Maximize, Navigation, List, ShoppingCart, CheckCircle2,
+  ChevronLeft, ChevronRight, WifiOff, RefreshCw, Eye, Timer, Image as ImageIcon, Calendar, Clock,
+  Landmark, ShoppingBag, GraduationCap, School, Dumbbell, HeartPulse, Plane, Store, Fuel, Car,
+  Sparkles, Pill, Utensils, Trees, PhoneCall
+} from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -22,6 +27,17 @@ type Panel = {
   resolution_width: number | null;
   resolution_height: number | null;
   traffic_view: string | null;
+  slot_duration_seconds: number | null;
+  max_slots: number | null;
+  operating_start_time: string | null;
+  operating_end_time: string | null;
+};
+
+type PoiItem = {
+  nombre: string;
+  distancia_metros: number;
+  lat?: number;
+  lng?: number;
 };
 
 type Structure = {
@@ -32,6 +48,8 @@ type Structure = {
   reference: string | null;
   latitude: number;
   longitude: number;
+  poi_tags?: string[];
+  poi_details?: Record<string, PoiItem[]>;
   panels: Panel[];
 };
 
@@ -103,6 +121,29 @@ const itemVariants = {
   },
 } as const;
 
+const POI_CATEGORIES: Record<string, { label: string; icon: React.ComponentType<any> }> = {
+  "Banco": { label: "Banco / ATM", icon: Landmark },
+  "Centro Comercial": { label: "Centro Comercial", icon: ShoppingBag },
+  "Universidad": { label: "Universidad", icon: GraduationCap },
+  "Colegio": { label: "Colegio / Inicial", icon: School },
+  "Gimnasio / Deporte": { label: "Gimnasio / Deporte", icon: Dumbbell },
+  "Hospital / Clínica": { label: "Hospital / Clínica", icon: HeartPulse },
+  "Aeropuerto": { label: "Aeropuerto", icon: Plane },
+  "Mercado / Supermercado": { label: "Supermercado / Mercado", icon: Store },
+  "Grifo": { label: "Grifo / Gasolinera", icon: Fuel },
+  "Showroom de Carros": { label: "Showroom de Carros", icon: Car },
+  "Carwash": { label: "Car Wash", icon: Sparkles },
+  "Botica / Farmacia": { label: "Botica / Farmacia", icon: Pill },
+  "Restaurantes / Cafés": { label: "Restaurante / Café / Bar", icon: Utensils },
+  "Parque": { label: "Parque", icon: Trees },
+  "Cultura / Atracción": { label: "Centro Cultural", icon: Landmark },
+  "Telecomunicaciones": { label: "Telecomunicaciones", icon: PhoneCall },
+  "Entretenimiento": { label: "Entretenimiento", icon: Sparkles },
+  "Kiosco": { label: "Kiosco", icon: Store },
+  "Aseguradora": { label: "Aseguradora", icon: Landmark },
+  "Retail / Comercio": { label: "Retail / Comercio", icon: ShoppingBag }
+};
+
 export default function StructureDetailModal({
   selectedStructure: propSelectedStructure,
   onClose,
@@ -123,6 +164,39 @@ export default function StructureDetailModal({
   const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [isMobile, setIsMobile] = useState(false);
   const [direction, setDirection] = useState(0); // 1 = next, -1 = prev
+  const [detailTab, setDetailTab] = useState<"info" | "especificaciones" | "puntos_de_interes">("info");
+
+  // Local state for dynamic cotizador dates, inheriting from parent search values or defaulting to a 1-day window
+  const todayStr = React.useMemo(() => new Date().toISOString().split('T')[0], []);
+  const defaultEndStr = React.useMemo(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  }, []);
+
+  const [localStartDate, setLocalStartDate] = useState(startDate || activeStartDate || todayStr);
+  const [localEndDate, setLocalEndDate] = useState(endDate || activeEndDate || defaultEndStr);
+
+  // Sync with global search dates ONLY when the modal opens or parent dates actually change, preventing local change overrides
+  useEffect(() => {
+    if (propSelectedStructure) {
+      setLocalStartDate(startDate || activeStartDate || todayStr);
+      setLocalEndDate(endDate || activeEndDate || defaultEndStr);
+    }
+  }, [propSelectedStructure, startDate, endDate, activeStartDate, activeEndDate, todayStr, defaultEndStr]);
+
+  const calculateDays = (start: string, end: string) => {
+    if (!start || !end) return 1;
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = e.getTime() - s.getTime();
+    if (diff > 0) {
+      return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    }
+    return 1;
+  };
+
+  const localNumberOfDays = calculateDays(localStartDate, localEndDate);
 
   // Handle mobile detection
   useEffect(() => {
@@ -143,6 +217,49 @@ export default function StructureDetailModal({
 
   const selectedStructure = propSelectedStructure || cachedStructure;
 
+  const nearbyPois = React.useMemo(() => {
+    if (!selectedStructure?.poi_details?.por_categoria) return [];
+
+    const allPois: Array<{
+      nombre: string;
+      distancia_metros: number;
+      categoryKey: string;
+      categoryLabel: string;
+      icon: any;
+    }> = [];
+
+    Object.entries(selectedStructure.poi_details.por_categoria).forEach(([categoryName, list]) => {
+      if (!Array.isArray(list) || list.length === 0) return;
+
+      const cat = POI_CATEGORIES[categoryName] || { label: categoryName, icon: Landmark };
+      const minDistance = Math.min(...list.map(item => item.distancia_metros));
+
+      // Gather unique names for this category
+      const uniqueNames = Array.from(new Set(list.map(item => item.nombre).filter(Boolean)));
+
+      let formattedNames = "";
+      if (uniqueNames.length > 0) {
+        const sliceNames = uniqueNames.slice(0, 3);
+        formattedNames = sliceNames.join(", ");
+        if (uniqueNames.length > 3) {
+          formattedNames += "...";
+        }
+      } else {
+        formattedNames = cat.label;
+      }
+
+      allPois.push({
+        nombre: formattedNames,
+        distancia_metros: minDistance,
+        categoryKey: categoryName,
+        categoryLabel: cat.label,
+        icon: cat.icon
+      });
+    });
+
+    return allPois.sort((a, b) => a.distancia_metros - b.distancia_metros);
+  }, [selectedStructure?.poi_details]);
+
   // Reset to loading whenever the active panel changes
   useEffect(() => {
     if (selectedStructure) {
@@ -153,6 +270,68 @@ export default function StructureDetailModal({
   if (!selectedStructure) return null;
 
   const currentActivePanel = selectedStructure.panels[activePanelIndex] || selectedStructure.panels[0];
+
+  // Price calculations including IGV (18%) using local cotizador state
+  const dailyPriceWithIGV = Math.round(currentFinalDailyPrice * 1.18 * 100) / 100;
+  const totalPriceWithIGV = localNumberOfDays > 0 ? Math.round(currentFinalDailyPrice * localNumberOfDays * 1.18 * 100) / 100 : dailyPriceWithIGV;
+
+  const isDigital = currentActivePanel?.media_type?.toUpperCase() === "DIGITAL";
+
+  // Dynamic B2C parameters based on database media_type
+  const materialLabel = isDigital ? "Tecnología" : "Material";
+  const materialValue = isDigital ? "Pantalla LED Inteligente" : "Lona Frontlit / Banner PVC";
+
+  const frequencyLabel = "Frecuencia";
+  const frequencyValue = isDigital
+    ? "Spot de 7s (Cada 3 min, 480 pasadas/día)"
+    : "Exposición 24/7 Permanente";
+
+  const formatsLabel = "Formatos";
+  const formatsValue = isDigital
+    ? "MP4 (Video), JPG, PNG"
+    : "Diseño Físico (PDF, AI, PSD)";
+
+  const lightingLabel = "Iluminación";
+  const lightingValue = isDigital
+    ? "Brillo Inteligente / Regulable"
+    : "Reflectores LED Alta Potencia";
+
+  const resolutionLabel = "Resolución";
+  const resolutionValue = currentActivePanel?.resolution_width && currentActivePanel?.resolution_height
+    ? `${currentActivePanel.resolution_width}x${currentActivePanel.resolution_height}px`
+    : "Alta Definición (HD)";
+
+  // Generación dinámica inteligente de resoluciones recomendadas B2C en base a medidas y orientación
+  const getDesignResolution = () => {
+    if (currentActivePanel?.resolution_width && currentActivePanel?.resolution_height) {
+      return `${currentActivePanel.resolution_width}x${currentActivePanel.resolution_height} px`;
+    }
+
+    const w = currentActivePanel?.width ? Number(currentActivePanel.width) : 12;
+    const h = currentActivePanel?.height ? Number(currentActivePanel.height) : 6;
+
+    // Si es vertical, aspecto vertical
+    if (w < h) {
+      if (isDigital) {
+        return "720x1280 px (9:16)";
+      } else {
+        return "1080x1920 px (9:16)";
+      }
+    }
+
+    // Si es horizontal
+    if (isDigital) {
+      if (w === 12 && h === 6) return "1280x640 px";
+      if (w === 12 && h === 4) return "1280x427 px";
+      const targetHeight = Math.round(1280 * (h / w));
+      return `1280x${targetHeight} px`;
+    } else {
+      if (w === 12 && h === 6) return "1920x960 px ";
+      if (w === 12 && h === 4) return "1920x640 px ";
+      const targetHeight = Math.round(1920 * (h / w));
+      return `1920x${targetHeight} px`;
+    }
+  };
 
   const handlePanelChange = (newIndex: number) => {
     let dir = 1;
@@ -247,6 +426,7 @@ export default function StructureDetailModal({
                     fill
                     draggable={false}
                     className={`object-cover pointer-events-none transition-opacity duration-500 ${imageStatus === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+                    sizes="(max-width: 768px) 100vw, 55vw"
                     priority
                     onLoad={() => setImageStatus('loaded')}
                     onError={() => setImageStatus('error')}
@@ -298,7 +478,7 @@ export default function StructureDetailModal({
             variants={containerVariants}
             initial="hidden"
             animate="show"
-            className="px-6 py-4 space-y-5 md:flex-1 md:overflow-y-auto md:custom-scrollbar pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-20"
+            className="px-6 py-4 space-y-5 md:flex-1 md:overflow-y-auto md:custom-scrollbar pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-24"
           >
             <motion.div variants={itemVariants} className="space-y-3">
               <div className="flex flex-wrap gap-2">
@@ -315,171 +495,390 @@ export default function StructureDetailModal({
                   <MapPin size={16} />
                   <span>{selectedStructure.district}</span>
                 </div>
-                {selectedStructure.reference && <p className="text-muted-foreground text-sm italic">Ref: {selectedStructure.reference}</p>}
+
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="bg-gradient-to-br from-muted to-background border border-border rounded-3xl p-5 flex flex-col gap-4 shadow-sm mb-2 md:hidden">
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{numberOfDays > 0 ? `Inversión total (${numberOfDays} días)` : "Inversión diaria"}</span>
-                <div className="flex flex-row items-start gap-4">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl sm:text-4xl font-black text-foreground tracking-tight whitespace-nowrap">S/&nbsp;{Math.floor(getDisplayPrice(currentFinalDailyPrice)).toLocaleString()}</span>
-                    <span className="text-muted-foreground text-sm font-bold">.{(getDisplayPrice(currentFinalDailyPrice) % 1).toFixed(2).split('.')[1]}</span>
+            {/* DYNAMIC QUOTER & CAMPAIGN SUMMARY */}
+            <motion.div variants={itemVariants} className="w-full bg-primary/[0.03] border border-primary/20 rounded-2xl p-4 md:p-6 space-y-4 shadow-[0_8px_30px_-6px_rgba(59,130,246,0.08)]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-primary">
+                  <Calendar size={18} className="animate-pulse" />
+                  <h3 className="text-xs font-black uppercase tracking-wider">Cotizador de Campaña</h3>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Desde</label>
+                  <input
+                    type="date"
+                    value={localStartDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      setLocalStartDate(e.target.value);
+                      if (localEndDate && new Date(e.target.value) > new Date(localEndDate)) {
+                        setLocalEndDate("");
+                      }
+                    }}
+                    onClick={(e) => {
+                      try {
+                        e.currentTarget.showPicker();
+                      } catch (err) { }
+                    }}
+                    onFocus={(e) => {
+                      try {
+                        e.currentTarget.showPicker();
+                      } catch (err) { }
+                    }}
+                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Hasta</label>
+                  <input
+                    type="date"
+                    value={localEndDate}
+                    min={localStartDate || new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setLocalEndDate(e.target.value)}
+                    onClick={(e) => {
+                      try {
+                        e.currentTarget.showPicker();
+                      } catch (err) { }
+                    }}
+                    onFocus={(e) => {
+                      try {
+                        e.currentTarget.showPicker();
+                      } catch (err) { }
+                    }}
+                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
+                  />
+                </div>
+              </div>
+
+
+
+              <div className="animate-fade-in">
+
+                <div className="bg-background/60 border border-border/50 rounded-xl p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-5 md:gap-8 transition-all duration-300">
+                  {/* Column 1: Dynamic Quoted Price */}
+                  <div className="flex flex-col shrink-0 min-w-[150px]">
+                    <span className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mb-1">Presupuesto</span>
+                    <p className="text-3xl font-black text-foreground tracking-tight leading-none">
+                      S/ {totalPriceWithIGV.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-xs font-bold text-muted-foreground mt-1.5">
+                      S/ {dailyPriceWithIGV.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="font-medium text-muted-foreground/80">x {localNumberOfDays} {localNumberOfDays === 1 ? 'día' : 'días'}</span>
+                    </p>
+                    <div className="text-[9px] text-muted-foreground/60 font-semibold uppercase tracking-wider mt-2">
+                      * Incluye IGV (18%)
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2 mt-1">
-                    <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider leading-none">Incl. IGV</span>
-                    <Badge className="text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 uppercase tracking-wider w-fit">
-                      DISPONIBLE
-                    </Badge>
+
+                  {/* Vertical/Horizontal Divider */}
+                  <div className="hidden md:block w-px h-16 bg-border/80 self-stretch" />
+                  <div className="md:hidden w-full h-px bg-border/80" />
+
+                  {/* Column 2: Dynamic Reach & Impact metrics */}
+                  <div className="flex flex-col gap-2.5 text-[13px] font-bold text-muted-foreground flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="relative flex h-2.5 w-2.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                      </span>
+                      <p className="leading-tight">
+                        <span className="text-foreground font-black text-base tracking-tight">
+                          {(currentActivePanel.audience ? Math.round((currentActivePanel.audience / 30) * (localNumberOfDays || 1)) : 4100 * (localNumberOfDays || 1)).toLocaleString('en-US')}
+                        </span>{" "}
+                        <span className="font-semibold text-muted-foreground text-xs">personas alcanzadas</span>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="relative flex h-2.5 w-2.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/45 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary/70"></span>
+                      </span>
+                      <p className="leading-tight">
+                        <span className="text-foreground font-black text-base tracking-tight">
+                          {isDigital ? `${(480 * (localNumberOfDays || 1)).toLocaleString('en-US')}` : 'Exposición'}
+                        </span>{" "}
+                        <span className="font-semibold text-muted-foreground text-xs">{isDigital ? 'reproducciones estimadas' : 'permanente 24/7'}</span>
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="border-b border-border pb-6" />
+            <motion.div variants={itemVariants} className="w-full flex flex-col gap-4 mt-2">
+              <div className="w-full h-px bg-border/60" />
 
-            <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
-              <div className="bg-muted/50 border border-border rounded-2xl p-5 flex flex-col gap-3 shadow-sm">
-
-                <div>
-                  <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Alcance</span>
-                  <p className="font-bold text-xl text-foreground mt-1">{currentActivePanel.audience ? currentActivePanel.audience.toLocaleString() : '125,000+'}</p>
-                </div>
+              {/* Premium Underlined Tab switcher (No padding, border-b style) */}
+              <div className="flex border-b border-border/80 gap-6 w-full relative z-10">
+                <button
+                  type="button"
+                  onClick={() => setDetailTab("info")}
+                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 ${detailTab === "info"
+                      ? "text-primary font-black"
+                      : "text-muted-foreground hover:text-foreground font-bold"
+                    }`}
+                >
+                  Info
+                  {detailTab === "info" && (
+                    <motion.div
+                      layoutId="activeTabUnderline"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailTab("especificaciones")}
+                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 ${detailTab === "especificaciones"
+                      ? "text-primary font-black"
+                      : "text-muted-foreground hover:text-foreground font-bold"
+                    }`}
+                >
+                  Especificaciones
+                  {detailTab === "especificaciones" && (
+                    <motion.div
+                      layoutId="activeTabUnderline"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailTab("puntos_de_interes")}
+                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 ${detailTab === "puntos_de_interes"
+                      ? "text-primary font-black"
+                      : "text-muted-foreground hover:text-foreground font-bold"
+                    }`}
+                >
+                  Puntos de Interés
+                  {detailTab === "puntos_de_interes" && (
+                    <motion.div
+                      layoutId="activeTabUnderline"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                </button>
               </div>
-              <div className="bg-muted/50 border border-border rounded-2xl p-5 flex flex-col gap-3 shadow-sm">
 
-                <div>
-                  <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Medidas</span>
-                  <p className="font-bold text-xl text-foreground mt-1">{currentActivePanel.width && currentActivePanel.height ? `${currentActivePanel.width}x${currentActivePanel.height}m` : '12x4m'}</p>
-                </div>
-              </div>
-            </motion.div>
+              {detailTab === "info" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-6 animate-fade-in mt-1">
+                  {/* Cerca de */}
+                  {(selectedStructure.reference || currentActivePanel.traffic_view) && (
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-foreground">Cerca de</span>
+                        <span className="text-sm text-muted-foreground leading-snug">
+                          {selectedStructure.reference || currentActivePanel.traffic_view}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
-            <motion.div variants={itemVariants} className="space-y-4">
-              {currentActivePanel.traffic_view && (
-                <div className="bg-muted/50 border border-border rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Navigation size={18} className="text-muted-foreground/80" />
-                    <h4 className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Visibilidad</h4>
+                  {/* Reproducciones diarias */}
+                  <div className="flex items-start gap-3">
+                    <Eye className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-foreground">Reproducciones diarias</span>
+                      <span className="text-sm text-muted-foreground">
+                        {isDigital ? "480 pasadas" : "24/7 Permanente"}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-sm text-foreground/90 font-medium leading-relaxed">{currentActivePanel.traffic_view}</p>
+
+                  {/* Alcance diario */}
+                  <div className="flex items-start gap-3">
+                    <Users className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-foreground">Alcance diario</span>
+                      <span className="text-sm text-muted-foreground">
+                        {currentActivePanel.audience ? Math.round(currentActivePanel.audience / 30).toLocaleString() : '4,100'} impactos
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Tamaño de pantalla */}
+                  <div className="flex items-start gap-3">
+                    <Maximize className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-foreground">Tamaño físico</span>
+                      <span className="text-sm text-muted-foreground">
+                        {currentActivePanel.width && currentActivePanel.height ? `${currentActivePanel.width}m x ${currentActivePanel.height}m` : '12m x 6m'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Horario de operación */}
+                  {isDigital && currentActivePanel.operating_start_time && (
+                    <div className="flex items-start gap-3">
+                      <Clock className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-foreground">Horario de operación</span>
+                        <span className="text-sm text-muted-foreground">
+                          {currentActivePanel.operating_start_time.substring(0, 5)} - {currentActivePanel.operating_end_time === '00:00:00' ? '12:00 AM' : currentActivePanel.operating_end_time?.substring(0, 5)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-              <div className="bg-muted/50 border border-border rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <List size={18} className="text-muted-foreground/80" />
-                  <h4 className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Especificaciones</h4>
+
+              {detailTab === "especificaciones" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-6 animate-fade-in mt-1">
+                  {/* Medidas del arte */}
+                  <div className="flex items-start gap-3">
+                    <ImageIcon className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-foreground">Resolución / Medidas</span>
+                      <span className="text-sm text-muted-foreground">
+                        {getDesignResolution()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Duración de la reproducción */}
+                  {isDigital && (
+                    <div className="flex items-start gap-3">
+                      <Timer className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-foreground">Duración del spot</span>
+                        <span className="text-sm text-muted-foreground">
+                          {currentActivePanel.slot_duration_seconds ? `${currentActivePanel.slot_duration_seconds}s` : '7s'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Formatos permitidos */}
+                  <div className="flex items-start gap-3">
+                    <List className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-foreground">Formatos permitidos</span>
+                      <span className="text-sm text-muted-foreground leading-snug">
+                        {isDigital ? "Video MP4 o Imágenes PNG / JPG" : "Lona impresa de Banner PVC o Lona Frontlit"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 gap-3 text-sm">
-                  <div className="flex justify-between py-1 border-b border-border/50"><span className="text-muted-foreground">Código</span><span className="text-foreground font-bold">{currentActivePanel.panel_code || 'N/A'}</span></div>
-                  <div className="flex justify-between py-1 border-b border-border/50"><span className="text-muted-foreground">Material</span><span className="text-foreground font-bold">Lona Frontlit</span></div>
-                  <div className="flex justify-between py-1"><span className="text-muted-foreground">Iluminación</span><span className="text-foreground font-bold">Reflector LED</span></div>
+              )}
+
+              {detailTab === "puntos_de_interes" && (
+                <div className="animate-fade-in mt-1">
+                  {nearbyPois.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 gap-3 text-center bg-muted/20 border border-border/40 rounded-2xl">
+                      <MapIcon className="w-10 h-10 text-muted-foreground/30 animate-pulse" />
+                      <p className="text-sm font-bold text-muted-foreground">Sin puntos de interés cercanos</p>
+                      <p className="text-xs text-muted-foreground/80 max-w-[240px]">No se registraron locales comerciales ni servicios en un radio de 500m.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-6">
+                      {nearbyPois.map((poi, idx) => {
+                        const Icon = poi.icon;
+                        return (
+                          <div key={`${poi.nombre}-${idx}`} className="flex items-start gap-3 min-w-0">
+                            <Icon className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+                            <div className="flex flex-col min-w-0 w-full">
+                              <span className="text-sm font-semibold text-foreground truncate w-full" title={poi.categoryLabel}>{poi.categoryLabel}</span>
+                              <span className="text-sm text-muted-foreground leading-snug truncate w-full" title={poi.nombre}>
+                                {poi.nombre} <span className="text-[11px] text-primary font-bold ml-1 whitespace-nowrap">({poi.distancia_metros} m)</span>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </motion.div>
           </motion.div>
         </div>
       </div>
 
       {/* Fixed Bottom Action Bar */}
-      <div className="absolute bottom-0 left-0 right-0 md:left-auto md:w-[45%] px-6 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-6 bg-card z-40 border-t border-border flex flex-col md:flex-row items-center gap-4">
-        {/* Desktop Price Display - 50% width split: Label Left, Price Right */}
-        <div className="hidden md:flex w-1/2 items-center gap-4 h-14 border-r border-border pr-6">
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider leading-tight">Inversión</span>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs font-bold text-foreground uppercase tracking-wider leading-tight">
-                {numberOfDays > 0 ? "Total" : "Diaria"}
-              </span>
-              {numberOfDays > 0 && (
-                <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border">
-                  {numberOfDays} {numberOfDays === 1 ? 'Día' : 'Días'}
-                </span>
-              )}
-            </div>
+      <div className="absolute bottom-0 left-0 right-0 md:left-auto md:w-[45%] px-6 py-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:pb-6 bg-card/95 backdrop-blur-md z-40 border-t border-border flex items-center shadow-[0_-10px_30px_rgba(0,0,0,0.04)]">
+        {currentIsInCart ? (
+          <div className="flex gap-3 w-full animate-fade-in">
+            <Button
+              variant="outline"
+              size="xl"
+              className="hidden md:flex flex-1 font-black text-xs uppercase tracking-[0.1em] border-primary/20 text-foreground hover:bg-muted"
+              onClick={onClose}
+            >
+              Seguir Comprando
+            </Button>
+            <Button
+              variant="default"
+              size="xl"
+              className="flex-1 font-black text-xs uppercase tracking-[0.1em] shadow-md gap-2"
+              onClick={onOpenCart}
+            >
+              <ShoppingCart size={16} />
+              Ver Campaña
+            </Button>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-4xl font-black text-foreground tracking-tight whitespace-nowrap">
-                S/&nbsp;{Math.floor(getDisplayPrice(currentFinalDailyPrice)).toLocaleString()}
-              </span>
-              <span className="text-muted-foreground text-sm font-bold">
-                .{(getDisplayPrice(currentFinalDailyPrice) % 1).toFixed(2).split('.')[1]}
-              </span>
-            </div>
-            <span className="text-muted-foreground text-xs font-semibold uppercase bg-muted px-2 py-0.5 rounded-lg border border-border whitespace-nowrap">
-              Incl. IGV
-            </span>
-          </div>
-        </div>
+        ) : (
+          <div className="flex gap-3 w-full animate-fade-in">
+            <Button
+              variant="outline"
+              size="xl"
+              className="hidden md:flex flex-1 font-black text-xs uppercase tracking-[0.15em] border-primary/20 text-foreground hover:bg-muted"
+              onClick={onClose}
+            >
+              Seguir Comprando
+            </Button>
+            <Button
+              variant="default"
+              size="xl"
+              className="flex-1 w-full md:w-auto font-black text-xs uppercase tracking-[0.15em] shadow-md gap-2.5 shrink-0 cursor-pointer"
+              onClick={() => {
+                // Logic to ensure we always have valid dates and days for the cart
+                let actualDays = localNumberOfDays || 1;
+                let actualStart = localStartDate;
+                let actualEnd = localEndDate;
 
-        {/* Action Button - 50% width */}
-        <Button
-          variant={currentIsInCart ? "secondary" : "default"}
-          size="xl"
-          className="w-full md:w-1/2 font-bold text-xs uppercase tracking-wider shadow-md gap-3"
-          onClick={() => {
-            if (currentIsInCart) { onOpenCart(); return; }
+                // If still no dates, default to 1 day (today only)
+                if (!actualStart || !actualEnd) {
+                  const now = new Date();
+                  actualStart = now.toISOString().split('T')[0];
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  actualEnd = tomorrow.toISOString().split('T')[0];
+                  actualDays = 1;
+                }
 
-            // Logic to ensure we always have valid dates and days for the cart
-            let actualDays = numberOfDays || 1;
-            let actualStart = activeStartDate;
-            let actualEnd = activeEndDate;
-
-            // Use the pending filter dates if they form a valid range
-            if (startDate && endDate) {
-              const s = new Date(startDate);
-              const e = new Date(endDate);
-              const d = Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
-              if (d > 0) {
-                actualDays = d;
-                actualStart = startDate;
-                actualEnd = endDate;
-              }
-            }
-
-            // If still no dates, default to 1 day (today only)
-            if (!actualStart || !actualEnd) {
-              const now = new Date();
-              actualStart = now.toISOString().split('T')[0];
-              const tomorrow = new Date();
-              tomorrow.setDate(tomorrow.getDate() + 1);
-              actualEnd = tomorrow.toISOString().split('T')[0];
-              actualDays = 1;
-            }
-
-            onAddToCart({
-              panelId: currentActivePanel.id,
-              structureId: selectedStructure.id,
-              panelCode: currentActivePanel.panel_code || selectedStructure.code,
-              address: selectedStructure.address,
-              district: selectedStructure.district,
-              photoUrl: currentActivePanel.photo_url || "",
-              dailyPrice: currentFinalDailyPrice,
-              startDate: actualStart,
-              endDate: actualEnd,
-              days: actualDays,
-              totalPrice: Math.round(currentFinalDailyPrice * actualDays * 1.18 * 100) / 100,
-              format: currentActivePanel.format || "",
-              mediaType: currentActivePanel.media_type || ""
-            });
-          }}
-        >
-          <AnimatePresence mode="wait">
-            {currentIsInCart ? (
-              <motion.div key="in-cart" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex items-center gap-3">
-                <CheckCircle2 size={22} className="text-emerald-600" />
-                <span>Ir a Campaña</span>
-              </motion.div>
-            ) : (
-              <motion.div key="add-to-cart" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} className="flex items-center gap-3">
-                <ShoppingCart size={22} />
+                onAddToCart({
+                  panelId: currentActivePanel.id,
+                  structureId: selectedStructure.id,
+                  panelCode: currentActivePanel.panel_code || selectedStructure.code,
+                  address: selectedStructure.address,
+                  district: selectedStructure.district,
+                  photoUrl: currentActivePanel.photo_url || "",
+                  dailyPrice: currentFinalDailyPrice,
+                  startDate: actualStart,
+                  endDate: actualEnd,
+                  days: actualDays,
+                  totalPrice: Math.round(currentFinalDailyPrice * actualDays * 1.18 * 100) / 100,
+                  format: currentActivePanel.format || "",
+                  mediaType: currentActivePanel.media_type || ""
+                });
+              }}
+            >
+              <motion.div key="add-to-cart" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center gap-2.5 justify-center w-full font-extrabold">
+                <ShoppingCart size={18} />
                 <span>Añadir a Campaña</span>
               </motion.div>
-            )}
-          </AnimatePresence>
-        </Button>
+            </Button>
+          </div>
+        )}
       </div>
     </Dialog>
   );

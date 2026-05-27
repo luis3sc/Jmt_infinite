@@ -96,7 +96,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                 rotateX: isVideoHovered ? -2 : 0,
                 scale: isVideoHovered ? 1.01 : 1
               }}
-              className="relative aspect-video w-full rounded-lg bg-zinc-950 p-1.5 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.6)] ring-1 ring-white/10 overflow-hidden"
+              className="relative aspect-video w-full rounded-lg bg-zinc-950 p-1.5 ring-1 ring-white/10 overflow-hidden"
             >
               {/* Inner Bezel */}
               <div className="h-full w-full rounded-lg overflow-hidden bg-black relative">

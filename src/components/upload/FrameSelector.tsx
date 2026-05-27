@@ -13,9 +13,7 @@ export interface Frame {
 // Marcos disponibles — agrega más archivos en /public/assets/frames/
 export const AVAILABLE_FRAMES: Frame[] = [
   { id: 'none', label: 'Sin Marco', src: '' },
-  { id: 'birthday', label: 'Cumpleaños', src: '/assets/frames/frame_birthday.png' },
-  { id: 'promo', label: 'Promoción', src: '/assets/frames/frame_promo.png' },
-  { id: 'corporate', label: 'Corporativo', src: '/assets/frames/frame_corporate.png' },
+  { id: 'birthday', label: 'Cumpleaños', src: '/assets/frames/frame-birthday.png' },
 ]
 
 interface FrameSelectorProps {

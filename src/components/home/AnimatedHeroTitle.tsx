@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 const WORDS = [
   'mensaje personalizado',
   'momento especial',
-  'anuncio de negocio',
+  'emprendimiento',
   'perfil de redes'
 ]
 

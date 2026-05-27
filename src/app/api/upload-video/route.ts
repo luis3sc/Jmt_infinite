@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient as createServerSupabaseClient } from '@/lib/supabase/server'
 import { createRequire } from 'module'
 import { writeFile, unlink, mkdir, readFile } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { Readable } from 'stream'
 
 // Use require to bypass Turbopack static analysis of dynamic binary paths
 const require = createRequire(import.meta.url)
@@ -30,8 +31,6 @@ const r2 = new S3Client({
 
 const BUCKET = process.env.CLOUDFLARE_BUCKET_NAME?.trim() || ''
 
-console.log(`[upload-video] R2 Client initialized. Bucket: ${BUCKET}, Endpoint: ${process.env.CLOUDFLARE_ENDPOINT?.trim()}`)
-
 // R2 public URL base
 function buildPublicUrl(key: string): string {
   const publicBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.trim()?.replace(/\/$/, '')
@@ -40,20 +39,17 @@ function buildPublicUrl(key: string): string {
   return `${base}/${BUCKET}/${key}`
 }
 
-// Probe video metadata using ffprobe
-function probeVideo(filePath: string): Promise<{ duration: number }> {
+// Convert a stream to a Buffer
+async function streamToBuffer(stream: Readable): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    ffmpeg.ffprobe(filePath, (err: Error | null, metadata: { format?: { duration?: number } }) => {
-      if (err) reject(err)
-      else resolve({ duration: metadata?.format?.duration ?? 0 })
-    })
+    const chunks: any[] = []
+    stream.on('data', (chunk) => chunks.push(chunk))
+    stream.on('error', reject)
+    stream.on('end', () => resolve(Buffer.concat(chunks)))
   })
 }
 
-/**
- * Convierte una imagen estática (PNG/JPEG) a un video MP4 de duración fija en el servidor.
- * Usa fluent-ffmpeg que ya está instalado como server-external-package.
- */
+// Convert static image to a 7s video
 function imageToVideoServer(
   inputPath: string,
   outputPath: string,
@@ -67,7 +63,7 @@ function imageToVideoServer(
       .inputOption('-framerate', '25')
       .outputOptions([
         `-t ${durationSeconds}`,
-        `-vf scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`,
+        `-vf scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black`,
         '-c:v libx264',
         '-preset ultrafast',
         '-pix_fmt yuv420p',
@@ -83,42 +79,186 @@ function imageToVideoServer(
   })
 }
 
-// Accepted MIME types — ahora incluye imágenes (el servidor las convierte a video)
-const ALLOWED_MIME_TYPES = new Set([
-  // Imágenes — convertidas a video de 7s en el servidor
-  'image/png',
-  'image/jpeg',
-  'image/jpg',
-  // Videos — procesados normalmente
-  'video/mp4',
-  'video/quicktime',      // .mov
-  'video/x-msvideo',     // .avi
-  'video/webm',
-  'video/mpeg',
-  'video/x-mpeg',
-  'video/x-matroska',    // .mkv
-  'video/3gpp',
-  'video/3gpp2',
-  'video/x-ms-wmv',      // .wmv
-  'video/x-flv',         // .flv
-  'video/ogg',
-  'video/x-m4v',         // .m4v
-  'video/MP2T',          // .ts
-  'application/octet-stream', // fallback
-])
+// Transcode video to match physical screen specifications (muted, exact resolution, 7s max)
+function videoToVideoServer(
+  inputPath: string,
+  outputPath: string,
+  durationSeconds: number = 7,
+  width: number = 1280,
+  height: number = 720
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    ffmpeg(inputPath)
+      .outputOptions([
+        `-t ${durationSeconds}`,
+        `-vf scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black`,
+        '-c:v libx264',
+        '-preset ultrafast',
+        '-an', // REMOVE AUDIO channel (DOOH standards)
+        '-r', '25',
+        '-pix_fmt yuv420p',
+        '-movflags +faststart',
+      ])
+      .on('start', (cmd: string) => console.log('[upload-video] ffmpeg video→video cmd:', cmd))
+      .on('error', (err: Error) => {
+        console.error('[upload-video] ffmpeg video→video error:', err.message)
+        reject(err)
+      })
+      .on('end', () => resolve())
+      .save(outputPath)
+  })
+}
 
-export async function POST(req: NextRequest) {
+// Asynchronous background transcoding task
+async function processMediaBackground(
+  orderId: string,
+  rawKey: string,
+  isImage: boolean,
+  fileType: string,
+  bookings: any[],
+  adminSupabase: any
+) {
   let tempInputPath: string | null = null
-  let tempOutputPath: string | null = null
+  const tempOutputPaths: string[] = []
 
   try {
-    const formData = await req.formData()
-    const file = formData.get('file') as File | null
-    const orderId = formData.get('orderId') as string | null
+    console.log(`[upload-video-async] Starting background process for orderId=${orderId}, rawKey=${rawKey}`)
 
-    if (!file || !orderId) {
+    // 1. Update order status to PROCESSING
+    await adminSupabase
+      .from('orders')
+      .update({ status: 'PROCESSING_VIDEO' })
+      .eq('id', orderId)
+
+    // 2. Create local temp directory
+    const tmpDir = join(tmpdir(), `mixooh-async-${orderId}`)
+    await mkdir(tmpDir, { recursive: true })
+
+    // 3. Download raw file from R2
+    console.log(`[upload-video-async] Downloading raw object from R2: ${rawKey}`)
+    const getObj = await r2.send(
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key: rawKey,
+      })
+    )
+
+    const rawBuffer = await streamToBuffer(getObj.Body as Readable)
+    const fileExt = isImage ? (fileType === 'image/png' ? 'png' : 'jpg') : 'mp4'
+    tempInputPath = join(tmpDir, `input.${fileExt}`)
+    await writeFile(tempInputPath, rawBuffer)
+    console.log(`[upload-video-async] Temp raw file written: ${tempInputPath}`)
+
+    // Cache to avoid transcoding the exact same resolution multiple times in the same order
+    const resolutionCache: Record<string, string> = {}
+    let primaryVideoUrl: string | null = null
+
+    // 4. Process each booking based on its panel native resolution and duration
+    for (const booking of bookings) {
+      // Default to 1280x720 and 7s if not specified
+      let width = booking.panels?.resolution_width || 1280
+      let height = booking.panels?.resolution_height || 720
+
+      // FFmpeg libx264/yuv420p require even dimensions (divisible by 2)
+      // We round down (subtract 1 pixel) to ensure it remains even and doesn't overflow physical screen pixels
+      if (width % 2 !== 0) {
+        width = width - 1
+      }
+      if (height % 2 !== 0) {
+        height = height - 1
+      }
+
+      const duration = booking.panels?.slot_duration_seconds || 7
+      const resKey = `${width}x${height}-${duration}s`
+
+      console.log(`[upload-video-async] Booking ${booking.id} requires resolution and duration: ${resKey}`)
+
+      let processedKey: string
+
+      if (resolutionCache[resKey]) {
+        processedKey = resolutionCache[resKey]
+        console.log(`[upload-video-async] Resolution/Duration ${resKey} found in cache. Reusing key: ${processedKey}`)
+      } else {
+        const outPath = join(tmpDir, `output-${resKey}.mp4`)
+        tempOutputPaths.push(outPath)
+
+        if (isImage) {
+          console.log(`[upload-video-async] Converting image to video: ${resKey}`)
+          await imageToVideoServer(tempInputPath, outPath, duration, width, height)
+        } else {
+          console.log(`[upload-video-async] Transcoding video to DOOH standard: ${resKey}`)
+          await videoToVideoServer(tempInputPath, outPath, duration, width, height)
+        }
+
+        const processedBuffer = await readFile(outPath)
+        processedKey = `campaign-videos/processed/${orderId}/${booking.id}-${resKey}.mp4`
+
+        console.log(`[upload-video-async] Uploading processed video to R2: ${processedKey}`)
+        await r2.send(
+          new PutObjectCommand({
+            Bucket: BUCKET,
+            Key: processedKey,
+            Body: processedBuffer,
+            ContentType: 'video/mp4',
+            ContentLength: processedBuffer.byteLength,
+            CacheControl: 'public, max-age=31536000',
+            Metadata: {
+              'x-amz-meta-source': 'jmt-marketplace-async',
+            },
+          })
+        )
+
+        resolutionCache[resKey] = processedKey
+      }
+
+      const publicVideoUrl = buildPublicUrl(processedKey)
+      if (!primaryVideoUrl) primaryVideoUrl = publicVideoUrl
+
+      // Update booking with the perfectly resized video
+      console.log(`[upload-video-async] Updating booking ${booking.id} in DB with video: ${publicVideoUrl}`)
+      await adminSupabase
+        .from('bookings')
+        .update({ video_url: publicVideoUrl })
+        .eq('id', booking.id)
+    }
+
+    // 5. Update final order status to VIDEO_SENT
+    if (primaryVideoUrl) {
+      console.log(`[upload-video-async] All pieces completed. Setting order status to VIDEO_SENT.`)
+      await adminSupabase
+        .from('orders')
+        .update({ status: 'VIDEO_SENT', video_url: primaryVideoUrl })
+        .eq('id', orderId)
+    }
+
+  } catch (asyncErr) {
+    console.error(`[upload-video-async] Error in background transcoding:`, asyncErr)
+    // Rollback order status to let user know it failed, clearing video_url to prevent stale client redirect
+    await adminSupabase
+      .from('orders')
+      .update({ 
+        status: 'PENDING_UPLOAD', 
+        video_url: null, 
+        rejection_reason: 'Error al transcodificar el video en el servidor.' 
+      })
+      .eq('id', orderId)
+  } finally {
+    // 6. Mandatory cleanup of all temp files
+    console.log(`[upload-video-async] Cleaning up /tmp folder`)
+    if (tempInputPath) await unlink(tempInputPath).catch(() => {})
+    for (const outPath of tempOutputPaths) {
+      await unlink(outPath).catch(() => {})
+    }
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { orderId, rawKey, isImage, fileType } = await req.json()
+
+    if (!orderId || !rawKey || isImage === undefined || !fileType) {
       return NextResponse.json(
-        { error: 'Parámetros incompletos. Se requiere el archivo y el ID del pedido.' },
+        { error: 'Parámetros incompletos. Se requiere orderId, rawKey, isImage y fileType.' },
         { status: 400 }
       )
     }
@@ -134,7 +274,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Usar el cliente de service role para validar la propiedad del pedido
+    // Usar el cliente de service role para bypass de RLS en consultas complejas
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || ''
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || ''
 
@@ -150,6 +290,7 @@ export async function POST(req: NextRequest) {
       auth: { persistSession: false },
     })
 
+    // Comprobar la propiedad del pedido
     const { data: order, error: orderError } = await adminSupabase
       .from('orders')
       .select('user_id')
@@ -163,7 +304,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Comprobar si el usuario es el dueño del pedido o es admin/gestor
     if (order.user_id !== user.id) {
       const { data: profile } = await adminSupabase
         .from('profiles')
@@ -179,136 +319,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    console.log(`[upload-video] Received file: name=${file.name}, type=${file.type}, size=${file.size}`)
+    // Obtener los bookings y las resoluciones/duraciones nativas de las pantallas asociadas
+    const { data: bookings, error: bookingsError } = await adminSupabase
+      .from('bookings')
+      .select('id, panel_id, panels(resolution_width, resolution_height, slot_duration_seconds)')
+      .eq('order_id', orderId)
 
-    // ── MIME type validation ───────────────────────────────────────────────────
-    if (!ALLOWED_MIME_TYPES.has(file.type)) {
+    if (bookingsError || !bookings || bookings.length === 0) {
       return NextResponse.json(
-        { error: `Formato no soportado: "${file.type}". Usa imágenes (PNG/JPEG) o videos (MP4, MOV, etc.).` },
+        { error: 'No se encontraron reservas vinculadas a este pedido.' },
         { status: 400 }
       )
     }
 
-    // ── Size validation ────────────────────────────────────────────────────────
-    const MAX_BYTES = 50 * 1024 * 1024 // 50 MB
-    if (file.size > MAX_BYTES) {
-      return NextResponse.json(
-        { error: 'El archivo supera el límite de 50 MB.' },
-        { status: 400 }
-      )
-    }
+    // Disparar proceso asíncrono sin bloquear la respuesta HTTP (202 Accepted)
+    processMediaBackground(orderId, rawKey, isImage, fileType, bookings, adminSupabase)
 
-    const isImage = file.type.startsWith('image/')
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-
-    const tmpDir = join(tmpdir(), 'mixooh-uploads')
-    await mkdir(tmpDir, { recursive: true })
-
-    const inputExt = isImage ? (file.type === 'image/png' ? 'png' : 'jpg') : (file.name.split('.').pop()?.toLowerCase() || 'mp4')
-    tempInputPath = join(tmpDir, `${orderId}-${Date.now()}-input.${inputExt}`)
-    await writeFile(tempInputPath, buffer)
-    console.log(`[upload-video] Temp input written: ${tempInputPath} (${buffer.byteLength} bytes)`)
-
-    // ── Imagen → Convertir a video MP4 en el servidor ─────────────────────────
-    let finalBuffer: Buffer
-    let duration = 7
-
-    if (isImage) {
-      tempOutputPath = join(tmpDir, `${orderId}-${Date.now()}-output.mp4`)
-      console.log('[upload-video] Convirtiendo imagen a video MP4 (7s)...')
-      await imageToVideoServer(tempInputPath, tempOutputPath, 7, 1280, 720)
-      finalBuffer = await readFile(tempOutputPath)
-      console.log(`[upload-video] Video generado: ${finalBuffer.byteLength} bytes`)
-    } else {
-      // ── Video: validar duración con ffprobe ───────────────────────────────
-      finalBuffer = buffer
-      try {
-        const meta = await probeVideo(tempInputPath)
-        duration = meta.duration
-        console.log(`[upload-video] Duration detected: ${duration}s`)
-      } catch (probeErr) {
-        console.warn('[upload-video] ffprobe error (skipping duration check):', probeErr)
-      }
-
-      const MAX_DURATION = 300
-      if (duration > 0 && duration > MAX_DURATION) {
-        return NextResponse.json(
-          { error: `El video no puede superar ${MAX_DURATION / 60} minutos. Duración detectada: ${Math.round(duration)}s.` },
-          { status: 400 }
-        )
-      }
-    }
-
-    // ── Upload to Cloudflare R2 ────────────────────────────────────────────────
-    const key = `campaign-videos/${orderId}-${Date.now()}.mp4`
-    console.log(`[upload-video] Uploading to R2: ${key}`)
-
-    try {
-      await r2.send(
-        new PutObjectCommand({
-          Bucket: BUCKET,
-          Key: key,
-          Body: finalBuffer,
-          ContentType: 'video/mp4',
-          ContentLength: finalBuffer.byteLength,
-          CacheControl: 'public, max-age=31536000',
-          Metadata: {
-            'x-amz-meta-source': 'jmt-marketplace',
-          },
-        })
-      )
-    } catch (s3Err: any) {
-      console.error('[upload-video] R2 Upload Error:', {
-        message: s3Err.message,
-        code: s3Err.Code || s3Err.name,
-        requestId: s3Err.$metadata?.requestId,
-      })
-      throw s3Err
-    }
-
-    const videoUrl = buildPublicUrl(key)
-    console.log(`[upload-video] Uploaded successfully: ${videoUrl}`)
-
-    // ── Update Supabase ────────────────────────────────────────────────────────
-
-    const supabase = createSupabaseClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false },
-    })
-
-    const { data: updateData, error: dbError } = await supabase
-      .from('orders')
-      .update({ status: 'VIDEO_SENT', video_url: videoUrl })
-      .eq('id', orderId)
-      .select()
-
-    if (dbError) {
-      console.error('[upload-video] Supabase update error:', dbError)
-      return NextResponse.json(
-        { error: `Video subido pero no se actualizó el pedido: ${dbError.message}` },
-        { status: 500 }
-      )
-    }
-
-    if (!updateData || updateData.length === 0) {
-      console.warn(`[upload-video] WARNING: No rows updated for orderId=${orderId}`)
-    } else {
-      console.log('[upload-video] Supabase updated OK')
-    }
-
-    return NextResponse.json({
-      success: true,
-      videoUrl,
-      duration: Math.round(duration),
-    })
+    return NextResponse.json(
+      { success: true, message: 'Procesamiento asíncrono iniciado con éxito.' },
+      { status: 202 }
+    )
 
   } catch (err: unknown) {
-    console.error('[upload-video] Unexpected error:', err)
+    console.error('[upload-video] Unexpected error in orchestration POST:', err)
     const message = err instanceof Error ? err.message : 'Error interno del servidor.'
     return NextResponse.json({ error: message }, { status: 500 })
-
-  } finally {
-    if (tempInputPath) unlink(tempInputPath).catch(() => {})
-    if (tempOutputPath) unlink(tempOutputPath).catch(() => {})
   }
 }

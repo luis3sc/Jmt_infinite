@@ -58,7 +58,7 @@ Para evitar la sobrecarga y los altos costos de procesamiento de video en el ser
 ### 3. Modelo de Seguridad Endurecido (Supabase)
 La base de datos PostgreSQL de **Supabase** cuenta con políticas y estructuras de seguridad avanzadas:
 *   **Row-Level Security (RLS)**: Las tablas del sistema, incluyendo `orders`, restringen la lectura y escritura. Solo usuarios con sesión válida pueden insertar registros asignados a su propio `user_id` (`auth.uid() = user_id`).
-*   **Funciones Seguras**: Las funciones trigger del sistema (`handle_new_user`, `handle_updated_at`, `sync_user_profile`) están configuradas rigurosamente con **`SECURITY INVOKER`** y un **`search_path` explícito y vacío** (`SET search_path = ''`) para evitar ataques de inyección de esquemas (schema-injection).
+*   **Funciones Seguras**: Las funciones del sistema (`handle_new_user`, `sync_user_profile`) están configuradas con **`SECURITY DEFINER`** (y un **`search_path` explícito y vacío** `SET search_path = ''` para evitar ataques de inyección de esquemas) permitiendo la creación/actualización transaccional de perfiles en `public.profiles` durante el registro y checkout. La función de actualización de marcas temporales (`handle_updated_at`) se ejecuta bajo **`SECURITY INVOKER`**.
 *   **Restricciones de Storage**: El bucket de almacenamiento de creatividades (`campaign_videos`) tiene deshabilitado el acceso público inseguro general; solo se permiten lecturas mediante políticas que restringen el patrón de ruta seguro `/campaign-videos/%`.
 
 ### 4. Arquitectura de Resiliencia (Error Boundaries Modulares)

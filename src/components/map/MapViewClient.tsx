@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Map, { Marker, Popup, ViewStateChangeEvent } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
-import { MapPin, X, SlidersHorizontal, List, Map as MapIcon, User, Users, Maximize, Navigation, ShoppingCart, Search, Filter, CheckCircle2, Trash2, Calendar, ChevronRight, Loader2, CreditCard, Clock } from "lucide-react";
+import { MapPin, X, SlidersHorizontal, List, Map as MapIcon, User, Users, Maximize, Navigation, ShoppingCart, Search, Filter, CheckCircle2, Trash2, Calendar, ChevronRight, Loader2, CreditCard, Clock, PlusCircle } from "lucide-react";
 import Image from "next/image";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
@@ -41,6 +41,17 @@ type Panel = {
   resolution_width: number | null;
   resolution_height: number | null;
   traffic_view: string | null;
+  slot_duration_seconds: number | null;
+  max_slots: number | null;
+  operating_start_time: string | null;
+  operating_end_time: string | null;
+};
+
+type PoiItem = {
+  nombre: string;
+  distancia_metros: number;
+  lat?: number;
+  lng?: number;
 };
 
 type Structure = {
@@ -51,6 +62,8 @@ type Structure = {
   reference: string | null;
   latitude: number;
   longitude: number;
+  poi_tags?: string[];
+  poi_details?: Record<string, PoiItem[]>;
   panels: Panel[];
 };
 
@@ -75,7 +88,11 @@ export function MapViewClient() {
 
   // Default dates for new items
   const today = new Date().toISOString().split('T')[0];
-  const defaultEnd = addDays(new Date(), 30).toISOString().split('T')[0];
+  const defaultEnd = (() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  })();
 
   const initialStart = fromParam || "";
   const initialEnd = toParam || "";
@@ -117,8 +134,17 @@ export function MapViewClient() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showToast, setShowToast] = useState({ show: false, message: "" });
   const [structures, setStructures] = useState<Structure[]>([]);
+  const [allStructures, setAllStructures] = useState<Structure[]>([]);
   const [selectedStructure, setSelectedStructure] = useState<Structure | null>(null);
+  const [hoveredStructureId, setHoveredStructureId] = useState<string | null>(null);
   const [activePanelIndex, setActivePanelIndex] = useState(0);
+
+  // Close other modals when cart opens to prevent modal stacking and ensure returning to clean map on close
+  useEffect(() => {
+    if (isCartOpen) {
+      setSelectedStructure(null);
+    }
+  }, [isCartOpen]);
 
   // Derivations moved up for reliable scoping
   const currentActivePanel = selectedStructure?.panels?.[activePanelIndex];
@@ -131,8 +157,7 @@ export function MapViewClient() {
   };
 
   const getDisplayPrice = (dailyPrice: number) => {
-    const basePrice = numberOfDays > 0 ? dailyPrice * numberOfDays : dailyPrice;
-    return Math.round(basePrice * 1.18 * 100) / 100; // Round to 2 decimals
+    return Math.round(dailyPrice * 1.18 * 100) / 100; // Round to 2 decimals
   };
 
   const calculateDisplayPrice = (structure: Structure) => {
@@ -158,6 +183,7 @@ export function MapViewClient() {
     mediaType: "",
     minPrice: null as number | null,
     maxPrice: null as number | null,
+    poi: null as { category: string; maxDistance: number } | null,
   });
 
   const [activeFilters, setActiveFilters] = useState({
@@ -165,6 +191,7 @@ export function MapViewClient() {
     mediaType: "",
     minPrice: null as number | null,
     maxPrice: null as number | null,
+    poi: null as { category: string; maxDistance: number } | null,
   });
 
   const [filterOptions, setFilterOptions] = useState({
@@ -211,6 +238,24 @@ export function MapViewClient() {
   const listScrollRef = useRef<HTMLDivElement>(null);
   const currentBoundsRef = useRef<any>(null);
 
+  const filteredStructures = useMemo(() => {
+    if (!activeFilters.poi || !activeFilters.poi.category) return allStructures;
+    const { category, maxDistance } = activeFilters.poi;
+    return allStructures.filter(structure => {
+      const pois = structure.poi_details?.por_categoria?.[category];
+      if (!pois || !Array.isArray(pois)) return false;
+      return pois.some(poi => poi.distancia_metros <= maxDistance);
+    });
+  }, [allStructures, activeFilters.poi]);
+
+  useEffect(() => {
+    setTotalCount(filteredStructures.length);
+    setCurrentPage(0);
+    setStructures(filteredStructures.slice(0, PAGE_SIZE));
+    setHasMore(PAGE_SIZE < filteredStructures.length);
+    if (listScrollRef.current) listScrollRef.current.scrollTop = 0;
+  }, [filteredStructures]);
+
 
   const applyFilters = async () => {
     setActiveFilters(filters);
@@ -226,7 +271,13 @@ export function MapViewClient() {
   };
 
   const resetFilters = () => {
-    const empty = { audience: null, mediaType: "", minPrice: null, maxPrice: null };
+    const empty = {
+      audience: null,
+      mediaType: "",
+      minPrice: null,
+      maxPrice: null,
+      poi: null,
+    };
     setFilters(empty);
     setActiveFilters(empty);
     if (mapRef.current) {
@@ -294,6 +345,80 @@ export function MapViewClient() {
         </Select>
       </div>
 
+      <div className="space-y-4">
+        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Puntos de Interés Cercanos (POI)</label>
+        <Select
+          value={filters.poi?.category || ""}
+          onChange={(e) => {
+            const cat = e.target.value;
+            if (!cat) {
+              setFilters({ ...filters, poi: null });
+            } else {
+              setFilters({
+                ...filters,
+                poi: {
+                  category: cat,
+                  maxDistance: filters.poi?.maxDistance || 300
+                }
+              });
+            }
+          }}
+          className="bg-muted/50 rounded-[calc(var(--radius)*0.6875)] px-5 py-4 font-bold border-border"
+        >
+          <option value="">Cualquier punto de interés</option>
+          <option value="Banco">Banco / ATM</option>
+          <option value="Centro Comercial">Centro Comercial</option>
+          <option value="Universidad">Universidad</option>
+          <option value="Colegio">Colegio / Inicial</option>
+          <option value="Gimnasio / Deporte">Gimnasio / Deporte</option>
+          <option value="Hospital / Clínica">Hospital / Clínica</option>
+          <option value="Aeropuerto">Aeropuerto</option>
+          <option value="Mercado / Supermercado">Supermercado / Mercado</option>
+          <option value="Grifo">Grifo / Gasolinera</option>
+          <option value="Showroom de Carros">Showroom de Carros</option>
+          <option value="Carwash">Car Wash</option>
+          <option value="Botica / Farmacia">Botica / Farmacia</option>
+          <option value="Restaurantes / Cafés">Restaurantes / Bares</option>
+          <option value="Parque">Parque</option>
+          <option value="Cultura / Atracción">Centro Cultural / Atracción</option>
+          <option value="Telecomunicaciones">Telecomunicaciones</option>
+        </Select>
+      </div>
+
+      {filters.poi?.category && (
+        <div className="space-y-4 animate-fade-in">
+          <div className="flex justify-between items-center">
+            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Radio de Búsqueda</label>
+            <span className="text-xs font-extrabold text-primary">{filters.poi.maxDistance} metros</span>
+          </div>
+          <div className="space-y-2">
+            <input
+              type="range"
+              min="100"
+              max="500"
+              step="200"
+              value={filters.poi.maxDistance}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setFilters({
+                  ...filters,
+                  poi: {
+                    category: filters.poi!.category,
+                    maxDistance: val
+                  }
+                });
+              }}
+              className="w-full accent-primary bg-muted rounded-lg h-2 cursor-pointer appearance-none"
+            />
+            <div className="flex justify-between text-[10px] font-extrabold text-muted-foreground/60 px-1">
+              <span>100m</span>
+              <span>300m</span>
+              <span>500m</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Button
         onClick={applyFilters}
         size="xl"
@@ -310,11 +435,31 @@ export function MapViewClient() {
       setSuggestions([]);
       return;
     }
+
+    const STREET_KEYWORDS = [
+      'avenida', 'av.', 'av ', 'calle', 'jiron', 'jirón', 'jr.', 'jr ', 
+      'pasaje', 'psj', 'carretera', 'panamericana', 'ovalo', 'óvalo', 
+      'autopista', 'vía', 'via', 'esquina', 'cruce', 'cdra', 'cuadra', 'enlace'
+    ];
+    const isStreet = STREET_KEYWORDS.some(k => query.toLowerCase().includes(k));
+    const types = isStreet 
+      ? 'district,place,locality,neighborhood,address' 
+      : 'district,place,locality';
+
     try {
-      const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=place,locality,region,address`);
+      const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=${types}`);
       const data = await res.json();
       if (data.features) {
-        setSuggestions(data.features);
+        let sortedFeatures = [...data.features];
+        // Solo priorizar distritos si no es búsqueda de una calle/avenida
+        if (!isStreet) {
+          sortedFeatures.sort((a: any, b: any) => {
+            const aIsDistrictOrLocality = a.place_type?.includes('district') || a.place_type?.includes('locality') || a.place_type?.includes('place') ? 1 : 0;
+            const bIsDistrictOrLocality = b.place_type?.includes('district') || b.place_type?.includes('locality') || b.place_type?.includes('place') ? 1 : 0;
+            return bIsDistrictOrLocality - aIsDistrictOrLocality;
+          });
+        }
+        setSuggestions(sortedFeatures);
         setShowSuggestions(true);
       }
     } catch (err) {
@@ -332,42 +477,28 @@ export function MapViewClient() {
   const mapRef = useRef<any>(null);
 
   // Paginated fetch with two-layer cache (memory + localStorage)
-  const fetchStructuresInBounds = useCallback(async (bounds: any, page = 0) => {
-
+  const fetchStructuresInBounds = useCallback(async (bounds: any) => {
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
-    const from = page * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
 
     // ── Cache check ────────────────────────────────────────────────────────
-    const cached = getCached(sw.lat, sw.lng, ne.lat, ne.lng, page, activeFilters);
+    const cached = getCached(sw.lat, sw.lng, ne.lat, ne.lng, 0, activeFilters);
     if (cached) {
-      const total = cached.count;
-      setTotalCount(total);
-      setCurrentPage(page);
-      setHasMore(from + cached.data.length < total);
-      if (page === 0) {
-        setStructures(cached.data as Structure[]);
-        if (listScrollRef.current) listScrollRef.current.scrollTop = 0;
-      } else {
-        setStructures(prev => [...prev, ...(cached.data as Structure[])]);
-      }
-      // Still mark loading as done in case it was triggered mid-flight
+      const fullData = cached.data as Structure[];
+      setAllStructures(fullData);
       setIsLoading(false);
       setIsLoadingMore(false);
       return; // ✅ cache hit — no network request
     }
 
     // ── Cache miss: fetch from Supabase ────────────────────────────────────
-    if (page === 0) setIsLoading(true);
-    else setIsLoadingMore(true);
+    setIsLoading(true);
 
     try {
       const isPanelFiltering = activeFilters.audience || activeFilters.mediaType || activeFilters.minPrice || activeFilters.maxPrice;
       const relation = isPanelFiltering ? "panels!inner" : "panels";
 
       let data: any = null;
-      let count: number | null = null;
       let error: any = null;
       const retries = 3;
 
@@ -375,14 +506,14 @@ export function MapViewClient() {
         let query = supabase
           .from("structures")
           .select(
-            `id, code, address, district, reference, latitude, longitude,
-            ${relation} (id, panel_code, face, media_type, format, daily_price, photo_url, audience, width, height, traffic_view)`,
-            { count: "exact" }
+            `id, code, address, district, reference, latitude, longitude, poi_tags, poi_details,
+            ${relation} (id, panel_code, face, media_type, format, daily_price, photo_url, audience, width, height, traffic_view, resolution_width, resolution_height, slot_duration_seconds, max_slots, operating_start_time, operating_end_time)`
           )
           .gte("latitude", sw.lat)
           .lte("latitude", ne.lat)
           .gte("longitude", sw.lng)
-          .lte("longitude", ne.lng);
+          .lte("longitude", ne.lng)
+          .limit(300); // Fetch all structures in the bounds (up to 300)
 
         if (activeFilters.audience) {
           query = query.gte("panels.audience", activeFilters.audience);
@@ -397,15 +528,13 @@ export function MapViewClient() {
           query = query.lte("panels.daily_price", activeFilters.maxPrice);
         }
 
-        const result = await query.range(from, to);
+        const result = await query;
         error = result.error;
         data = result.data;
-        count = result.count;
 
         if (!error) break; // Success
 
         if (i < retries - 1) {
-          // Wait before retrying (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
         }
       }
@@ -413,28 +542,15 @@ export function MapViewClient() {
       if (error) throw error;
 
       if (data) {
-        const total = count ?? 0;
+        const fullData = data as Structure[];
+        
+        // Write to cache
+        setCached(sw.lat, sw.lng, ne.lat, ne.lng, 0, fullData, fullData.length, activeFilters);
 
-        // Write to cache before updating state
-        setCached(sw.lat, sw.lng, ne.lat, ne.lng, page, data, total, activeFilters);
-
-        setTotalCount(total);
-        setCurrentPage(page);
-        setHasMore(from + data.length < total);
-        if (page === 0) {
-          setStructures(data as Structure[]);
-          if (listScrollRef.current) listScrollRef.current.scrollTop = 0;
-        } else {
-          setStructures(prev => [...prev, ...(data as Structure[])]);
-        }
+        setAllStructures(fullData);
       }
     } catch (err: any) {
       console.warn("Detailed error fetching structures after retries:", err);
-      // Log more details if it's a Supabase error
-      if (err?.message) console.warn("Error message:", err.message);
-      if (err?.details) console.warn("Error details:", err.details);
-      if (err?.hint) console.warn("Error hint:", err.hint);
-
       triggerToast("Error al cargar los paneles. Por favor intenta de nuevo.");
     } finally {
       setIsLoading(false);
@@ -444,22 +560,71 @@ export function MapViewClient() {
 
   useEffect(() => {
     const locationQuery = searchParams?.get("location");
+    const latParam = searchParams?.get("lat");
+    const lngParam = searchParams?.get("lng");
+
     if (locationQuery) {
       setSearchQuery(locationQuery);
-      fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationQuery)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=place,locality,region,address`)
+
+      // Si las coordenadas exactas ya vienen en la URL, las usamos directamente sin re-geocodificar
+      if (latParam && lngParam) {
+        const lat = Number(latParam);
+        const lng = Number(lngParam);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          setViewState(prev => ({
+            ...prev,
+            longitude: lng,
+            latitude: lat,
+            zoom: 14,
+            transitionDuration: 1000
+          }));
+
+          // Esperar a que el mapa se estabilice antes de cargar los paneles en el área
+          setTimeout(() => {
+            if (mapRef.current) {
+              const bounds = mapRef.current.getMap().getBounds();
+              if (bounds) fetchStructuresInBounds(bounds);
+            }
+          }, 1200);
+          return;
+        }
+      }
+
+      const STREET_KEYWORDS = [
+        'avenida', 'av.', 'av ', 'calle', 'jiron', 'jirón', 'jr.', 'jr ', 
+        'pasaje', 'psj', 'carretera', 'panamericana', 'ovalo', 'óvalo', 
+        'autopista', 'vía', 'via', 'esquina', 'cruce', 'cdra', 'cuadra', 'enlace'
+      ];
+      const isStreet = STREET_KEYWORDS.some(k => locationQuery.toLowerCase().includes(k));
+      const types = isStreet 
+        ? 'district,place,locality,neighborhood,address' 
+        : 'district,place,locality';
+
+      // De lo contrario, geocodificamos la consulta de texto como fallback
+      fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationQuery)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=${types}`)
         .then(res => res.json())
         .then(data => {
           if (data.features && data.features.length > 0) {
-            const [lng, lat] = data.features[0].center;
+            // Heurística de selección: si NO es calle, preferir distritos oficiales o ciudades
+            const bestFeature = !isStreet
+              ? (data.features.find((f: any) => 
+                  f.place_type?.includes('district') || f.place_type?.includes('place')
+                ) || data.features.find((f: any) =>
+                  f.place_type?.includes('locality') || f.place_type?.includes('neighborhood')
+                ) || data.features[0])
+              : data.features[0]; // Si es calle/avenida, preferimos la primera coincidencia que es la dirección exacta
+
+            console.log('[geocoding] fallbacked best feature on load:', bestFeature.place_name, bestFeature.place_type);
+            const [lng, lat] = bestFeature.center;
             setViewState(prev => ({
               ...prev,
               longitude: lng,
               latitude: lat,
-              zoom: 13,
+              zoom: 14,
               transitionDuration: 1000
             }));
 
-            // Wait for map to settle before fetching
+            // Esperar a que el mapa se estabilice antes de cargar los paneles en el área
             setTimeout(() => {
               if (mapRef.current) {
                 const bounds = mapRef.current.getMap().getBounds();
@@ -470,7 +635,7 @@ export function MapViewClient() {
         })
         .catch(console.error);
     } else {
-      // Initial fetch for default location
+      // Carga inicial en la ubicación por defecto
       setTimeout(() => {
         if (mapRef.current) {
           const bounds = mapRef.current.getMap().getBounds();
@@ -485,15 +650,19 @@ export function MapViewClient() {
     setActiveStartDate(startDate);
     setActiveEndDate(endDate);
 
-    // 2. Sync current state to URL
+    // 2. Prepare URL params
     const params = new URLSearchParams(searchParams?.toString());
     params.set("location", searchQuery);
     params.set("from", startDate);
     params.set("to", endDate);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
 
     // 3. Handle location update
     if (pendingLocation) {
+      // Si seleccionaron una sugerencia del buscador, usamos esas coordenadas exactas
+      params.set("lat", pendingLocation.lat.toString());
+      params.set("lng", pendingLocation.lng.toString());
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+
       setViewState(prev => ({
         ...prev,
         longitude: pendingLocation.lng,
@@ -503,7 +672,7 @@ export function MapViewClient() {
       }));
       setPendingLocation(null);
 
-      // Fetch structures in the new location
+      // Cargar paneles en la nueva ubicación
       setTimeout(() => {
         if (mapRef.current) {
           fetchStructuresInBounds(mapRef.current.getMap().getBounds());
@@ -518,11 +687,36 @@ export function MapViewClient() {
           finalQuery = `${searchQuery}, Peru`;
         }
 
-        const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(finalQuery)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=place,locality,region,address`);
+        const STREET_KEYWORDS = [
+          'avenida', 'av.', 'av ', 'calle', 'jiron', 'jirón', 'jr.', 'jr ', 
+          'pasaje', 'psj', 'carretera', 'panamericana', 'ovalo', 'óvalo', 
+          'autopista', 'vía', 'via', 'esquina', 'cruce', 'cdra', 'cuadra', 'enlace'
+        ];
+        const isStreet = STREET_KEYWORDS.some(k => searchQuery.toLowerCase().includes(k));
+        const types = isStreet 
+          ? 'district,place,locality,neighborhood,address' 
+          : 'district,place,locality';
+
+        const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(finalQuery)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=${types}`);
         const data = await res.json();
         if (data.features && data.features.length > 0) {
-          const first = data.features[0];
-          const [lng, lat] = first.center;
+          // Heurística de selección: si NO es calle, preferir distritos oficiales o ciudades
+          const bestFeature = !isStreet
+            ? (data.features.find((f: any) => 
+                f.place_type?.includes('district') || f.place_type?.includes('place')
+              ) || data.features.find((f: any) =>
+                f.place_type?.includes('locality') || f.place_type?.includes('neighborhood')
+              ) || data.features[0])
+            : data.features[0]; // Si es calle/avenida, preferimos la primera coincidencia que es la dirección exacta
+
+          console.log('[geocoding] executed best feature match:', bestFeature.place_name, bestFeature.place_type);
+          const [lng, lat] = bestFeature.center;
+
+          // Guardar las nuevas coordenadas geocodificadas en la URL para evitar rebotes
+          params.set("lat", lat.toString());
+          params.set("lng", lng.toString());
+          router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+
           setViewState(prev => ({
             ...prev,
             longitude: lng,
@@ -541,7 +735,11 @@ export function MapViewClient() {
         console.error(err);
       }
     } else {
-      // Just refresh bounds if no specific location change but dates might have changed
+      // Si no hay cambio de ubicación pero pudieron cambiar las fechas
+      params.delete("lat");
+      params.delete("lng");
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+
       if (mapRef.current) {
         fetchStructuresInBounds(mapRef.current.getMap().getBounds());
       }
@@ -564,15 +762,27 @@ export function MapViewClient() {
     // Debounce: wait 350ms after the user stops panning/zooming
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
-      fetchStructuresInBounds(bounds, 0);
+      fetchStructuresInBounds(bounds);
     }, 350);
   };
 
-  // Infinite scroll handler — appends the next page
+  // Infinite scroll handler — appends the next page in the frontend
   const handleLoadMore = useCallback(() => {
-    if (isLoadingMore || !hasMore || !currentBoundsRef.current) return;
-    fetchStructuresInBounds(currentBoundsRef.current, currentPage + 1);
-  }, [isLoadingMore, hasMore, currentPage, fetchStructuresInBounds]);
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+
+    setTimeout(() => {
+      const nextPage = currentPage + 1;
+      const from = nextPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE;
+      const nextChunk = filteredStructures.slice(from, to);
+
+      setStructures(prev => [...prev, ...nextChunk]);
+      setCurrentPage(nextPage);
+      setHasMore(to < filteredStructures.length);
+      setIsLoadingMore(false);
+    }, 200); // Small delay for nice visual feedback
+  }, [isLoadingMore, hasMore, currentPage, filteredStructures]);
 
   // Helpers moved to top for visibility
 
@@ -663,16 +873,16 @@ export function MapViewClient() {
           />
         }
         right={
-          <div className="hidden md:flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <Button
               variant="outline"
               size="lg"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={cn(
-                "hidden md:flex px-4 flex items-center gap-2 text-sm font-medium",
+                "hidden md:flex px-4 items-center gap-2 text-sm font-medium",
                 isFilterOpen
                   ? "bg-foreground text-background border-foreground shadow-md hover:bg-foreground/90"
-                  : "bg-card/60 backdrop-blur-md border-border text-foreground"
+                  : "bg-card/60 backdrop-blur-md border-border text-foreground hover:border-primary cursor-pointer"
               )}
             >
               <Filter size={18} />
@@ -781,13 +991,13 @@ export function MapViewClient() {
               </div>
             ) : (
               <>
-                {structures.map((s) => (
+                {structures.map((s, idx) => (
                   <Card
                     key={s.id}
-                    className={`cursor-pointer transition-all flex flex-col h-auto overflow-hidden
+                    className={`cursor-pointer transition-all flex flex-col h-auto overflow-hidden group
                     ${selectedStructure?.id === s.id
                         ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/35"
-                        : "hover:border-muted-foreground/30 hover:bg-muted/10"}`}
+                        : "hover:border-primary hover:bg-muted/10"}`}
                     onClick={() => {
                       handleSelectStructure(s);
                       setActiveTab("map");
@@ -795,7 +1005,14 @@ export function MapViewClient() {
                   >
                     <div className="w-full h-[180px] relative bg-muted shrink-0 border-b border-border/10">
                       {s.panels?.[0]?.photo_url ? (
-                        <Image src={s.panels[0].photo_url} alt={s.address} fill className="object-cover" />
+                        <Image
+                          src={s.panels[0].photo_url}
+                          alt={s.address}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 480px"
+                          priority={idx < 2}
+                        />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-muted">
                           <MapIcon size={24} className="opacity-20" />
@@ -816,13 +1033,12 @@ export function MapViewClient() {
 
                       <div className="flex justify-between items-end pt-2 border-t border-border/50">
                         <div>
-                          <p className="text-[10px] leading-none mb-1 text-muted-foreground">Desde</p>
                           <p className="font-bold text-sm leading-none text-foreground">
                             S/ {calculateDisplayPrice(s).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            <span className="text-[10px] font-normal text-muted-foreground">{numberOfDays > 0 ? "" : "/día"}</span>
+                            <span className="text-[10px] font-normal text-muted-foreground"> por día</span>
                           </p>
                         </div>
-                        <Button size="sm" className="px-3 py-1.5 text-xs font-bold whitespace-nowrap shadow-sm">
+                        <Button size="sm" className="px-3 py-1.5 text-xs font-bold whitespace-nowrap shadow-sm cursor-pointer group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                           Ver
                         </Button>
                       </div>
@@ -870,7 +1086,7 @@ export function MapViewClient() {
               const bounds = e.target.getBounds();
               if (bounds) {
                 currentBoundsRef.current = bounds;
-                fetchStructuresInBounds(bounds, 0);
+                fetchStructuresInBounds(bounds);
               }
             }}
             onIdle={(e) => {
@@ -884,7 +1100,7 @@ export function MapViewClient() {
             mapboxAccessToken={MAPBOX_TOKEN}
             attributionControl={false}
           >
-            {structures.map((structure) => (
+            {filteredStructures.map((structure) => (
               <Marker
                 key={structure.id}
                 longitude={structure.longitude}
@@ -893,17 +1109,26 @@ export function MapViewClient() {
                   e.originalEvent.stopPropagation();
                   handleSelectStructure(structure);
                 }}
+                style={{
+                  zIndex: hoveredStructureId === structure.id
+                    ? 50
+                    : selectedStructure?.id === structure.id
+                    ? 40
+                    : 10
+                }}
               >
                 <div
                   className={`flex items-center justify-center cursor-pointer transition-all duration-300 group
                 ${selectedStructure?.id === structure.id ? "scale-125 z-10" : "hover:scale-110 z-0"}`}
+                  onMouseEnter={() => setHoveredStructureId(structure.id)}
+                  onMouseLeave={() => setHoveredStructureId(null)}
                 >
                   <div className={`px-3 py-1.5 rounded-full shadow-md font-bold text-sm whitespace-nowrap transition-all duration-300
                   ${selectedStructure?.id === structure.id
                       ? "bg-primary text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border-none"
                       : "bg-white text-brand-dark group-hover:bg-primary group-hover:text-white group-hover:shadow-[0_0_15px_rgba(37,99,235,0.4)] group-hover:border-none"}
                 `}>
-                    S/ {calculateDisplayPrice(structure).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    S/ {calculateDisplayPrice(structure).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] font-normal opacity-90 ml-0.5"></span>
                   </div>
 
                 </div>
@@ -991,7 +1216,10 @@ export function MapViewClient() {
                 addCartItem(item);
                 triggerToast(`¡Panel ${item.panelCode} añadido!`);
               }}
-              onOpenCart={() => setIsCartOpen(true)}
+              onOpenCart={() => {
+                setIsCartOpen(true);
+                setSelectedStructure(null);
+              }}
               getDisplayPrice={getDisplayPrice}
             />
           )}
@@ -1078,7 +1306,10 @@ export function MapViewClient() {
             </button>
 
             <button
-              onClick={() => setIsCartOpen(true)}
+              onClick={() => {
+                setIsCartOpen(true);
+                setSelectedStructure(null);
+              }}
               className="flex flex-col items-center justify-center w-16 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors relative"
             >
               <ShoppingCart size={20} />
@@ -1089,6 +1320,9 @@ export function MapViewClient() {
                 </span>
               )}
             </button>
+
+            {/* Mobile Profile / Auth Button */}
+            <AuthButton mode="mobile" />
           </div>
         </div>
       )}
@@ -1302,44 +1536,65 @@ export function MapViewClient() {
                     </div>
                   </motion.div>
                 ))}
+
+                {/* Promotional Card to Encourage Adding More Panels */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col rounded-xl border border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-sm hover:shadow-md transition-all justify-between items-center text-center gap-4 min-h-[220px] overflow-hidden group hover:border-primary cursor-pointer"
+                  onClick={() => setIsCartOpen(false)}
+                >
+                  <div className="relative mt-2">
+                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 group-hover:scale-175 transition-transform animate-pulse" />
+                    <div className="relative w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20 group-hover:scale-110 transition-transform duration-300">
+                      <PlusCircle size={24} className="text-primary" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 z-10">
+                    <p className="font-bold text-sm text-foreground">¿Quieres multiplicar tu alcance?</p>
+                    <p className="text-xs text-muted-foreground max-w-[260px] leading-relaxed">
+                      El <span className="text-primary font-bold">87% de las campañas exitosas</span> combinan más de 3 paneles. ¡Agrega otra ubicación y potencia tu impacto!
+                    </p>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full bg-background border-primary/30 text-primary hover:bg-primary/5 hover:border-primary transition-all font-bold text-xs uppercase tracking-wider py-4 rounded-xl shadow-sm"
+                  >
+                    + Añadir más Paneles
+                  </Button>
+                </motion.div>
               </div>
             )}
           </div>
 
           {/* MOBILE BOTTOM BAR (Only visible on small screens when cart has items) */}
           {cartItems.length > 0 && !checkoutSuccess && (
-            <div className="md:hidden p-4 border-t border-border bg-background shrink-0 flex flex-col gap-3 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-10 pb-safe">
-              <div className="flex justify-between items-end">
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-0.5">Total (Inc. IGV)</span>
-                  <div className="flex items-baseline gap-0.5">
-                    <span className="text-xl font-black text-foreground tracking-tighter">
-                      S/ {Math.floor(cartTotal).toLocaleString()}
-                    </span>
-                    <span className="text-sm font-black text-foreground opacity-60">
-                      .{(cartTotal % 1).toFixed(2).split('.')[1]}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  disabled={isCheckingOut}
-                  size="lg"
-                  onClick={() => {
-                    setIsCheckingOut(true);
-                    router.push('/checkout');
-                    setTimeout(() => setIsCheckingOut(false), 1000);
-                  }}
-                  className="flex-1 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md ml-4"
-                >
-                  {isCheckingOut ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <>
-                      Pagar <ChevronRight size={14} />
-                    </>
-                  )}
-                </Button>
-              </div>
+            <div className="md:hidden p-4 border-t border-border bg-background shrink-0 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-10 pb-safe">
+              <Button
+                disabled={isCheckingOut}
+                size="xl"
+                onClick={() => {
+                  setIsCheckingOut(true);
+                  router.push('/checkout');
+                  setTimeout(() => setIsCheckingOut(false), 1000);
+                }}
+                className="w-full font-black text-xs uppercase tracking-[0.15em] flex items-center justify-center gap-2 shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+              >
+                {isCheckingOut ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    <span>Procesando...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Proceder al Registro y Pago</span>
+                    <ChevronRight size={16} />
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </div>
@@ -1459,6 +1714,7 @@ export function MapViewClient() {
               size="sm"
               onClick={() => {
                 setIsCartOpen(true);
+                setSelectedStructure(null);
                 setShowToast({ show: false, message: "" });
               }}
               className="bg-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/20 hover:text-white border-white/10"
@@ -1479,7 +1735,10 @@ export function MapViewClient() {
             className="hidden md:flex fixed bottom-0 left-1/2 z-[100]"
           >
             <Button
-              onClick={() => setIsCartOpen(true)}
+              onClick={() => {
+                setIsCartOpen(true);
+                setSelectedStructure(null);
+              }}
               size="2xl"
               className="flex items-center gap-4 shadow-[0_20px_50px_-10px_hsl(var(--primary)/0.7)] group"
             >
@@ -1495,7 +1754,7 @@ export function MapViewClient() {
         )}
       </AnimatePresence>
 
-      <style jsx global>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 5px;
         }

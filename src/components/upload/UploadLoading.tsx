@@ -14,10 +14,10 @@ const STAGE_CONFIG = {
   processing: {
     icon: Cpu,
     title: 'Optimizando',
-    subtitle: 'Tu dispositivo está procesando el material.',
-    note: 'Esto puede tardar unos segundos.',
-    badge: 'Procesando en tu dispositivo',
-    spinLabel: 'En progreso',
+    subtitle: 'El servidor está procesando y adaptando el material.',
+    note: '¡Subida completada! Ya puedes cerrar esta pestaña o salir de la app de forma segura. El servidor terminará el procesamiento en segundo plano.',
+    badge: 'Procesamiento en Servidor (AI-First)',
+    spinLabel: 'Adaptando',
   },
   uploading: {
     icon: FileVideo,

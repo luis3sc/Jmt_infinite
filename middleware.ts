@@ -31,9 +31,38 @@ export async function middleware(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  let authError = null
+
+  try {
+    const {
+      data: { user: serverUser },
+      error,
+    } = await supabase.auth.getUser()
+    
+    if (error) {
+      authError = error
+    } else {
+      user = serverUser
+    }
+  } catch (err: any) {
+    console.error('Middleware auth check error:', err)
+  }
+
+  // Si hay un error de refresh token (p. ej. token inválido o expirado por borrado de base de datos)
+  // eliminamos las cookies stale para evitar bucles infinitos de redirección o advertencias continuas en consola.
+  if (authError && (
+    authError.message.toLowerCase().includes('refresh token') ||
+    authError.status === 400 ||
+    authError.status === 401
+  )) {
+    const cookieNames = request.cookies.getAll().map(c => c.name)
+    cookieNames.forEach(name => {
+      if (name.startsWith('sb-') || name.includes('auth-token')) {
+        supabaseResponse.cookies.delete(name)
+      }
+    })
+  }
 
   const pathname = request.nextUrl.pathname
 

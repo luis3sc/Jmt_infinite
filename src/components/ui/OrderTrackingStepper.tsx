@@ -289,29 +289,41 @@ function HorizontalStepper({
   isRejected: boolean
 }) {
   return (
-    <div className="flex items-start w-full">
+    <div className="relative flex items-start w-full pt-1 px-1">
       {steps.map((step, i) => {
         const state = getStepState(step.id, activeStep, isRejected)
         const { label, sublabel } = getStepText(step.id, state)
         const isLast = i === steps.length - 1
 
         return (
-          <div key={step.id} className="flex items-start flex-1 min-w-0">
+          <div key={step.id} className="relative flex flex-col items-center flex-1 min-w-0">
+            {/* Connector Line behind nodes (starts center of current node, spans 100% width to next node) */}
+            {!isLast && (
+              <div
+                className="absolute top-5 left-[50%] w-full h-[2.5px] -z-10 transition-colors duration-500"
+                style={{
+                  background: step.id < activeStep
+                    ? 'hsl(var(--primary))'
+                    : 'hsl(var(--border) / 0.8)',
+                }}
+              />
+            )}
+
             {/* Step block */}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
-              className="flex flex-col items-center gap-2 flex-1 min-w-0"
+              className="flex flex-col items-center gap-1.5 w-full min-w-0 z-10"
             >
               <StepNode step={step} state={state} />
               
               <p
                 className={cn(
-                  'text-xs font-bold text-center leading-tight transition-colors duration-300 px-1',
+                  'text-[10px] sm:text-xs font-bold text-center leading-tight transition-colors duration-300 px-1 select-none',
                   state === 'completed' || state === 'active'
-                    ? 'text-foreground'
-                    : 'text-muted-foreground/80',
+                    ? 'text-foreground font-extrabold'
+                    : 'text-muted-foreground/60',
                   state === 'rejected' && 'text-red-500'
                 )}
               >
@@ -320,37 +332,26 @@ function HorizontalStepper({
 
               <p
                 className={cn(
-                  'text-[10px] text-center leading-normal transition-colors duration-300 px-2 mt-0.5 hidden sm:block',
+                  'text-[9px] leading-normal transition-colors duration-300 px-2 mt-0.5 hidden lg:block select-none text-center',
                   state === 'active'
                     ? 'text-primary font-semibold'
-                    : 'text-muted-foreground/60'
+                    : 'text-muted-foreground/45'
                 )}
               >
                 {sublabel}
               </p>
 
               {state === 'active' && (
-                <span className="text-[9px] text-primary font-black uppercase tracking-wide bg-primary/10 px-1.5 py-0.5 rounded mt-1">
+                <span className="text-[8px] text-primary font-black uppercase tracking-wider bg-primary/10 px-1.5 py-0.5 rounded mt-0.5 select-none">
                   En curso
                 </span>
               )}
               {state === 'rejected' && (
-                <span className="text-[9px] text-red-500 font-black uppercase tracking-wide bg-red-500/10 px-1.5 py-0.5 rounded mt-1">
+                <span className="text-[8px] text-red-500 font-black uppercase tracking-wider bg-red-500/10 px-1.5 py-0.5 rounded mt-0.5 select-none">
                   Observado
                 </span>
               )}
             </motion.div>
-
-            {/* Connector */}
-            {!isLast && (
-              <div className="flex-1 h-[2.5px] mt-[18px] mx-1 transition-colors duration-500"
-                style={{
-                  background: step.id < activeStep
-                    ? 'hsl(var(--primary))'
-                    : 'hsl(var(--border) / 0.8)',
-                }}
-              />
-            )}
           </div>
         )
       })}

@@ -53,7 +53,16 @@ export async function signup(formData: FormData) {
   const { error } = await supabase.auth.signUp(data)
 
   if (error) {
-    return { error: error.message }
+    let friendlyMessage = error.message
+    if (
+      error.message.toLowerCase().includes('already registered') ||
+      error.message.toLowerCase().includes('user already registered') ||
+      error.message.toLowerCase().includes('database error saving new user') ||
+      error.message.toLowerCase().includes('duplicate key')
+    ) {
+      friendlyMessage = "Ya existe una cuenta con este correo. Por favor, verifica tus datos o utiliza la opción 'Olvidé mi contraseña'."
+    }
+    return { error: friendlyMessage }
   }
 
   revalidatePath('/', 'layout')

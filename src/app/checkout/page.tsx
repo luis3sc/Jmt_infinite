@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, CreditCard, Loader2, ChevronDown, ChevronUp, ShoppingCart, X, QrCode, CheckCircle2, Lock, User, Briefcase, Star, Building2, UserCircle, Heart, Share2 } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
@@ -39,6 +39,8 @@ export default function CheckoutPage() {
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [profileExists, setProfileExists] = useState(false)
   const [userType, setUserType] = useState<'individual' | 'entrepreneur' | 'influencer'>('individual')
+
+  const isSubmittingRef = useRef(false)
 
 
   // Prevent hydration errors and check for session
@@ -126,7 +128,8 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     if (e) e.preventDefault()
 
-    if (loading) return
+    if (loading || isSubmittingRef.current) return
+    isSubmittingRef.current = true
     setLoading(true)
 
     try {
@@ -206,9 +209,12 @@ export default function CheckoutPage() {
 
           } else if (
             signUpError?.message.toLowerCase().includes('already registered') ||
-            signUpError?.message.toLowerCase().includes('user already registered')
+            signUpError?.message.toLowerCase().includes('user already registered') ||
+            signUpError?.message.toLowerCase().includes('database error saving new user') ||
+            signUpError?.message.toLowerCase().includes('duplicate key')
           ) {
-            // El email ya existe con otra contraseña
+            // El email ya existe con otra contraseña (el error 'database error saving new user'
+            // es disparado por Supabase cuando el email ya existe debido a restricciones de unicidad)
             throw new Error(
               "Ya existe una cuenta con este correo. Verifica tu contraseña o " +
               "usa 'Olvidé mi contraseña' desde el botón de la barra superior."
@@ -256,6 +262,7 @@ export default function CheckoutPage() {
       console.error(err)
       alert(err.message || "Ocurrió un error durante el proceso. Por favor revisa los datos e intenta nuevamente.")
     } finally {
+      isSubmittingRef.current = false
       setLoading(false)
     }
   }
@@ -423,7 +430,30 @@ export default function CheckoutPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              <form id="checkout-form" onSubmit={handleSubmit} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <form
+                id="checkout-form"
+                onSubmit={handleSubmit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const target = e.target as HTMLElement;
+                    if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return;
+                    e.preventDefault();
+                    
+                    const form = e.currentTarget;
+                    const inputs = Array.from(
+                      form.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled])')
+                    ) as HTMLElement[];
+                    
+                    const index = inputs.indexOf(target);
+                    if (index > -1 && index < inputs.length - 1) {
+                      inputs[index + 1].focus();
+                    } else {
+                      handleSubmit(e);
+                    }
+                  }
+                }}
+                className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500"
+              >
                 {user && (
                   <div className="bg-primary/10 border border-primary/20 rounded-[calc(var(--radius)*0.75)] p-4 flex items-center gap-3 mb-2">
                     <CheckCircle2 size={20} className="text-primary" />
@@ -470,17 +500,24 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* Email */}
-                <div>
+                <div className="pt-2">
                   <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
                     Correo Electrónico
                   </label>
                   <Input
+                    id="checkout-email"
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={!!user}
                     className="w-full"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        document.getElementById(user ? 'checkout-doc-val' : 'checkout-password')?.focus()
+                      }
+                    }}
                   />
                 </div>
 
@@ -491,11 +528,18 @@ export default function CheckoutPage() {
                       Contraseña (para crear o acceder a tu cuenta)
                     </label>
                     <Input
+                      id="checkout-password"
                       type="password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          document.getElementById('checkout-doc-val')?.focus()
+                        }
+                      }}
                     />
                   </div>
                 )}
@@ -550,11 +594,18 @@ export default function CheckoutPage() {
                       {receiptType === 'factura' ? 'Número de RUC' : `Número de ${docType}`}
                     </label>
                     <Input
-                      type="text"
+                      id="checkout-doc-val"
+                      type={docType === 'DNI' || docType === 'RUC' ? 'number' : 'text'}
                       required
                       value={docNumber}
                       onChange={(e) => setDocNumber(e.target.value)}
                       className="w-full"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          document.getElementById('checkout-fullName')?.focus()
+                        }
+                      }}
                     />
                   </div>
                 </div>
@@ -565,11 +616,18 @@ export default function CheckoutPage() {
                     {receiptType === 'factura' ? 'Razón Social' : 'Nombres y Apellidos'}
                   </label>
                   <Input
+                    id="checkout-fullName"
                     type="text"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        document.getElementById('checkout-phone')?.focus()
+                      }
+                    }}
                   />
                 </div>
 
@@ -705,9 +763,18 @@ export default function CheckoutPage() {
                     forceDialCode={true}
                     charAfterDialCode=""
                     inputProps={{
+                      id: 'checkout-phone-val',
                       placeholder: '999999999',
                       required: true,
                       maxLength: maxPhoneLength,
+                      type: 'tel',
+                      inputMode: 'numeric',
+                      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleProceedToPayment()
+                        }
+                      }
                     }}
                   />
                 </div>
@@ -772,7 +839,8 @@ export default function CheckoutPage() {
               type="button"
               onClick={handleProceedToPayment}
               disabled={loading || cartItems.length === 0}
-              className="w-full py-4 h-auto rounded-[calc(var(--radius)*0.875)] font-black text-base uppercase tracking-widest transition-all shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.98] flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              size="xl"
+              className="w-full font-black text-xs uppercase tracking-[0.15em] shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex justify-center items-center gap-3 disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -797,27 +865,19 @@ export default function CheckoutPage() {
         </div>
 
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-2xl border-t border-border z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-          <div className="px-5 py-3 max-w-md mx-auto flex items-center justify-between gap-3">
-            <div className="flex flex-col justify-center min-w-0">
-              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">Total a pagar</span>
-              <div className="flex items-baseline gap-0.5 text-xl font-black text-primary tracking-tighter leading-none">
-                <span className="text-xs mr-0.5 font-bold">S/</span>
-                <span>{Number(cartTotal.toFixed(2).split('.')[0]).toLocaleString()}</span>
-                <span className="text-xs opacity-80">.{cartTotal.toFixed(2).split('.')[1]}</span>
-              </div>
-            </div>
-
+          <div className="px-5 py-3.5 max-w-md mx-auto">
             <Button
               type="button"
               onClick={handleProceedToPayment}
               disabled={loading || cartItems.length === 0}
-              className="shrink-0 h-11 min-w-[160px] px-6 text-[11px] font-black uppercase tracking-[0.15em] shadow-[0_8px_20px_-5px_hsl(var(--primary)/0.4)] active:scale-[0.96] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              size="xl"
+              className="w-full font-black text-xs uppercase tracking-[0.15em] shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex items-center justify-center gap-2"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={16} />
               ) : (
                 <>
-                  <span>Pagar</span>
+                  <span>Proceder a Pagar</span>
                   <ArrowRight size={14} />
                 </>
               )}

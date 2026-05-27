@@ -10,6 +10,7 @@ import { addDays } from "date-fns";
 export function SearchForm() {
   const router = useRouter();
   const [location, setLocation] = useState("");
+  const [selectedCoords, setSelectedCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -19,16 +20,38 @@ export function SearchForm() {
 
   const handleLocationChange = async (query: string) => {
     setLocation(query);
+    // Si el usuario modifica el texto manualmente, invalidamos las coordenadas seleccionadas previas
+    setSelectedCoords(null);
+    
     if (query.length < 3) {
       setSuggestions([]);
       return;
     }
 
+    const STREET_KEYWORDS = [
+      'avenida', 'av.', 'av ', 'calle', 'jiron', 'jirón', 'jr.', 'jr ', 
+      'pasaje', 'psj', 'carretera', 'panamericana', 'ovalo', 'óvalo', 
+      'autopista', 'vía', 'via', 'esquina', 'cruce', 'cdra', 'cuadra', 'enlace'
+    ];
+    const isStreet = STREET_KEYWORDS.some(k => query.toLowerCase().includes(k));
+    const types = isStreet 
+      ? 'district,place,locality,neighborhood,address' 
+      : 'district,place,locality';
+
     try {
-      const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=place,locality,region,address`);
+      const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=${types}`);
       const data = await res.json();
       if (data.features) {
-        setSuggestions(data.features);
+        let sortedFeatures = [...data.features];
+        // Solo ordenamos para priorizar distritos si NO es una búsqueda de calle específica
+        if (!isStreet) {
+          sortedFeatures.sort((a: any, b: any) => {
+            const aIsDistrictOrLocality = a.place_type?.includes('district') || a.place_type?.includes('locality') || a.place_type?.includes('place') ? 1 : 0;
+            const bIsDistrictOrLocality = b.place_type?.includes('district') || b.place_type?.includes('locality') || b.place_type?.includes('place') ? 1 : 0;
+            return bIsDistrictOrLocality - aIsDistrictOrLocality;
+          });
+        }
+        setSuggestions(sortedFeatures);
         setShowSuggestions(true);
       }
     } catch (err) {
@@ -40,6 +63,10 @@ export function SearchForm() {
     if (e) e.preventDefault();
     const query = new URLSearchParams();
     if (location) query.append("location", location);
+    if (selectedCoords) {
+      query.append("lat", selectedCoords.lat.toString());
+      query.append("lng", selectedCoords.lng.toString());
+    }
     if (dateFrom) query.append("from", dateFrom);
     if (dateTo) query.append("to", dateTo);
 
@@ -105,6 +132,12 @@ export function SearchForm() {
                     className="px-5 py-4 hover:bg-primary/[0.08] cursor-pointer flex items-center gap-4 transition-all duration-200 border-b border-border/50 last:border-0 group/item"
                     onClick={() => {
                       setLocation(suggestion.place_name);
+                      if (suggestion.center) {
+                        setSelectedCoords({
+                          lng: suggestion.center[0],
+                          lat: suggestion.center[1]
+                        });
+                      }
                       setShowSuggestions(false);
                     }}
                   >
