@@ -42,6 +42,7 @@ graph TD
     *   **Capa 1 (Memoria)**: Respuestas instantáneas y sin latencia al hacer paneos y zooms en el mapa durante la sesión activa.
     *   **Capa 2 (localStorage)**: Persistencia automática a través de recargas de página con un tiempo de vida (**TTL de 5 minutos**).
     *   **Optimización Geográfica**: Las coordenadas del Bounding Box se redondean a **3 decimales (~111 metros de precisión)**. Esto absorbe micropaneos del mapa y evita realizar peticiones redundantes a la base de datos para áreas idénticas.
+*   **Capa de Puntos de Interés (POIs)**: Integración de marcadores inteligentes para ubicar zonas clave, optimizando la toma de decisiones para los anunciantes mediante análisis visual de proximidad comercial y flujo peatonal/vehicular.
 
 ### 2. Estudio de Creación de Contenido en el Cliente
 Para evitar la sobrecarga y los altos costos de procesamiento de video en el servidor, **Mixooh** realiza todo el procesamiento multimedia en el dispositivo del usuario:
@@ -55,8 +56,9 @@ Para evitar la sobrecarga y los altos costos de procesamiento de video en el ser
 *   **Analizador de Video Nativo (`videoAnalyzer`)**:
     *   Utiliza el decodificador multimedia del elemento `<video>` de HTML5 en memoria para detectar las dimensiones, la duración exacta y la relación de aspecto del video del usuario en milisegundos sin coste computacional.
 
-### 3. Modelo de Seguridad Endurecido (Supabase)
+### 3. Modelo de Seguridad y Datos (Supabase)
 La base de datos PostgreSQL de **Supabase** cuenta con políticas y estructuras de seguridad avanzadas:
+*   **Gestión de Datos y Tipado Estricto**: Integración profunda con el cliente de Supabase para fetching de datos ultra-rápido y generación automática de tipos en TypeScript, garantizando integridad de extremo a extremo.
 *   **Row-Level Security (RLS)**: Las tablas del sistema, incluyendo `orders`, restringen la lectura y escritura. Solo usuarios con sesión válida pueden insertar registros asignados a su propio `user_id` (`auth.uid() = user_id`).
 *   **Funciones Seguras**: Las funciones del sistema (`handle_new_user`, `sync_user_profile`) están configuradas con **`SECURITY DEFINER`** (y un **`search_path` explícito y vacío** `SET search_path = ''` para evitar ataques de inyección de esquemas) permitiendo la creación/actualización transaccional de perfiles en `public.profiles` durante el registro y checkout. La función de actualización de marcas temporales (`handle_updated_at`) se ejecuta bajo **`SECURITY INVOKER`**.
 *   **Restricciones de Storage**: El bucket de almacenamiento de creatividades (`campaign_videos`) tiene deshabilitado el acceso público inseguro general; solo se permiten lecturas mediante políticas que restringen el patrón de ruta seguro `/campaign-videos/%`.
@@ -66,6 +68,15 @@ Para evitar pantallas en blanco por fallos en servicios de terceros o caídas de
 1.  **`ErrorBoundary` (Base)**: Intercepta fallos generales y proporciona una interfaz premium con micro-animaciones, visualización colapsable de trazas técnicas para depuración y un botón de reintento.
 2.  **`MapErrorBoundary` (Especializado)**: Aísla el mapa de Mapbox GL JS. Si falla la inicialización de WebGL o hay problemas de red con los servidores de Mapbox, renderiza una interfaz de reintento sin afectar al resto del split-view.
 3.  **`UploadErrorBoundary` (Por Pasos)**: Envuelve individualmente las zonas de carga, el recortador de fotos y el selector de marcos. Si falla el Canvas en un recorte, el usuario puede retroceder o reintentar el paso actual sin perder el progreso ni la información de su orden.
+
+### 5. Generación de Documentos y Panel de Control (Dashboard)
+*   **Notas de Pedido en PDF Client-Side**: Generación instantánea de Notas de Pedido y Facturas/Boletas descargables en formato PDF (tamaño A4 apaisado de alta resolución). Utiliza `html2canvas-pro` y `jsPDF` para renderizar el DOM visual directamente en el navegador sin depender de microservicios de terceros, reduciendo costos y eliminando latencias.
+*   **Layouts Responsivos con Escalamiento CSS Dinámico**: Uso de transformaciones nativas (`transform: scale()`) calculadas matemáticamente en tiempo de ejecución (`useEffect`) según el tamaño del viewport. Garantiza una previsualización táctil perfecta de los documentos de gran formato (1050px) en teléfonos móviles sin desbordamiento horizontal, y sin comprometer las resoluciones de renderizado para el PDF o la impresión nativa.
+*   **Progreso de Carga Granular**: Sistema de subida robusto a Cloudflare R2 con retroalimentación visual al milisegundo. Coordina las barras de progreso entre la transcodificación de WebAssembly en local y la posterior carga XHR mediante *presigned URLs*, evitando "saltos" en la UI.
+
+### 6. Cumplimiento Legal y Transparencia
+*   **Términos y Condiciones Contractuales**: Integración de políticas claras de servicio, responsabilidad, validación de contenidos y penalidades durante el proceso de Checkout, asegurando un marco legal transparente para ambas partes.
+*   **Libro de Reclamaciones Digital**: Implementación de un portal de reclamaciones estandarizado, cumpliendo con las regulaciones locales de protección al consumidor y facilitando la resolución de quejas de forma oficial, directa y registrada.
 
 ---
 
@@ -83,6 +94,7 @@ Para evitar pantallas en blanco por fallos en servicios de terceros o caídas de
 │   │   │   ├── page.tsx    # Home: Búsqueda geográfica principal
 │   │   │   └── map/        # Split-View interactivo (Lista a la izq, Mapbox a la der)
 │   │   ├── checkout/       # Formulario transaccional y pagos con Culqi
+│   │   ├── dashboard/      # Panel de Control (Mis Pedidos, Notas de Pedido en PDF resposivas)
 │   │   ├── api/            # Rutas de API (URLs firmadas, integración con R2)
 │   │   └── order-success/  # Upload Bridge para recortar y subir multimedia tras compra
 │   ├── components/         # Componentes modulares de interfaz

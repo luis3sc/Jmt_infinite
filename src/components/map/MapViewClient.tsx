@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import Map, { Marker, Popup, ViewStateChangeEvent } from "react-map-gl/mapbox";
+import Map, { Marker, Popup, Source, Layer, ViewStateChangeEvent } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
-import { MapPin, X, SlidersHorizontal, List, Map as MapIcon, User, Users, Maximize, Navigation, ShoppingCart, Search, Filter, CheckCircle2, Trash2, Calendar, ChevronRight, Loader2, CreditCard, Clock, PlusCircle } from "lucide-react";
+import { MapPin, X, SlidersHorizontal, List, Map as MapIcon, User, Users, Maximize, Navigation, ShoppingCart, Search, Filter, CheckCircle2, Trash2, Calendar, ChevronRight, Loader2, CreditCard, Clock, PlusCircle, FileText, Copy, Check } from "lucide-react";
 import Image from "next/image";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
@@ -24,6 +24,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
+import html2canvas from "html2canvas-pro";
+import { jsPDF } from "jspdf";
+import QuotePDFDocument from "./QuotePDFDocument";
 
 
 // Define Types
@@ -67,6 +70,161 @@ type Structure = {
   panels: Panel[];
 };
 
+const LIMA_CALLAO_DISTRICTS = [
+  // LIMA
+  { key: "Ancon", display: "Ancón", province: "Lima" },
+  { key: "Ate", display: "Ate", province: "Lima" },
+  { key: "Barranco", display: "Barranco", province: "Lima" },
+  { key: "Brena", display: "Breña", province: "Lima" },
+  { key: "Carabayllo", display: "Carabayllo", province: "Lima" },
+  { key: "Chaclacayo", display: "Chaclacayo", province: "Lima" },
+  { key: "Chorrillos", display: "Chorrillos", province: "Lima" },
+  { key: "Cieneguilla", display: "Cieneguilla", province: "Lima" },
+  { key: "Comas", display: "Comas", province: "Lima" },
+  { key: "El Agustino", display: "El Agustino", province: "Lima" },
+  { key: "Independencia", display: "Independencia", province: "Lima" },
+  { key: "Jesus Maria", display: "Jesús María", province: "Lima" },
+  { key: "La Molina", display: "La Molina", province: "Lima" },
+  { key: "La Victoria", display: "La Victoria", province: "Lima" },
+  { key: "Lima", display: "Cercado de Lima", province: "Lima" },
+  { key: "Lince", display: "Lince", province: "Lima" },
+  { key: "Los Olivos", display: "Los Olivos", province: "Lima" },
+  { key: "Lurigancho", display: "Lurigancho-Chosica", province: "Lima" },
+  { key: "Lurin", display: "Lurín", province: "Lima" },
+  { key: "Magdalena del Mar", display: "Magdalena del Mar", province: "Lima" },
+  { key: "Miraflores", display: "Miraflores", province: "Lima" },
+  { key: "Pachacamac", display: "Pachacámac", province: "Lima" },
+  { key: "Pucusana", display: "Pucusana", province: "Lima" },
+  { key: "Pueblo Libre", display: "Pueblo Libre", province: "Lima" },
+  { key: "Puente Piedra", display: "Puente Piedra", province: "Lima" },
+  { key: "Punta Hermosa", display: "Punta Hermosa", province: "Lima" },
+  { key: "Punta Negra", display: "Punta Negra", province: "Lima" },
+  { key: "Rimac", display: "Rímac", province: "Lima" },
+  { key: "San Bartolo", display: "San Bartolo", province: "Lima" },
+  { key: "San Borja", display: "San Borja", province: "Lima" },
+  { key: "San Isidro", display: "San Isidro", province: "Lima" },
+  { key: "San Juan De Lurigancho", display: "San Juan de Lurigancho", province: "Lima" },
+  { key: "San Juan De Miraflores", display: "San Juan de Miraflores", province: "Lima" },
+  { key: "San Luis", display: "San Luis", province: "Lima" },
+  { key: "San Martin De Porres", display: "San Martín de Porres", province: "Lima" },
+  { key: "San Miguel", display: "San Miguel", province: "Lima" },
+  { key: "Santa Anita", display: "Santa Anita", province: "Lima" },
+  { key: "Santa Maria Del Mar", display: "Santa María del Mar", province: "Lima" },
+  { key: "Santa Rosa", display: "Santa Rosa", province: "Lima" },
+  { key: "Surco", display: "Santiago de Surco", province: "Lima" },
+  { key: "Surquillo", display: "Surquillo", province: "Lima" },
+  { key: "Villa El Salvador", display: "Villa El Salvador", province: "Lima" },
+  { key: "Villa Maria Del Triunfo", display: "Villa María del Triunfo", province: "Lima" },
+  // CALLAO
+  { key: "Callao", display: "Callao Cercado", province: "Callao" },
+  { key: "Bellavista", display: "Bellavista", province: "Callao" },
+  { key: "Carmen De La Legua Reynoso", display: "Carmen de la Legua Reynoso", province: "Callao" },
+  { key: "La Perla", display: "La Perla", province: "Callao" },
+  { key: "La Punta", display: "La Punta", province: "Callao" },
+  { key: "Ventanilla", display: "Ventanilla", province: "Callao" },
+  { key: "Mi Peru", display: "Mi Perú", province: "Callao" }
+];
+
+const DISTRICT_COORDINATES: Record<string, { lat: number; lng: number; zoom: number }> = {
+  "San Borja": { lat: -12.096154, lng: -76.995186, zoom: 14 },
+  "Jesus Maria": { lat: -12.07865, lng: -77.049764, zoom: 14 },
+  "Pachacamac": { lat: -12.155695, lng: -76.787611, zoom: 11 },
+  "San Luis": { lat: -12.07234, lng: -76.998662, zoom: 14 },
+  "La Molina": { lat: -12.090073, lng: -76.922593, zoom: 12 },
+  "Ancon": { lat: -11.69862, lng: -77.101584, zoom: 11 },
+  "Villa El Salvador": { lat: -12.217246, lng: -76.943196, zoom: 13 },
+  "Surco": { lat: -12.124548, lng: -76.982853, zoom: 12 },
+  "Ate": { lat: -12.038543, lng: -76.890985, zoom: 11 },
+  "Callao": { lat: -12.003667, lng: -77.117712, zoom: 12 },
+  "Los Olivos": { lat: -11.965201, lng: -77.073939, zoom: 12 },
+  "Lurigancho": { lat: -11.949478, lng: -76.8078, zoom: 11 },
+  "Comas": { lat: -11.93264, lng: -77.030505, zoom: 12 },
+  "Ventanilla": { lat: -11.883914, lng: -77.138635, zoom: 12 },
+  "Santa Rosa": { lat: -11.804077, lng: -77.166439, zoom: 13 },
+  "Puente Piedra": { lat: -11.876709, lng: -77.089919, zoom: 12 },
+  "Carmen De La Legua Reynoso": { lat: -12.042447, lng: -77.090339, zoom: 14 },
+  "Cieneguilla": { lat: -12.072658, lng: -76.780105, zoom: 11 },
+  "Pucusana": { lat: -12.468483, lng: -76.778518, zoom: 12 },
+  "Lince": { lat: -12.085311, lng: -77.035701, zoom: 14 },
+  "Rimac": { lat: -12.020392, lng: -77.032815, zoom: 13 },
+  "Chaclacayo": { lat: -11.99203, lng: -76.775327, zoom: 12 },
+  "Surquillo": { lat: -12.114221, lng: -77.010557, zoom: 14 },
+  "Miraflores": { lat: -12.121149, lng: -77.028687, zoom: 13 },
+  "La Punta": { lat: -12.070992, lng: -77.163657, zoom: 14 },
+  "Pueblo Libre": { lat: -12.076514, lng: -77.065309, zoom: 14 },
+  "Santa Anita": { lat: -12.042979, lng: -76.963514, zoom: 13 },
+  "La Perla": { lat: -12.071184, lng: -77.118447, zoom: 14 },
+  "San Miguel": { lat: -12.078037, lng: -77.091388, zoom: 14 },
+  "La Victoria": { lat: -12.074136, lng: -77.015851, zoom: 14 },
+  "Bellavista": { lat: -12.059771, lng: -77.110951, zoom: 13 },
+  "Carabayllo": { lat: -11.819759, lng: -76.948782, zoom: 11 },
+  "Brena": { lat: -12.059651, lng: -77.05134, zoom: 14 },
+  "Lurin": { lat: -12.236455, lng: -76.799224, zoom: 11 },
+  "San Bartolo": { lat: -12.367027, lng: -76.728508, zoom: 12 },
+  "Santa Maria Del Mar": { lat: -12.407631, lng: -76.767338, zoom: 13 },
+  "Punta Hermosa": { lat: -12.262702, lng: -76.74554, zoom: 11 },
+  "Punta Negra": { lat: -12.298158, lng: -76.719178, zoom: 11 },
+  "Barranco": { lat: -12.143842, lng: -77.020387, zoom: 14 },
+  "Chorrillos": { lat: -12.192678, lng: -77.005537, zoom: 13 },
+  "San Juan De Miraflores": { lat: -12.166623, lng: -76.964928, zoom: 12 },
+  "Villa Maria Del Triunfo": { lat: -12.175743, lng: -76.920609, zoom: 12 },
+  "Lima": { lat: -12.055131, lng: -77.045716, zoom: 12 },
+  "El Agustino": { lat: -12.041939, lng: -76.974818, zoom: 13 },
+  "Independencia": { lat: -11.988941, lng: -77.046551, zoom: 13 },
+  "San Martin De Porres": { lat: -11.987811, lng: -77.085958, zoom: 12 },
+  "San Juan De Lurigancho": { lat: -11.949096, lng: -76.962441, zoom: 11 },
+  "Magdalena del Mar": { lat: -12.095679, lng: -77.06647, zoom: 14 },
+  "San Isidro": { lat: -12.098299, lng: -77.034492, zoom: 13 },
+  "Mi Peru": { lat: -11.85417, lng: -77.1225, zoom: 14 }
+};
+
+const isDistrictMatch = (structDistrict: string | null | undefined, targetDistrictKey: string | null) => {
+  if (!structDistrict || !targetDistrictKey) return false;
+
+  const structClean = structDistrict.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const targetClean = targetDistrictKey.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  // Direct check
+  if (structClean === targetClean) return true;
+
+  // Find in LIMA_CALLAO_DISTRICTS
+  const targetItem = LIMA_CALLAO_DISTRICTS.find(d =>
+    d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() === targetClean ||
+    d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() === targetClean
+  );
+
+  if (!targetItem) {
+    return structClean.includes(targetClean) || targetClean.includes(structClean);
+  }
+
+  const structItem = LIMA_CALLAO_DISTRICTS.find(d =>
+    d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() === structClean ||
+    d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() === structClean
+  );
+
+  if (structItem) {
+    return structItem.key === targetItem.key;
+  }
+
+  const targetDisplayClean = targetItem.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const targetKeyClean = targetItem.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  return structClean.includes(targetDisplayClean) ||
+    structClean.includes(targetKeyClean) ||
+    targetDisplayClean.includes(structClean) ||
+    targetKeyClean.includes(structClean);
+};
+
+const getRelevanceScore = (text: string, query: string) => {
+  const normText = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const normQuery = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  if (normText === normQuery) return 100;
+  if (normText.startsWith(normQuery)) return 80;
+  if (normText.includes(" " + normQuery)) return 60;
+  if (normText.includes(normQuery)) return 40;
+  return 0;
+};
+
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 export function MapViewClient() {
@@ -74,8 +232,29 @@ export function MapViewClient() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const initialLat = Number(searchParams?.get("lat")) || -12.0464; // Default Lima
-  const initialLng = Number(searchParams?.get("lng")) || -77.0428;
+  const activeDistrict = searchParams?.get("district") || null;
+  const [pendingDistrict, setPendingDistrict] = useState<string | null>(null);
+  const [districtsGeoJSON, setDistrictsGeoJSON] = useState<any>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  const isInitialLoadRef = useRef(true);
+
+  // Load districts GeoJSON on mount
+  useEffect(() => {
+    fetch("/data/lima_callao_distritos_simple.geojson")
+      .then((res) => res.json())
+      .then((data) => {
+        setDistrictsGeoJSON(data);
+      })
+      .catch((err) => {
+        console.error("Error loading districts GeoJSON:", err);
+      });
+  }, []);
+
+  const districtCoords = activeDistrict ? DISTRICT_COORDINATES[activeDistrict] : null;
+  const initialLat = Number(searchParams?.get("lat")) || (districtCoords ? districtCoords.lat : -12.0464);
+  const initialLng = Number(searchParams?.get("lng")) || (districtCoords ? districtCoords.lng : -77.0428);
+  const initialZoom = districtCoords ? districtCoords.zoom : 13;
 
   const fromParam = searchParams?.get("from");
   const toParam = searchParams?.get("to");
@@ -83,7 +262,7 @@ export function MapViewClient() {
   const [viewState, setViewState] = useState({
     longitude: initialLng,
     latitude: initialLat,
-    zoom: 13,
+    zoom: initialZoom,
   });
 
   // Default dates for new items
@@ -103,6 +282,75 @@ export function MapViewClient() {
   const [pendingLocation, setPendingLocation] = useState<{ lng: number, lat: number } | null>(null);
   const [startDate, setStartDate] = useState(initialStart);
   const [endDate, setEndDate] = useState(initialEnd);
+
+  // Match the active district from the URL against the GeoJSON features
+  const selectedDistrictFeature = useMemo(() => {
+    if (!activeDistrict || !districtsGeoJSON) return null;
+
+    const searchName = activeDistrict.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+    return districtsGeoJSON.features.find((feature: any) => {
+      const distName = feature.properties?.distrito || "";
+      const distName2 = feature.properties?.distrito2 || "";
+
+      const norm1 = distName.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const norm2 = distName2.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+      // Support manual mapping overrides
+      if (searchName === "SURCO" && (norm1 === "SANTIAGO DE SURCO" || norm2 === "SANTIAGO DE SURCO")) return true;
+      if (searchName === "LURIGANCHO" && (norm1 === "LURIGANCHO" || norm2 === "LURIGANCHO-CHOSICA")) return true;
+      if (searchName === "MI PERU" && (norm1 === "MI PERU" || norm2 === "MI PERU")) return true;
+      if (searchName === "BRENA" && (norm1 === "BRENA" || norm2 === "BRENA")) return true;
+
+      return norm1 === searchName || norm2 === searchName;
+    });
+  }, [activeDistrict, districtsGeoJSON]);
+
+  // Automatically zoom and fit the map boundaries to the selected district's geometry
+  useEffect(() => {
+    if (selectedDistrictFeature && mapRef.current && mapLoaded) {
+      try {
+        const geom = selectedDistrictFeature.geometry;
+        let coordinates = [];
+
+        if (geom.type === "Polygon") {
+          coordinates = geom.coordinates[0];
+        } else if (geom.type === "MultiPolygon") {
+          coordinates = geom.coordinates.flatMap((poly: any) => poly[0]);
+        }
+
+        if (coordinates.length > 0) {
+          let minLng = Infinity, minLat = Infinity;
+          let maxLng = -Infinity, maxLat = -Infinity;
+
+          for (const [lng, lat] of coordinates) {
+            if (lng < minLng) minLng = lng;
+            if (lat < minLat) minLat = lat;
+            if (lng > maxLng) maxLng = lng;
+            if (lat > maxLat) maxLat = lat;
+          }
+
+          const bbox: [[number, number], [number, number]] = [
+            [minLng, minLat],
+            [maxLng, maxLat]
+          ];
+
+          const isInitial = isInitialLoadRef.current;
+          if (isInitial) {
+            isInitialLoadRef.current = false;
+          }
+
+          mapRef.current.getMap().fitBounds(bbox, {
+            padding: 50,
+            duration: isInitial ? 0 : 1200,
+            essential: true
+          });
+        }
+      } catch (err) {
+        console.error("Error adjusting map boundaries (fitBounds) for selected district:", err);
+      }
+    }
+  }, [selectedDistrictFeature, mapLoaded]);
 
   // The automatic sync useEffect for dates is removed in favor of the "Buscar" button
   // to avoid redundant URL updates and follow the user's request for manual search trigger.
@@ -132,6 +380,163 @@ export function MapViewClient() {
 
 
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // Estados para cotizaciones y campañas guardadas
+  const [isCampaignLoading, setIsCampaignLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [quoteCampaignName, setQuoteCampaignName] = useState("");
+  const [quoteClientName, setQuoteClientName] = useState("");
+  const [quoteId, setQuoteId] = useState("");
+  const [isSavingQuote, setIsSavingQuote] = useState(false);
+  const [quoteSuccess, setQuoteSuccess] = useState(false);
+  const [quoteRecoveryUrl, setQuoteRecoveryUrl] = useState("");
+  const [copiedLink, setCopiedLink] = useState(false);
+  const quoteDocRef = useRef<HTMLDivElement>(null);
+
+  // Cargar usuario actual para pre-llenar datos
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setCurrentUser(user);
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, company_name")
+            .eq("id", user.id)
+            .maybeSingle();
+          if (profile) {
+            setQuoteClientName(profile.company_name || profile.full_name || "");
+          }
+        }
+      } catch (err) {
+        console.warn("Error fetching user session for quote:", err);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  // Rehidratar campaña compartida desde la URL ?campaign=UUID
+  const campaignIdParam = searchParams?.get("campaign");
+  useEffect(() => {
+    if (campaignIdParam) {
+      const loadSharedCampaign = async () => {
+        setIsCampaignLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from("saved_campaigns")
+            .select("*")
+            .eq("id", campaignIdParam)
+            .maybeSingle();
+
+          if (error) throw error;
+
+          if (data && Array.isArray(data.items)) {
+            // Set cart items in store
+            useCartStore.setState({ items: data.items });
+            // Open the cart modal
+            setIsCartOpen(true);
+            // Trigger toast
+            triggerToast("Se ha cargado la campaña cotizada");
+          } else {
+            console.error("Campaña no encontrada o vacía");
+            alert("La cotización que intentas cargar no existe o ha expirado.");
+          }
+        } catch (err) {
+          console.error("Error cargando campaña compartida:", err);
+          alert("Ocurrió un error al cargar la cotización.");
+        } finally {
+          setIsCampaignLoading(false);
+          // Limpiar el parámetro de URL
+          try {
+            const params = new URLSearchParams(window.location.search);
+            params.delete("campaign");
+            const newSearch = params.toString();
+            router.replace(`${pathname}${newSearch ? `?${newSearch}` : ''}`);
+          } catch (e) {
+            console.warn("Could not clean campaign URL param:", e);
+          }
+        }
+      };
+      loadSharedCampaign();
+    }
+  }, [campaignIdParam, pathname, router]);
+
+  // Manejar el guardado e impresión de la cotización
+  const handleSaveAndDownloadQuote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSavingQuote) return;
+    setIsSavingQuote(true);
+    setCopiedLink(false);
+
+    const defaultCampaignName = quoteCampaignName.trim() || `Campaña JMT - ${format(new Date(), "MMM yyyy")}`;
+    const defaultClientName = quoteClientName.trim() || "Cliente Directo";
+
+    try {
+      // 1. Guardar en base de datos
+      const { data, error } = await supabase
+        .from("saved_campaigns")
+        .insert({
+          user_id: currentUser?.id || null,
+          campaign_name: defaultCampaignName,
+          client_name: defaultClientName,
+          items: cartItems,
+          total_amount: cartTotal,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error("No se recibieron datos de la campaña guardada.");
+
+      // 2. Establecer URL de recuperación e ID
+      const recoveryUrl = `${window.location.origin}${pathname}?campaign=${data.id}`;
+      setQuoteId(data.id);
+      setQuoteRecoveryUrl(recoveryUrl);
+      setQuoteCampaignName(defaultCampaignName);
+      setQuoteClientName(defaultClientName);
+
+      // 3. Esperar que React renderice el componente off-screen con el código QR e ID correctos
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      const element = quoteDocRef.current;
+      if (!element) {
+        throw new Error("El documento de cotización no está disponible para captura.");
+      }
+
+      // 4. Capturar con html2canvas
+      const canvas = await html2canvas(element, {
+        scale: 2, // Buena resolución para impresión
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+      // 5. Generar PDF retrato en A4
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgWidth = 210; // Ancho A4 en mm
+      const pageHeight = 297; // Alto A4 en mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight, undefined, "FAST");
+      pdf.save(`cotizacion-${defaultCampaignName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+
+      setQuoteSuccess(true);
+    } catch (err: any) {
+      console.error("Error al guardar y cotizar campaña:", err);
+      alert(err.message || "Ocurrió un error al guardar la campaña y descargar el PDF.");
+    } finally {
+      setIsSavingQuote(false);
+    }
+  };
   const [showToast, setShowToast] = useState({ show: false, message: "" });
   const [structures, setStructures] = useState<Structure[]>([]);
   const [allStructures, setAllStructures] = useState<Structure[]>([]);
@@ -178,6 +583,26 @@ export function MapViewClient() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dbStructures, setDbStructures] = useState<any[]>([]);
+  const [dbLoaded, setDbLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadSearchIndex() {
+      try {
+        const { data, error } = await supabase
+          .from("structures")
+          .select("id, code, address, district, city, latitude, longitude");
+        if (error) throw error;
+        if (data) {
+          setDbStructures(data);
+          setDbLoaded(true);
+        }
+      } catch (err) {
+        console.error("Error loading search index structures:", err);
+      }
+    }
+    loadSearchIndex();
+  }, []);
   const [filters, setFilters] = useState({
     audience: null as number | null,
     mediaType: "",
@@ -239,14 +664,31 @@ export function MapViewClient() {
   const currentBoundsRef = useRef<any>(null);
 
   const filteredStructures = useMemo(() => {
-    if (!activeFilters.poi || !activeFilters.poi.category) return allStructures;
-    const { category, maxDistance } = activeFilters.poi;
-    return allStructures.filter(structure => {
-      const pois = structure.poi_details?.por_categoria?.[category];
-      if (!pois || !Array.isArray(pois)) return false;
-      return pois.some(poi => poi.distancia_metros <= maxDistance);
-    });
-  }, [allStructures, activeFilters.poi]);
+    let list = allStructures;
+
+    // Apply POI filtering if active
+    if (activeFilters.poi && activeFilters.poi.category) {
+      const { category, maxDistance } = activeFilters.poi;
+      list = allStructures.filter(structure => {
+        const pois = structure.poi_details?.por_categoria?.[category];
+        if (!pois || !Array.isArray(pois)) return false;
+        return pois.some(poi => poi.distancia_metros <= maxDistance);
+      });
+    }
+
+    // Prioritize structures in activeDistrict by sorting them first
+    if (activeDistrict) {
+      return [...list].sort((a, b) => {
+        const aMatches = isDistrictMatch(a.district, activeDistrict);
+        const bMatches = isDistrictMatch(b.district, activeDistrict);
+        if (aMatches && !bMatches) return -1;
+        if (!aMatches && bMatches) return 1;
+        return 0;
+      });
+    }
+
+    return list;
+  }, [allStructures, activeFilters.poi, activeDistrict]);
 
   useEffect(() => {
     setTotalCount(filteredStructures.length);
@@ -429,49 +871,114 @@ export function MapViewClient() {
     </div>
   );
 
-  const handleLocationSearch = async (query: string) => {
+  const getTopRecommendations = () => {
+    const districtCounts: Record<string, number> = {};
+
+    dbStructures.forEach(s => {
+      if (s.district) {
+        const distClean = s.district.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        const matched = LIMA_CALLAO_DISTRICTS.find(d =>
+          d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === distClean ||
+          d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === distClean
+        );
+
+        if (matched) {
+          districtCounts[matched.key] = (districtCounts[matched.key] || 0) + 1;
+        }
+      }
+    });
+
+    const sorted = Object.entries(districtCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    return sorted.map(([distKey, count]) => {
+      const matched = LIMA_CALLAO_DISTRICTS.find(d => d.key === distKey)!;
+      return {
+        isDistrict: true,
+        place_name: ` ${matched.display} (${count} paneles)`,
+        display: matched.display,
+        districtKey: matched.key,
+        center: null
+      };
+    });
+  };
+
+  const handleLocationSearch = (query: string) => {
     setSearchQuery(query);
-    if (query.length < 3) {
-      setSuggestions([]);
+    if (query.length < 2) {
+      const top = getTopRecommendations();
+      setSuggestions(top);
+      setShowSuggestions(top.length > 0);
       return;
     }
 
-    const STREET_KEYWORDS = [
-      'avenida', 'av.', 'av ', 'calle', 'jiron', 'jirón', 'jr.', 'jr ', 
-      'pasaje', 'psj', 'carretera', 'panamericana', 'ovalo', 'óvalo', 
-      'autopista', 'vía', 'via', 'esquina', 'cruce', 'cdra', 'cuadra', 'enlace'
-    ];
-    const isStreet = STREET_KEYWORDS.some(k => query.toLowerCase().includes(k));
-    const types = isStreet 
-      ? 'district,place,locality,neighborhood,address' 
-      : 'district,place,locality';
+    const queryClean = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-    try {
-      const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=${types}`);
-      const data = await res.json();
-      if (data.features) {
-        let sortedFeatures = [...data.features];
-        // Solo priorizar distritos si no es búsqueda de una calle/avenida
-        if (!isStreet) {
-          sortedFeatures.sort((a: any, b: any) => {
-            const aIsDistrictOrLocality = a.place_type?.includes('district') || a.place_type?.includes('locality') || a.place_type?.includes('place') ? 1 : 0;
-            const bIsDistrictOrLocality = b.place_type?.includes('district') || b.place_type?.includes('locality') || b.place_type?.includes('place') ? 1 : 0;
-            return bIsDistrictOrLocality - aIsDistrictOrLocality;
-          });
-        }
-        setSuggestions(sortedFeatures);
-        setShowSuggestions(true);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    // 1. Filter matching districts
+    const matchedDistricts = LIMA_CALLAO_DISTRICTS.filter(d =>
+      d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(queryClean) ||
+      d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(queryClean)
+    ).map(d => ({
+      isDistrict: true,
+      place_name: `${d.display} (Distrito, ${d.province})`,
+      display: d.display,
+      districtKey: d.key,
+      center: null
+    }));
+
+    // Sort matched districts by search relevance (starts with query, starts a word, substring)
+    matchedDistricts.sort((a, b) => {
+      const scoreA = Math.max(getRelevanceScore(a.display, queryClean), getRelevanceScore(a.districtKey, queryClean));
+      const scoreB = Math.max(getRelevanceScore(b.display, queryClean), getRelevanceScore(b.districtKey, queryClean));
+      if (scoreA !== scoreB) return scoreB - scoreA;
+      return a.display.localeCompare(b.display, "es");
+    });
+
+    // 2. Filter matching structures in Supabase JMT DB
+    const matchedStructures = dbStructures.filter(s => {
+      const addressClean = (s.address || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const districtClean = (s.district || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const cityClean = (s.city || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const codeClean = (s.code || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      return addressClean.includes(queryClean) ||
+        districtClean.includes(queryClean) ||
+        cityClean.includes(queryClean) ||
+        codeClean.includes(queryClean);
+    }).map(s => ({
+      isStructure: true,
+      place_name: `${s.address}${s.district ? `, ${s.district}` : ""}${s.city ? ` (${s.city})` : ""}`,
+      display: s.address,
+      code: s.code,
+      center: [s.longitude, s.latitude],
+      id: s.id
+    }));
+
+    // Sort matched structures by relevance
+    matchedStructures.sort((a, b) => {
+      const scoreA = Math.max(getRelevanceScore(a.display || "", queryClean), getRelevanceScore(a.code || "", queryClean));
+      const scoreB = Math.max(getRelevanceScore(b.display || "", queryClean), getRelevanceScore(b.code || "", queryClean));
+      if (scoreA !== scoreB) return scoreB - scoreA;
+      return (a.display || "").localeCompare(b.display || "", "es");
+    });
+
+    const allSuggestions = [...matchedDistricts, ...matchedStructures];
+    setSuggestions(allSuggestions);
+    setShowSuggestions(allSuggestions.length > 0);
   };
 
-  const handleSelectSuggestion = (lng: number, lat: number, placeName: string) => {
-    setSearchQuery(placeName);
+  const handleSelectSuggestion = (lng: number, lat: number, placeName: string, suggestion?: any) => {
     setShowSuggestions(false);
-    setPendingLocation({ lng, lat });
-    // Don't move the map or fetch yet - wait for "Buscar"
+    if (suggestion?.isDistrict) {
+      setSearchQuery(suggestion.display);
+      setPendingDistrict(suggestion.districtKey);
+      setPendingLocation(null);
+    } else {
+      setSearchQuery(placeName);
+      setPendingDistrict(null);
+      setPendingLocation({ lng, lat });
+    }
   };
 
   const mapRef = useRef<any>(null);
@@ -543,7 +1050,7 @@ export function MapViewClient() {
 
       if (data) {
         const fullData = data as Structure[];
-        
+
         // Write to cache
         setCached(sw.lat, sw.lng, ne.lat, ne.lng, 0, fullData, fullData.length, activeFilters);
 
@@ -563,77 +1070,86 @@ export function MapViewClient() {
     const latParam = searchParams?.get("lat");
     const lngParam = searchParams?.get("lng");
 
+    const hasCoords = latParam && lngParam && !isNaN(Number(latParam)) && !isNaN(Number(lngParam));
+    if (locationQuery && !hasCoords && !dbLoaded) {
+      return; // Wait for dbStructures to load
+    }
+
     if (locationQuery) {
       setSearchQuery(locationQuery);
 
       // Si las coordenadas exactas ya vienen en la URL, las usamos directamente sin re-geocodificar
-      if (latParam && lngParam) {
+      if (hasCoords) {
         const lat = Number(latParam);
         const lng = Number(lngParam);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          setViewState(prev => ({
+        setViewState(prev => {
+          if (prev.longitude === lng && prev.latitude === lat) {
+            return prev;
+          }
+          return {
             ...prev,
             longitude: lng,
             latitude: lat,
             zoom: 14,
             transitionDuration: 1000
-          }));
+          };
+        });
 
-          // Esperar a que el mapa se estabilice antes de cargar los paneles en el área
-          setTimeout(() => {
-            if (mapRef.current) {
-              const bounds = mapRef.current.getMap().getBounds();
-              if (bounds) fetchStructuresInBounds(bounds);
-            }
-          }, 1200);
-          return;
-        }
+        // Esperar a que el mapa se estabilice antes de cargar los paneles en el área
+        setTimeout(() => {
+          if (mapRef.current) {
+            const bounds = mapRef.current.getMap().getBounds();
+            if (bounds) fetchStructuresInBounds(bounds);
+          }
+        }, 1200);
+        return;
       }
 
-      const STREET_KEYWORDS = [
-        'avenida', 'av.', 'av ', 'calle', 'jiron', 'jirón', 'jr.', 'jr ', 
-        'pasaje', 'psj', 'carretera', 'panamericana', 'ovalo', 'óvalo', 
-        'autopista', 'vía', 'via', 'esquina', 'cruce', 'cdra', 'cuadra', 'enlace'
-      ];
-      const isStreet = STREET_KEYWORDS.some(k => locationQuery.toLowerCase().includes(k));
-      const types = isStreet 
-        ? 'district,place,locality,neighborhood,address' 
-        : 'district,place,locality';
+      // No coords in URL, but we have locationQuery and dbStructures is loaded: resolve locally
+      const cleanLocation = locationQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-      // De lo contrario, geocodificamos la consulta de texto como fallback
-      fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationQuery)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=${types}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.features && data.features.length > 0) {
-            // Heurística de selección: si NO es calle, preferir distritos oficiales o ciudades
-            const bestFeature = !isStreet
-              ? (data.features.find((f: any) => 
-                  f.place_type?.includes('district') || f.place_type?.includes('place')
-                ) || data.features.find((f: any) =>
-                  f.place_type?.includes('locality') || f.place_type?.includes('neighborhood')
-                ) || data.features[0])
-              : data.features[0]; // Si es calle/avenida, preferimos la primera coincidencia que es la dirección exacta
+      const matchedStructure = dbStructures.find(s => {
+        const addressClean = (s.address || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const districtClean = (s.district || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const cityClean = (s.city || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const codeClean = (s.code || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-            console.log('[geocoding] fallbacked best feature on load:', bestFeature.place_name, bestFeature.place_type);
-            const [lng, lat] = bestFeature.center;
-            setViewState(prev => ({
-              ...prev,
-              longitude: lng,
-              latitude: lat,
-              zoom: 14,
-              transitionDuration: 1000
-            }));
+        return addressClean.includes(cleanLocation) ||
+          districtClean.includes(cleanLocation) ||
+          cityClean.includes(cleanLocation) ||
+          codeClean.includes(cleanLocation);
+      });
 
-            // Esperar a que el mapa se estabilice antes de cargar los paneles en el área
-            setTimeout(() => {
-              if (mapRef.current) {
-                const bounds = mapRef.current.getMap().getBounds();
-                if (bounds) fetchStructuresInBounds(bounds);
-              }
-            }, 1200);
+      if (matchedStructure) {
+        setViewState(prev => {
+          if (prev.longitude === matchedStructure.longitude && prev.latitude === matchedStructure.latitude) {
+            return prev;
           }
-        })
-        .catch(console.error);
+          return {
+            ...prev,
+            longitude: matchedStructure.longitude,
+            latitude: matchedStructure.latitude,
+            zoom: 15,
+            transitionDuration: 1000
+          };
+        });
+
+        // Esperar a que el mapa se estabilice antes de cargar los paneles en el área
+        setTimeout(() => {
+          if (mapRef.current) {
+            const bounds = mapRef.current.getMap().getBounds();
+            if (bounds) fetchStructuresInBounds(bounds);
+          }
+        }, 1200);
+      } else {
+        // Carga inicial en la ubicación por defecto como fallback si no se encontró coincidencia
+        setTimeout(() => {
+          if (mapRef.current) {
+            const bounds = mapRef.current.getMap().getBounds();
+            if (bounds) fetchStructuresInBounds(bounds);
+          }
+        }, 1000);
+      }
     } else {
       // Carga inicial en la ubicación por defecto
       setTimeout(() => {
@@ -643,7 +1159,7 @@ export function MapViewClient() {
         }
       }, 1000);
     }
-  }, [searchParams, fetchStructuresInBounds]);
+  }, [searchParams, dbLoaded, fetchStructuresInBounds]);
 
   const executeSearch = async () => {
     // 1. Update active states
@@ -657,6 +1173,38 @@ export function MapViewClient() {
     params.set("to", endDate);
 
     // 3. Handle location update
+    const cleanSearch = searchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const matched = LIMA_CALLAO_DISTRICTS.find(d =>
+      d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanSearch ||
+      d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanSearch
+    );
+
+    const activeDist = pendingDistrict || (matched ? matched.key : null);
+
+    if (activeDist) {
+      params.set("district", activeDist);
+      params.delete("lat");
+      params.delete("lng");
+
+      const displayName = matched ? matched.display : (LIMA_CALLAO_DISTRICTS.find(d => d.key === activeDist)?.display || searchQuery);
+      params.set("location", displayName);
+      setSearchQuery(displayName);
+
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      setPendingDistrict(null);
+      setPendingLocation(null);
+
+      // Force structure refetch based on new activeDistrict in bounds after transition
+      setTimeout(() => {
+        if (mapRef.current) {
+          fetchStructuresInBounds(mapRef.current.getMap().getBounds());
+        }
+      }, 1300);
+      return;
+    }
+
+    params.delete("district");
+
     if (pendingLocation) {
       // Si seleccionaron una sugerencia del buscador, usamos esas coordenadas exactas
       params.set("lat", pendingLocation.lat.toString());
@@ -679,60 +1227,43 @@ export function MapViewClient() {
         }
       }, 1100);
     } else if (searchQuery.length >= 3) {
-      try {
-        let finalQuery = searchQuery;
-        const lowerSearch = searchQuery.toLowerCase().trim();
+      const matchedStructure = dbStructures.find(s => {
+        const addressClean = (s.address || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const districtClean = (s.district || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const cityClean = (s.city || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const codeClean = (s.code || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-        if (!lowerSearch.includes("peru")) {
-          finalQuery = `${searchQuery}, Peru`;
-        }
+        return addressClean.includes(cleanSearch) ||
+          districtClean.includes(cleanSearch) ||
+          cityClean.includes(cleanSearch) ||
+          codeClean.includes(cleanSearch);
+      });
 
-        const STREET_KEYWORDS = [
-          'avenida', 'av.', 'av ', 'calle', 'jiron', 'jirón', 'jr.', 'jr ', 
-          'pasaje', 'psj', 'carretera', 'panamericana', 'ovalo', 'óvalo', 
-          'autopista', 'vía', 'via', 'esquina', 'cruce', 'cdra', 'cuadra', 'enlace'
-        ];
-        const isStreet = STREET_KEYWORDS.some(k => searchQuery.toLowerCase().includes(k));
-        const types = isStreet 
-          ? 'district,place,locality,neighborhood,address' 
-          : 'district,place,locality';
+      if (matchedStructure) {
+        params.set("lat", matchedStructure.latitude.toString());
+        params.set("lng", matchedStructure.longitude.toString());
 
-        const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(finalQuery)}.json?access_token=${MAPBOX_TOKEN}&country=pe&proximity=-77.0428,-12.0464&language=es&types=${types}`);
-        const data = await res.json();
-        if (data.features && data.features.length > 0) {
-          // Heurística de selección: si NO es calle, preferir distritos oficiales o ciudades
-          const bestFeature = !isStreet
-            ? (data.features.find((f: any) => 
-                f.place_type?.includes('district') || f.place_type?.includes('place')
-              ) || data.features.find((f: any) =>
-                f.place_type?.includes('locality') || f.place_type?.includes('neighborhood')
-              ) || data.features[0])
-            : data.features[0]; // Si es calle/avenida, preferimos la primera coincidencia que es la dirección exacta
+        const displayName = `${matchedStructure.address}${matchedStructure.district ? `, ${matchedStructure.district}` : ""}`;
+        params.set("location", displayName);
+        setSearchQuery(displayName);
 
-          console.log('[geocoding] executed best feature match:', bestFeature.place_name, bestFeature.place_type);
-          const [lng, lat] = bestFeature.center;
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
 
-          // Guardar las nuevas coordenadas geocodificadas en la URL para evitar rebotes
-          params.set("lat", lat.toString());
-          params.set("lng", lng.toString());
-          router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+        setViewState(prev => ({
+          ...prev,
+          longitude: matchedStructure.longitude,
+          latitude: matchedStructure.latitude,
+          zoom: 15,
+          transitionDuration: 1000
+        }));
 
-          setViewState(prev => ({
-            ...prev,
-            longitude: lng,
-            latitude: lat,
-            zoom: 14,
-            transitionDuration: 1000
-          }));
-
-          setTimeout(() => {
-            if (mapRef.current) {
-              fetchStructuresInBounds(mapRef.current.getMap().getBounds());
-            }
-          }, 1100);
-        }
-      } catch (err) {
-        console.error(err);
+        setTimeout(() => {
+          if (mapRef.current) {
+            fetchStructuresInBounds(mapRef.current.getMap().getBounds());
+          }
+        }, 1100);
+      } else {
+        triggerToast("No se encontraron paneles en esa ubicación en nuestra base de datos.");
       }
     } else {
       // Si no hay cambio de ubicación pero pudieron cambiar las fechas
@@ -870,6 +1401,13 @@ export function MapViewClient() {
             suggestions={suggestions}
             showSuggestions={showSuggestions}
             onSelectSuggestion={handleSelectSuggestion}
+            onFocus={() => {
+              if (searchQuery.length < 2) {
+                setSuggestions(getTopRecommendations());
+              }
+              setShowSuggestions(true);
+            }}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           />
         }
         right={
@@ -1083,6 +1621,7 @@ export function MapViewClient() {
             ref={mapRef}
             {...viewState}
             onLoad={(e) => {
+              setMapLoaded(true);
               const bounds = e.target.getBounds();
               if (bounds) {
                 currentBoundsRef.current = bounds;
@@ -1100,40 +1639,69 @@ export function MapViewClient() {
             mapboxAccessToken={MAPBOX_TOKEN}
             attributionControl={false}
           >
-            {filteredStructures.map((structure) => (
-              <Marker
-                key={structure.id}
-                longitude={structure.longitude}
-                latitude={structure.latitude}
-                onClick={(e) => {
-                  e.originalEvent.stopPropagation();
-                  handleSelectStructure(structure);
-                }}
-                style={{
-                  zIndex: hoveredStructureId === structure.id
-                    ? 50
-                    : selectedStructure?.id === structure.id
-                    ? 40
-                    : 10
-                }}
-              >
-                <div
-                  className={`flex items-center justify-center cursor-pointer transition-all duration-300 group
-                ${selectedStructure?.id === structure.id ? "scale-125 z-10" : "hover:scale-110 z-0"}`}
-                  onMouseEnter={() => setHoveredStructureId(structure.id)}
-                  onMouseLeave={() => setHoveredStructureId(null)}
-                >
-                  <div className={`px-3 py-1.5 rounded-full shadow-md font-bold text-sm whitespace-nowrap transition-all duration-300
-                  ${selectedStructure?.id === structure.id
-                      ? "bg-primary text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border-none"
-                      : "bg-white text-brand-dark group-hover:bg-primary group-hover:text-white group-hover:shadow-[0_0_15px_rgba(37,99,235,0.4)] group-hover:border-none"}
-                `}>
-                    S/ {calculateDisplayPrice(structure).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] font-normal opacity-90 ml-0.5"></span>
-                  </div>
+            {filteredStructures.map((structure) => {
+              const isInsideActiveDistrict = isDistrictMatch(structure.district, activeDistrict);
 
-                </div>
-              </Marker>
-            ))}
+              return (
+                <Marker
+                  key={structure.id}
+                  longitude={structure.longitude}
+                  latitude={structure.latitude}
+                  onClick={(e) => {
+                    e.originalEvent.stopPropagation();
+                    handleSelectStructure(structure);
+                  }}
+                  style={{
+                    zIndex: hoveredStructureId === structure.id
+                      ? 55
+                      : selectedStructure?.id === structure.id
+                        ? 50
+                        : isInsideActiveDistrict
+                          ? 40
+                          : 10
+                  }}
+                >
+                  <div
+                    className={`flex items-center justify-center cursor-pointer transition-all duration-300 group
+                  ${selectedStructure?.id === structure.id ? "scale-125 z-10" : "hover:scale-110 z-0"}`}
+                    onMouseEnter={() => setHoveredStructureId(structure.id)}
+                    onMouseLeave={() => setHoveredStructureId(null)}
+                  >
+                    <div className={`px-3 py-1.5 rounded-full shadow-md font-bold text-sm whitespace-nowrap transition-all duration-300
+                    ${selectedStructure?.id === structure.id
+                        ? "bg-primary text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border-none"
+                        : isInsideActiveDistrict
+                          ? "bg-brand-dark text-white border-2 border-white/40 shadow-[0_4px_12px_rgba(14,22,43,0.3)] scale-105 font-bold"
+                          : "bg-white text-brand-dark group-hover:bg-primary group-hover:text-white group-hover:shadow-[0_0_15px_rgba(37,99,235,0.4)] group-hover:border-none"}
+                  `}>
+                      S/ {calculateDisplayPrice(structure).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+
+                  </div>
+                </Marker>
+              );
+            })}
+
+            {selectedDistrictFeature && (
+              <Source id="selected-district-source" type="geojson" data={selectedDistrictFeature}>
+                <Layer
+                  id="selected-district-fill"
+                  type="fill"
+                  paint={{
+                    "fill-color": "#0e162b",
+                    "fill-opacity": 0.05,
+                  }}
+                />
+                <Layer
+                  id="selected-district-line"
+                  type="line"
+                  paint={{
+                    "line-color": "#0e162b",
+                    "line-width": 2.5,
+                  }}
+                />
+              </Source>
+            )}
 
 
           </Map>
@@ -1244,6 +1812,13 @@ export function MapViewClient() {
                 value={searchQuery || ""}
                 onChange={(e) => handleLocationSearch(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onFocus={() => {
+                  if (searchQuery.length < 2) {
+                    setSuggestions(getTopRecommendations());
+                  }
+                  setShowSuggestions(true);
+                }}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 placeholder="¿Dónde quieres anunciarte?"
                 className="w-full pl-11 pr-12 py-3.5 bg-transparent rounded-[calc(var(--radius)*1.0)] text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 shadow-none ring-offset-transparent border-none h-auto"
               />
@@ -1262,15 +1837,21 @@ export function MapViewClient() {
               )}
               {/* Filter button removed from mobile search as requested */}
               {showSuggestions && suggestions.length > 0 && (
-                <ul className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-[calc(var(--radius)*0.6875)] shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto">
-                  {suggestions.map((s: any) => (
-                    <li
-                      key={s.id}
-                      className="px-4 py-3 hover:bg-muted cursor-pointer text-sm border-b border-border last:border-0 truncate text-foreground"
-                      onClick={() => handleSelectSuggestion(s.center[0], s.center[1], s.place_name)}
+                <ul
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-[calc(var(--radius)*0.6875)] shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto"
+                >
+                  {suggestions.map((s: any, idx: number) => (
+                    <div
+                      key={s.id || s.districtKey || `mobile-sug-${idx}`}
+                      className="px-5 py-4 hover:bg-primary/[0.08] cursor-pointer flex items-center gap-4 transition-all duration-200 border-b border-border/50 last:border-0 group/item"
+                      onClick={() => handleSelectSuggestion(s.center ? s.center[0] : 0, s.center ? s.center[1] : 0, s.place_name, s)}
                     >
-                      {s.place_name}
-                    </li>
+                      <div className="w-8 h-8 rounded-[calc(var(--radius)*0.75)] bg-muted flex items-center justify-center shrink-0 group-hover/item:bg-primary/20 transition-colors">
+                        <MapPin size={16} className="text-muted-foreground group-hover/item:text-primary transition-colors" />
+                      </div>
+                      <span className="text-sm font-semibold text-foreground group-hover/item:text-primary transition-colors truncate">{s.place_name}</span>
+                    </div>
                   ))}
                 </ul>
               )}
@@ -1573,28 +2154,44 @@ export function MapViewClient() {
           {/* MOBILE BOTTOM BAR (Only visible on small screens when cart has items) */}
           {cartItems.length > 0 && !checkoutSuccess && (
             <div className="md:hidden p-4 border-t border-border bg-background shrink-0 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-10 pb-safe">
-              <Button
-                disabled={isCheckingOut}
-                size="xl"
-                onClick={() => {
-                  setIsCheckingOut(true);
-                  router.push('/checkout');
-                  setTimeout(() => setIsCheckingOut(false), 1000);
-                }}
-                className="w-full font-black text-xs uppercase tracking-[0.15em] flex items-center justify-center gap-2 shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
-              >
-                {isCheckingOut ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    <span>Procesando...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Proceder al Registro y Pago</span>
-                    <ChevronRight size={16} />
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2 w-full">
+                {/* Botón de Cotización para Mobile */}
+                <Button
+                  variant="outline"
+                  size="xl"
+                  onClick={() => {
+                    setQuoteSuccess(false);
+                    setIsQuoteDialogOpen(true);
+                  }}
+                  className="w-[35%] h-14 font-bold text-xs flex items-center justify-center gap-1.5 border-border shrink-0 text-slate-700 dark:text-slate-200"
+                >
+                  <FileText size={16} />
+                  <span>Cotizar</span>
+                </Button>
+
+                {/* Botón de Pago para Mobile */}
+                <Button
+                  disabled={isCheckingOut}
+                  size="xl"
+                  onClick={() => {
+                    setIsCheckingOut(true);
+                    router.push('/checkout');
+                    setTimeout(() => setIsCheckingOut(false), 1000);
+                  }}
+                  className="flex-1 h-14 font-black text-xs uppercase tracking-[0.1em] flex items-center justify-center gap-1 shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                >
+                  {isCheckingOut ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Procesando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Proceder al Pago</span>
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -1686,6 +2283,24 @@ export function MapViewClient() {
                   </>
                 )}
               </Button>
+
+              {/* Botón de Cotización para Desktop */}
+              <Button
+                variant="outline"
+                size="xl"
+                onClick={() => {
+                  setQuoteSuccess(false);
+                  setIsQuoteDialogOpen(true);
+                }}
+                className="w-full mt-2.5 font-bold flex items-center justify-center gap-2"
+              >
+                <FileText size={16} />
+                <span>Guardar y Cotizar (PDF)</span>
+              </Button>
+              <p className="text-center text-[10px] text-muted-foreground mt-2 leading-relaxed font-medium max-w-[280px] mx-auto">
+                Guarda tu selección en la web y descarga un PDF con un enlace de recuperación para pagar después.
+              </p>
+
               <p className="text-center text-[10px] text-muted-foreground mt-3 font-medium italic">
                 * Precios incluyen IGV. Sujeto a disponibilidad.
               </p>
@@ -1769,6 +2384,160 @@ export function MapViewClient() {
           background: rgba(15, 23, 42, 0.2);
         }
       `}</style>
+
+      {/* FULLSCREEN CAMPAIGN LOADER OVERLAY */}
+      {isCampaignLoading && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-[500] flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
+          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+          <p className="text-sm font-bold text-foreground uppercase tracking-widest animate-pulse">Cargando cotización...</p>
+        </div>
+      )}
+
+      {/* DIALOGO DE COTIZACIÓN */}
+      <Dialog
+        isOpen={isQuoteDialogOpen}
+        onClose={() => {
+          if (!isSavingQuote) setIsQuoteDialogOpen(false);
+        }}
+        hideCloseButton
+        className="max-w-md p-6 bg-card border border-border rounded-2xl shadow-2xl relative overflow-hidden"
+      >
+        {/* Modal Header */}
+        <div className="flex justify-between items-center pb-4 border-b border-border/50">
+          <div className="flex items-center gap-2">
+            <FileText className="text-primary" size={20} />
+            <h3 className="text-base font-black text-foreground uppercase tracking-wider">Guardar y Cotizar</h3>
+          </div>
+          {!isSavingQuote && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsQuoteDialogOpen(false)}
+              className="h-8 w-8 rounded-full border border-border flex items-center justify-center"
+            >
+              <X size={16} />
+            </Button>
+          )}
+        </div>
+
+        {!quoteSuccess ? (
+          <form onSubmit={handleSaveAndDownloadQuote} className="mt-4 space-y-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Ingresa los datos para registrar tu campaña en la nube. Se descargará un PDF formal con un enlace y código QR que te permitirá reanudar tu compra.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-wider">Nombre de la Campaña</label>
+              <Input
+                required
+                type="text"
+                value={quoteCampaignName}
+                onChange={(e) => setQuoteCampaignName(e.target.value)}
+                placeholder={`ej. Campaña JMT - ${format(new Date(), 'MMM yyyy')}`}
+                className="w-full text-sm font-semibold"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-wider">Nombre del Cliente / Empresa</label>
+              <Input
+                required
+                type="text"
+                value={quoteClientName}
+                onChange={(e) => setQuoteClientName(e.target.value)}
+                placeholder="ej. Mi Empresa S.A.C."
+                className="w-full text-sm font-semibold"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isSavingQuote}
+              size="xl"
+              whileHover={{ scale: 1 }}
+              whileTap={{ scale: 1 }}
+              className="w-full font-black text-xs uppercase tracking-widest mt-6 flex items-center justify-center gap-2"
+            >
+              {isSavingQuote ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generando Cotización...</span>
+                </>
+              ) : (
+                <>
+                  <FileText size={16} />
+                  <span>Confirmar y Descargar PDF</span>
+                </>
+              )}
+            </Button>
+          </form>
+        ) : (
+          <div className="mt-6 flex flex-col items-center text-center space-y-5 animate-in fade-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/20 rounded-full flex items-center justify-center border border-emerald-200">
+              <Check className="text-emerald-500 w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-black text-lg text-foreground uppercase tracking-tight">¡Cotización Guardada!</h4>
+              <p className="text-xs text-muted-foreground max-w-[280px]">
+                El PDF se ha descargado de manera automática. Puedes enviar el siguiente enlace para reanudar la compra.
+              </p>
+            </div>
+
+            {/* Share Link field */}
+            <div className="w-full flex items-center gap-2 bg-muted/50 p-2.5 rounded-xl border border-border/80">
+              <input
+                readOnly
+                type="text"
+                value={quoteRecoveryUrl}
+                className="flex-1 bg-transparent text-xs font-mono text-foreground focus:outline-none select-all truncate pl-1"
+              />
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => {
+                  navigator.clipboard.writeText(quoteRecoveryUrl);
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 2000);
+                }}
+                className={cn(
+                  "hover:bg-background shrink-0 border flex items-center justify-center",
+                  copiedLink ? "text-emerald-500 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20" : "text-muted-foreground"
+                )}
+                title="Copiar Enlace"
+              >
+                {copiedLink ? <Check size={14} /> : <Copy size={14} />}
+              </Button>
+            </div>
+
+            <Button
+              size="lg"
+              onClick={() => {
+                setIsQuoteDialogOpen(false);
+                setQuoteSuccess(false);
+                setQuoteCampaignName("");
+              }}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider py-4 mt-2"
+            >
+              Cerrar
+            </Button>
+          </div>
+        )}
+      </Dialog>
+
+      {/* COMPONENTE OFF-SCREEN PARA CAPTURA PDF */}
+      <QuotePDFDocument
+        campaignName={quoteCampaignName || `Campaña JMT - ${format(new Date(), 'MMM yyyy')}`}
+        clientName={quoteClientName || "Cliente"}
+        clientEmail={currentUser?.email || ""}
+        clientPhone={currentUser?.phone || ""}
+        clientDocType="DNI/RUC"
+        clientDocNumber=""
+        items={cartItems}
+        totalAmount={cartTotal}
+        recoveryUrl={quoteRecoveryUrl}
+        quoteId={quoteId || "TEMP"}
+        documentRef={quoteDocRef}
+      />
     </div>
   );
 }

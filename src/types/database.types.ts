@@ -77,6 +77,36 @@ export type Database = {
           },
         ]
       }
+      districts: {
+        Row: {
+          created_at: string | null
+          department: string
+          display_name: string
+          geometry: Json
+          id: string
+          name: string
+          province: string
+        }
+        Insert: {
+          created_at?: string | null
+          department: string
+          display_name: string
+          geometry: Json
+          id?: string
+          name: string
+          province: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: string
+          display_name?: string
+          geometry?: Json
+          id?: string
+          name?: string
+          province?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string | null
@@ -325,7 +355,7 @@ export type Database = {
           fecha_respuesta?: string | null
           id?: string
           monto_reclamado?: number | null
-          numero_reclamo?: string
+          numero_reclamo: string
           observaciones_empresa?: string | null
           pedido_consumidor?: string | null
           reclamante_domicilio: string
@@ -335,7 +365,7 @@ export type Database = {
           reclamante_telefono: string
           reclamante_tipo_doc: string
           respuesta_empresa?: string | null
-          secuencia?: number
+          secuencia: number
           tipo_bien: string
           tipo_disconformidad: string
           updated_at?: string
@@ -367,6 +397,44 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      saved_campaigns: {
+        Row: {
+          campaign_name: string
+          client_name: string
+          created_at: string
+          id: string
+          items: Json
+          total_amount: number
+          user_id: string | null
+        }
+        Insert: {
+          campaign_name: string
+          client_name: string
+          created_at?: string
+          id?: string
+          items: Json
+          total_amount: number
+          user_id?: string | null
+        }
+        Update: {
+          campaign_name?: string
+          client_name?: string
+          created_at?: string
+          id?: string
+          items?: Json
+          total_amount?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_campaigns_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       structures: {
         Row: {
@@ -406,7 +474,7 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
-          organization_id?: string
+          organization_id: string
           poi_details?: Json | null
           poi_tags?: string[] | null
           reference?: string | null

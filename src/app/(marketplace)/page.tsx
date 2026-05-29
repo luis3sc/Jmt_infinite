@@ -6,7 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 export default function HomePage() {
   return (
     <>
-      <main className="relative min-h-[100dvh] bg-brand-dark flex flex-col items-center justify-between overflow-hidden px-6 pt-12 pb-0 md:pt-24">
+      <main className="relative min-h-[100dvh] bg-brand-dark flex flex-col items-center justify-between px-6 pt-12 pb-0 md:pt-24">
         {/* Background decorations for depth */}
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[120px] opacity-60 animate-pulse" />

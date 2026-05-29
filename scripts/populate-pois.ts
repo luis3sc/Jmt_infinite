@@ -220,25 +220,32 @@ async function main() {
   const validStructures = structures.filter((s) => s.latitude && s.longitude);
   console.log(`📊 Se encontraron ${structures.length} estructuras, ${validStructures.length} tienen coordenadas válidas.`);
 
+  const targetCodes = process.argv.slice(2);
+  let filteredStructs = validStructures;
+  if (targetCodes.length > 0) {
+    filteredStructs = validStructures.filter(s => targetCodes.includes(s.code));
+    console.log(`🎯 Ejecutando enriquecimiento únicamente para: ${targetCodes.join(", ")}`);
+  }
+
   let index = 1;
-  for (const struct of validStructures) {
+  for (const struct of filteredStructs) {
     const lat = struct.latitude!;
     const lng = struct.longitude!;
-    console.log(`\n🔄 [${index}/${validStructures.length}] Procesando ${struct.code || struct.id} (${lat}, ${lng})...`);
+    console.log(`\n🔄 [${index}/${filteredStructs.length}] Procesando ${struct.code || struct.id} (${lat}, ${lng})...`);
 
     try {
-      // Build optimized Overpass API query for 500m radius
+      // Build optimized Overpass API query for 500m radius using nwr (node, way, relation) and geometry output
       const overpassQuery = `[out:json][timeout:25];
 (
-  node(around:500,${lat},${lng})["amenity"~"bank|atm|university|college|school|kindergarten|fitness_centre|hospital|clinic|doctors|fuel|car_wash|pharmacy|restaurant|fast_food|cafe|bar|pub|ice_cream|cinema|theatre|marketplace"];
-  node(around:500,${lat},${lng})["shop"~"mall|department_store|supermarket|car|kiosk|convenience|clothes|shoes|electronics|hairdresser|bakery|hardware|mobile_phone"];
-  node(around:500,${lat},${lng})["leisure"~"fitness_centre|stadium|sports_centre|park"];
-  node(around:500,${lat},${lng})["tourism"~"attraction|museum|gallery"];
-  node(around:500,${lat},${lng})["historic"~"heritage|monument"];
-  node(around:500,${lat},${lng})["aeroway"="aerodrome"];
-  node(around:500,${lat},${lng})["office"~"telecommunication|insurance"];
+  nwr(around:500,${lat},${lng})["amenity"~"bank|atm|university|college|school|kindergarten|fitness_centre|hospital|clinic|doctors|fuel|car_wash|pharmacy|restaurant|fast_food|cafe|bar|pub|ice_cream|cinema|theatre|marketplace"];
+  nwr(around:500,${lat},${lng})["shop"~"mall|department_store|supermarket|car|kiosk|convenience|clothes|shoes|electronics|hairdresser|bakery|hardware|mobile_phone"];
+  nwr(around:500,${lat},${lng})["leisure"~"fitness_centre|stadium|sports_centre|park"];
+  nwr(around:500,${lat},${lng})["tourism"~"attraction|museum|gallery"];
+  nwr(around:500,${lat},${lng})["historic"~"heritage|monument"];
+  nwr(around:500,${lat},${lng})["aeroway"="aerodrome"];
+  nwr(around:500,${lat},${lng})["office"~"telecommunication|insurance"];
 );
-out body;`;
+out geom;`;
 
       const response = await fetchWithRetry({
         method: "POST",
@@ -264,8 +271,32 @@ out body;`;
         const category = mapPoiToCategory(tags);
         if (!category) continue;
 
-        const dist = calculateDistance(lat, lng, item.lat, item.lon);
-        if (dist > 500) continue;
+        // Calculate distance based on item type and geometry
+        let dist = Infinity;
+        let itemLat = null;
+        let itemLon = null;
+
+        if (item.type === "node" && item.lat && item.lon) {
+          itemLat = item.lat;
+          itemLon = item.lon;
+          dist = calculateDistance(lat, lng, itemLat, itemLon);
+        } else if ((item.type === "way" || item.type === "relation") && item.geometry) {
+          // Calculate distance to nearest point on the polygon boundary
+          for (const pt of item.geometry) {
+            const ptDist = calculateDistance(lat, lng, pt.lat, pt.lon);
+            if (ptDist < dist) {
+              dist = ptDist;
+              itemLat = pt.lat;
+              itemLon = pt.lon;
+            }
+          }
+        } else if (item.center) {
+          itemLat = item.center.lat;
+          itemLon = item.center.lon;
+          dist = calculateDistance(lat, lng, itemLat, itemLon);
+        }
+
+        if (dist > 500 || itemLat === null || itemLon === null) continue;
 
         const sector = getPoiSector(name, tags);
 
@@ -275,7 +306,7 @@ out body;`;
           categoria: category,
           sector: sector || "Otros",
           distancia_metros: dist,
-          coordenadas: { lat: item.lat, lng: item.lon },
+          coordenadas: { lat: itemLat, lng: itemLon },
         });
 
         tagsSet.add(category);

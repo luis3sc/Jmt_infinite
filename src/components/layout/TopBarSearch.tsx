@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -15,8 +15,10 @@ interface TopBarSearchProps {
   onSearch: () => void;
   suggestions: any[];
   showSuggestions: boolean;
-  onSelectSuggestion: (lng: number, lat: number, placeName: string) => void;
+  onSelectSuggestion: (lng: number, lat: number, placeName: string, suggestion?: any) => void;
   onLocationSearch: (query: string) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export default function TopBarSearch({
@@ -30,6 +32,8 @@ export default function TopBarSearch({
   suggestions,
   showSuggestions,
   onSelectSuggestion,
+  onFocus,
+  onBlur,
 }: TopBarSearchProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -47,6 +51,8 @@ export default function TopBarSearch({
           value={searchQuery || ""}
           onChange={(e) => onLocationSearch(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={onFocus}
+          onBlur={onBlur}
           placeholder="¿Dónde quieres anunciarte?"
           className="w-full pl-4 pr-10 py-2 bg-transparent border-none text-sm focus-visible:ring-0 h-[44px] font-medium placeholder:text-muted-foreground/60 shadow-none"
         />
@@ -60,15 +66,21 @@ export default function TopBarSearch({
           </button>
         )}
         {showSuggestions && suggestions.length > 0 && (
-          <ul className="absolute top-[calc(100%+12px)] left-0 right-0 bg-card border border-border rounded-[calc(var(--radius)*1.0)] shadow-xl overflow-hidden z-[100] max-h-60 overflow-y-auto">
-            {suggestions.map((s: any) => (
-              <li
-                key={s.id}
-                className="px-4 py-3 hover:bg-muted cursor-pointer text-sm border-b border-border last:border-0 truncate text-foreground"
-                onClick={() => onSelectSuggestion(s.center[0], s.center[1], s.place_name)}
+          <ul
+            onMouseDown={(e) => e.preventDefault()}
+            className="absolute top-[calc(100%+12px)] left-0 right-0 bg-card border border-border rounded-[calc(var(--radius)*1.0)] shadow-xl overflow-hidden z-[100] max-h-60 overflow-y-auto"
+          >
+            {suggestions.map((s: any, idx: number) => (
+              <div
+                key={s.id || `sug-${idx}`}
+                className="px-5 py-4 hover:bg-primary/[0.08] cursor-pointer flex items-center gap-4 transition-all duration-200 border-b border-border/50 last:border-0 group/item"
+                onClick={() => onSelectSuggestion(s.center ? s.center[0] : 0, s.center ? s.center[1] : 0, s.place_name, s)}
               >
-                {s.place_name}
-              </li>
+                <div className="w-8 h-4 rounded-[calc(var(--radius)*0.75)] bg-muted flex items-center justify-center shrink-0 group-hover/item:bg-primary/20 transition-colors">
+                  <MapPin size={16} className="text-muted-foreground group-hover/item:text-primary transition-colors" />
+                </div>
+                <span className="text-sm font-semibold text-foreground group-hover/item:text-primary transition-colors truncate">{s.place_name}</span>
+              </div>
             ))}
           </ul>
         )}
