@@ -451,7 +451,7 @@ export default function StructureDetailModal({
                       key={panel.id}
                       type="button"
                       onClick={() => handlePanelChange(idx)}
-                      className={`relative px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-300 whitespace-nowrap outline-none select-none ${isActive
+                      className={`relative px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-all duration-300 whitespace-nowrap outline-none select-none cursor-pointer ${isActive
                         ? "text-black font-extrabold"
                         : "text-white/70 hover:text-white font-bold"
                         }`}
@@ -618,7 +618,7 @@ export default function StructureDetailModal({
                 <button
                   type="button"
                   onClick={() => setDetailTab("info")}
-                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 ${detailTab === "info"
+                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 cursor-pointer ${detailTab === "info"
                       ? "text-primary font-black"
                       : "text-muted-foreground hover:text-foreground font-bold"
                     }`}
@@ -635,7 +635,7 @@ export default function StructureDetailModal({
                 <button
                   type="button"
                   onClick={() => setDetailTab("especificaciones")}
-                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 ${detailTab === "especificaciones"
+                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 cursor-pointer ${detailTab === "especificaciones"
                       ? "text-primary font-black"
                       : "text-muted-foreground hover:text-foreground font-bold"
                     }`}
@@ -652,7 +652,7 @@ export default function StructureDetailModal({
                 <button
                   type="button"
                   onClick={() => setDetailTab("puntos_de_interes")}
-                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 ${detailTab === "puntos_de_interes"
+                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 cursor-pointer ${detailTab === "puntos_de_interes"
                       ? "text-primary font-black"
                       : "text-muted-foreground hover:text-foreground font-bold"
                     }`}
@@ -868,7 +868,9 @@ export default function StructureDetailModal({
                   days: actualDays,
                   totalPrice: Math.round(currentFinalDailyPrice * actualDays * 1.18 * 100) / 100,
                   format: currentActivePanel.format || "",
-                  mediaType: currentActivePanel.media_type || ""
+                  mediaType: currentActivePanel.media_type || "",
+                  width: currentActivePanel.width || null,
+                  height: currentActivePanel.height || null
                 });
               }}
             >

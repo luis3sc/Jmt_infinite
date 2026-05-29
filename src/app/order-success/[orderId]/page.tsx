@@ -21,6 +21,7 @@ import { FrameSelector, AVAILABLE_FRAMES } from '@/components/upload/FrameSelect
 import type { Frame } from '@/components/upload/FrameSelector'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Button } from '@/components/ui/Button'
+import { BackButton } from '@/components/ui/BackButton'
 
 // Libs
 import { composeImage } from '@/lib/imageComposer'
@@ -912,15 +913,7 @@ export default function OrderSuccessPage() {
       <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col p-3 md:p-6 relative z-10">
 
         {/* Botón volver */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push('/dashboard/orders')}
-          className="w-fit flex items-center gap-2 font-bold mb-2 md:mb-4 group text-[10px] md:text-xs px-3 py-1.5 md:px-4 md:py-2 rounded-xl bg-card/50 backdrop-blur-sm border border-border"
-        >
-          <ArrowLeft size={14} className="text-primary group-hover:-translate-x-1 transition-transform" />
-          <span className="text-muted-foreground group-hover:text-foreground">Volver a Pedidos</span>
-        </Button>
+        <BackButton href="/dashboard/orders" label="Volver" variant="small" className="mb-2 md:mb-4 px-3 py-1.5 md:px-4 md:py-2" />
 
         <AnimatePresence mode="wait">
 

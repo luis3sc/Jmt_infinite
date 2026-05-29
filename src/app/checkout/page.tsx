@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { createClient } from '@/lib/supabase/client'
+import { BackButton } from '@/components/ui/BackButton'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -356,20 +357,13 @@ export default function CheckoutPage() {
         {/* SECCIÓN IZQUIERDA: FORMULARIO */}
         <div className="flex-1 px-4 pt-4 pb-24 md:p-10 md:max-w-2xl md:mx-auto md:w-full overflow-y-auto custom-scrollbar">
           {/* Botón Volver */}
-          <Button
-            variant="outline"
-            onClick={() => router.back()}
-            className="w-fit flex items-center gap-2.5 px-4 py-2.5 bg-card/50 backdrop-blur-sm shadow-sm hover:bg-muted transition-all active:scale-95 group mb-8"
-          >
-            <ArrowLeft size={18} className="text-primary group-hover:-translate-x-1 transition-transform" />
-            <span className="text-muted-foreground group-hover:text-foreground">Volver</span>
-          </Button>
+          <BackButton className="mb-8" />
 
           {/* RESUMEN COLLAPSABLE (Solo Mobile) */}
           <div className="md:hidden mb-8 border border-border rounded-[calc(var(--radius)*0.75)] bg-card overflow-hidden">
             <button
               onClick={() => setShowSummary(!showSummary)}
-              className="w-full flex items-center justify-between p-4 bg-muted"
+              className="w-full flex items-center justify-between p-4 bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-[calc(var(--radius)*0.75)]">
@@ -481,7 +475,7 @@ export default function CheckoutPage() {
                           key={type.id}
                           type="button"
                           onClick={() => setUserType(type.id as any)}
-                          className={`flex flex-col items-center justify-center p-3 rounded-[calc(var(--radius)*0.75)] border transition-all gap-1.5 ${userType === type.id
+                          className={`flex flex-col items-center justify-center p-3 rounded-[calc(var(--radius)*0.75)] border transition-all gap-1.5 cursor-pointer ${userType === type.id
                               ? 'border-primary bg-primary/5 text-primary shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
                               : 'bg-card text-muted-foreground border-border hover:bg-muted'
                             }`}
@@ -549,7 +543,7 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() => setReceiptType('boleta')}
-                    className={`py-3 rounded-[calc(var(--radius)*0.6875)] text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'boleta'
+                    className={`py-3 rounded-[calc(var(--radius)*0.6875)] text-sm font-bold tracking-wider uppercase transition-all border cursor-pointer ${receiptType === 'boleta'
                       ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
                       : 'bg-card text-muted-foreground border-border hover:bg-muted'
                       }`}
@@ -559,7 +553,7 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() => setReceiptType('factura')}
-                    className={`py-3 rounded-[calc(var(--radius)*0.6875)] text-sm font-bold tracking-wider uppercase transition-all border ${receiptType === 'factura'
+                    className={`py-3 rounded-[calc(var(--radius)*0.6875)] text-sm font-bold tracking-wider uppercase transition-all border cursor-pointer ${receiptType === 'factura'
                       ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
                       : 'bg-card text-muted-foreground border-border hover:bg-muted'
                       }`}
@@ -840,11 +834,11 @@ export default function CheckoutPage() {
               onClick={handleProceedToPayment}
               disabled={loading || cartItems.length === 0}
               size="xl"
-              className="w-full font-black text-xs uppercase tracking-[0.15em] shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex justify-center items-center gap-3 disabled:opacity-50"
+              className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex justify-center items-center gap-3 disabled:opacity-50"
             >
               {loading ? (
                 <>
-                  <Loader2 size={20} className="animate-spin" />
+                   <Loader2 size={20} className="animate-spin" />
                   <span>Procesando...</span>
                 </>
               ) : (
@@ -871,7 +865,7 @@ export default function CheckoutPage() {
               onClick={handleProceedToPayment}
               disabled={loading || cartItems.length === 0}
               size="xl"
-              className="w-full font-black text-xs uppercase tracking-[0.15em] shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex items-center justify-center gap-2"
+              className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex items-center justify-center gap-2"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={16} />
@@ -986,7 +980,7 @@ export default function CheckoutPage() {
           <Button
             onClick={handleConfirmPayment}
             disabled={paymentLoading}
-            className="w-full mt-5 h-auto py-4 font-black text-sm uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+            className="w-full mt-5 h-auto py-4 font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
           >
             {paymentLoading ? (
               <><Loader2 size={18} className="mr-2 animate-spin" /> Procesando...</>

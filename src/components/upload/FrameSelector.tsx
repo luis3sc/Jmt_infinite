@@ -65,7 +65,6 @@ export function FrameSelector({ previewSrc, selectedFrameId, onSelectFrame }: Fr
           return (
             <motion.button
               key={frame.id}
-              whileTap={{ scale: 0.95 }}
               onClick={() => onSelectFrame(frame)}
               className={`relative flex-shrink-0 w-[90px] h-[52px] rounded-xl overflow-hidden border-2 transition-all duration-200
                 ${isSelected ? 'border-primary shadow-lg shadow-primary/30' : 'border-border/50 hover:border-border'}`}

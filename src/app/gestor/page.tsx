@@ -6,6 +6,7 @@ import TopBar from '@/components/layout/TopBar'
 import AuthButton from '@/components/layout/AuthButton'
 import { GestorReviewList } from '@/components/gestor/GestorReviewList'
 import { Order } from '@/components/gestor/GestorOrderDetail'
+import { BackButton } from '@/components/ui/BackButton'
 
 export default async function GestorPage() {
   const supabase = createClient()
@@ -72,9 +73,9 @@ export default async function GestorPage() {
   const userIds = [...new Set(orders?.map(o => o.user_id).filter(Boolean) ?? [])]
   const profilesResult = userIds.length > 0
     ? await supabase
-        .from('profiles')
-        .select('id, full_name, email, company_name, phone')
-        .in('id', userIds)
+      .from('profiles')
+      .select('id, full_name, email, company_name, phone')
+      .in('id', userIds)
     : { data: [] as { id: string; full_name: string | null; email: string | null; company_name: string | null; phone: string | null }[] }
   const profilesData = profilesResult.data
 
@@ -83,13 +84,13 @@ export default async function GestorPage() {
   // Attach profile info and flatten Supabase nested arrays
   const ordersWithProfiles: Order[] = (orders ?? []).map(o => {
     const profile = profileMap[o.user_id] || null;
-    
+
     // Transform bookings to flatten nested arrays from joins
     const transformedBookings = (o.bookings as any[])?.map(b => {
       // Handle the case where panels might be an array or a single object
       const panelArray = b.panels;
       const firstPanel = Array.isArray(panelArray) ? panelArray[0] : panelArray;
-      
+
       let transformedPanel = null;
       if (firstPanel) {
         // Handle nested structures array
@@ -120,10 +121,10 @@ export default async function GestorPage() {
   });
 
   // Stats
-  const pendingUpload  = ordersWithProfiles.filter(o => o.status === 'PENDING_UPLOAD').length
-  const pendingReview  = ordersWithProfiles.filter(o => o.status === 'VIDEO_SENT' || o.status === 'PENDING_VALIDATION').length
-  const approved       = ordersWithProfiles.filter(o => o.status === 'CONFIRMED').length
-  const rejected       = ordersWithProfiles.filter(o => o.status === 'REJECTED').length
+  const pendingUpload = ordersWithProfiles.filter(o => o.status === 'PENDING_UPLOAD').length
+  const pendingReview = ordersWithProfiles.filter(o => o.status === 'VIDEO_SENT' || o.status === 'PENDING_VALIDATION').length
+  const approved = ordersWithProfiles.filter(o => o.status === 'CONFIRMED').length
+  const rejected = ordersWithProfiles.filter(o => o.status === 'REJECTED').length
 
   return (
     <main className="min-h-screen bg-background text-foreground flex flex-col">
@@ -132,13 +133,7 @@ export default async function GestorPage() {
       <div className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 pt-20 md:pt-24">
 
         {/* Back */}
-        <Link
-          href="/map"
-          className="w-fit flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border hover:bg-slate-50 hover:border-primary/20 transition-all active:scale-95 group text-[10px] font-black uppercase tracking-widest mb-8 shadow-sm"
-        >
-          <ArrowLeft size={14} className="text-primary group-hover:-translate-x-1 transition-transform" />
-          <span className="text-slate-500 group-hover:text-foreground">Volver al Mapa</span>
-        </Link>
+        <BackButton href="/map" label="Volver" variant="small" className="mb-8" />
 
         {/* Header */}
         <header className="mb-10">

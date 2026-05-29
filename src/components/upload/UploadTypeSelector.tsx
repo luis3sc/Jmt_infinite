@@ -67,8 +67,7 @@ export function UploadTypeSelector({ onSelect, userType }: UploadTypeSelectorPro
           <motion.button
             key={type}
             variants={cardVariants}
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ y: -2 }}
             onClick={() => onSelect(type)}
             className="group relative flex flex-col items-start gap-2.5 sm:gap-4 p-3 sm:p-5 rounded-2xl bg-card border border-border hover:border-primary backdrop-blur-xl text-left transition-all duration-300 shadow-md hover:shadow-xl overflow-hidden"
           >

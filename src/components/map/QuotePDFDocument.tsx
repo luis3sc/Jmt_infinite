@@ -16,6 +16,8 @@ interface CartItem {
   totalPrice: number
   format: string
   mediaType: string
+  width?: number | null
+  height?: number | null
 }
 
 interface QuotePDFDocumentProps {
@@ -181,7 +183,7 @@ export default function QuotePDFDocument({
                     <td className="py-3 px-3 border-r border-slate-200">
                       <div className="font-bold text-slate-900 uppercase tracking-tight">{item.address}</div>
                       <div className="text-[10px] text-slate-400 font-extrabold uppercase mt-0.5">
-                        {item.mediaType} ({item.format}) - CÓD: <span className="font-mono bg-slate-100 px-1 py-0.5 rounded border border-slate-200 text-slate-700">{item.panelCode}</span>
+                        {item.mediaType} ({item.format}) {item.width && item.height && ` - ${Number(item.width).toFixed(2)}x${Number(item.height).toFixed(2)}m`} - CÓD: <span className="font-mono bg-slate-100 px-1 py-0.5 rounded border border-slate-200 text-slate-700">{item.panelCode}</span>
                       </div>
                       <div className="text-[10px] text-slate-500 font-medium mt-1 flex items-center gap-1">
                         <Calendar size={10} className="text-slate-400 shrink-0" />

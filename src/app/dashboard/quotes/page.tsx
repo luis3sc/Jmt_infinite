@@ -1,14 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ShoppingBag, ArrowLeft, AlertCircle } from 'lucide-react'
+import { FileText, AlertCircle } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import AuthButton from '@/components/layout/AuthButton'
-import { OrdersList } from '@/components/dashboard/OrdersList'
+import { QuotesList } from '@/components/dashboard/QuotesList'
 import { BackButton } from '@/components/ui/BackButton'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
 
-export default async function OrdersPage() {
+export default async function QuotesPage() {
  const supabase = createClient()
 
  const {
@@ -19,43 +19,21 @@ export default async function OrdersPage() {
   redirect('/login')
  }
 
- const { data: orders, error } = await supabase
-  .from('orders')
-  .select(`
-   *,
-   profiles (
-    full_name,
-    company_name,
-    document_type,
-    document_number,
-    phone,
-    receipt_type,
-    email
-   ),
-   bookings (
-    id,
-    start_date,
-    end_date,
-    amount,
-    panels (
-     panel_code,
-     width,
-     height,
-     format,
-     face,
-     structures (
-      address,
-      district,
-      organization_id,
-      organizations (
-       name
-      )
-     )
-    )
-   )
-  `)
+ const { data: quotes, error } = await supabase
+  .from('saved_campaigns')
+  .select('*')
   .eq('user_id', user.id)
   .order('created_at', { ascending: false })
+
+ let profile = null
+ if (!error && user) {
+  const { data: profileData } = await supabase
+   .from('profiles')
+   .select('email, phone, document_type, document_number')
+   .eq('id', user.id)
+   .maybeSingle()
+  profile = profileData
+ }
 
  return (
   <main className="min-h-screen bg-background text-foreground flex flex-col">
@@ -70,14 +48,14 @@ export default async function OrdersPage() {
     <header className="mb-10 border-b border-border pb-8">
      <div className="flex items-end justify-between gap-6">
       <div>
-       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Historial de campañas</p>
+       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Campañas guardadas</p>
        <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-foreground leading-none">
-        Mis Pedidos
+        Mis Cotizaciones
        </h1>
       </div>
-      {orders && orders.length > 0 && (
+      {quotes && quotes.length > 0 && (
        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest hidden md:block">
-        {orders.length} {orders.length === 1 ? 'pedido' : 'pedidos'}
+        {quotes.length} {quotes.length === 1 ? 'cotización' : 'cotizaciones'}
        </p>
       )}
      </div>
@@ -91,12 +69,12 @@ export default async function OrdersPage() {
       <h3 className="text-sm font-black text-red-600 uppercase tracking-tight">Error de Conexión</h3>
       <p className="text-slate-500 mt-1 text-xs">{error.message}</p>
      </div>
-    ) : !orders || orders.length === 0 ? (
+    ) : !quotes || quotes.length === 0 ? (
      <div className="py-24 rounded-lg bg-card border border-dashed border-border text-center shadow-sm">
-      <ShoppingBag size={32} className="text-slate-300 mx-auto mb-5" strokeWidth={1} />
-      <h2 className="text-lg font-black text-foreground mb-2 uppercase tracking-tight">Sin pedidos</h2>
+      <FileText size={32} className="text-slate-300 mx-auto mb-5" strokeWidth={1} />
+      <h2 className="text-lg font-black text-foreground mb-2 uppercase tracking-tight">Sin cotizaciones</h2>
       <p className="text-muted-foreground mb-8 max-w-xs mx-auto text-sm font-medium">
-       Tus compras de publicidad aparecerán aquí una vez que realices tu primer pedido.
+       Tus campañas guardadas y cotizaciones aparecerán aquí una vez que crees la primera en el mapa de pantallas.
       </p>
       <Link
        href="/map"
@@ -106,7 +84,7 @@ export default async function OrdersPage() {
       </Link>
      </div>
     ) : (
-     <OrdersList initialOrders={orders} />
+     <QuotesList initialQuotes={quotes} userProfile={profile} />
     )}
    </div>
   </main>

@@ -206,7 +206,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                           {order.status === 'PENDING_UPLOAD' && (
                             <Link
                               href={`/order-success/${order.id}`}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all active:scale-95 shadow-sm"
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-sm"
                             >
                               <Upload size={13} />
                               Subir Contenido
@@ -215,7 +215,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                           {order.status === 'REJECTED' && (
                             <Link
                               href={`/order-success/${order.id}`}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all active:scale-95 shadow-sm"
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-sm"
                             >
                               <AlertCircle size={13} />
                               Corregir Foto o Video
@@ -224,7 +224,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                           {(order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
                             <Link
                               href={`/order-success/${order.id}`}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted border border-border text-foreground text-[10px] font-black uppercase tracking-widest hover:bg-muted/80 transition-all active:scale-95"
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted border border-border text-foreground text-[10px] font-black uppercase tracking-widest hover:bg-primary/80 transition-all bg-primary text-primary-foreground "
                             >
                               <ExternalLink size={13} />
                               Ver mi Anuncio
@@ -234,7 +234,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                             href={`/dashboard/orders/${order.id}/nota`}
                             target="_blank"
                             onClick={e => e.stopPropagation()}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest bg-muted/40 border border-border text-foreground hover:bg-muted/65 transition-all active:scale-95"
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest bg-muted/40 border border-border  border-primary  transition-all "
                           >
                             <FileText size={13} />
                             Nota de Pedido

@@ -15,6 +15,8 @@ export type CartItem = {
   totalPrice: number;
   format: string;
   mediaType: string;
+  width?: number | null;
+  height?: number | null;
 };
 
 interface CartState {

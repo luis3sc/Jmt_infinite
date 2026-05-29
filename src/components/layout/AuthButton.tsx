@@ -83,7 +83,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
     return (
       <Link
         href={mobileHref}
-        className="flex flex-col items-center justify-center w-16 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors"
+        className="flex flex-col items-center justify-center w-16 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
       >
         <MobileIcon size={20} className={user ? "text-foreground" : ""} />
         <span className="text-[10px] font-medium">{mobileLabel}</span>
@@ -94,10 +94,8 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
   return user ? (
     <div className="relative">
       <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 pl-2 pr-3 py-1.5 md:pl-3 md:pr-4 md:h-11 bg-muted border border-border text-muted-foreground rounded-[calc(var(--radius)*0.5625)] md:rounded-[calc(var(--radius)*0.6875)] transition-all hover:bg-muted/80 group"
+        className="flex items-center gap-2 pl-2 pr-3 py-1.5 md:pl-3 md:pr-4 md:h-11 bg-muted border border-border text-muted-foreground rounded-[calc(var(--radius)*0.5625)] md:rounded-[calc(var(--radius)*0.6875)] transition-all hover:bg-muted/80 group cursor-pointer"
       >
         <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-foreground flex items-center justify-center text-background shadow-sm overflow-hidden flex-shrink-0">
           <User size={16} />
@@ -135,7 +133,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                   <Link
                     href="/gestor"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-[calc(var(--radius)*0.6875)] transition-all group"
+                    className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-[calc(var(--radius)*0.6875)] transition-all group cursor-pointer"
                   >
                     <div className="p-2 bg-amber-500/10 rounded-[calc(var(--radius)*0.5)] group-hover:bg-amber-500/20 transition-colors">
                       <Clapperboard size={18} />
@@ -147,7 +145,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                     <Link
                       href="/dashboard/orders"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-[calc(var(--radius)*0.6875)] transition-all group"
+                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-[calc(var(--radius)*0.6875)] transition-all group cursor-pointer"
                     >
                       <div className="p-2 bg-muted rounded-[calc(var(--radius)*0.5)] group-hover:bg-muted/80 group-hover:text-foreground transition-colors">
                         <ShoppingBag size={18} />
@@ -158,7 +156,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                     <Link
                       href="/dashboard"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-[calc(var(--radius)*0.6875)] transition-all group"
+                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-[calc(var(--radius)*0.6875)] transition-all group cursor-pointer"
                     >
                       <div className="p-2 bg-muted rounded-[calc(var(--radius)*0.5)] group-hover:bg-muted/80 group-hover:text-foreground transition-colors">
                         <LayoutDashboard size={18} />
@@ -171,7 +169,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                 <Button
                   variant="ghost"
                   onClick={handleLogout}
-                  className="w-full h-auto p-0 flex items-center justify-start gap-3 px-3.5 py-3 text-sm font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-[calc(var(--radius)*0.6875)] transition-all group"
+                  className="w-full h-auto p-0 flex items-center justify-start gap-3 px-3.5 py-3 text-sm font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-[calc(var(--radius)*0.6875)] transition-all group cursor-pointer"
                 >
                   <div className="p-2 bg-red-500/10 rounded-[calc(var(--radius)*0.5)] group-hover:bg-red-500/20 transition-colors">
                     <LogOut size={18} />
@@ -186,12 +184,12 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
     </div>
   ) : (
     <div className="flex items-center">
-      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+      <motion.div >
         <Link
           href="/login"
-          className="flex items-center gap-2 px-3.5 py-2 md:px-5 md:h-11 text-xs md:text-sm font-black text-white bg-primary hover:bg-primary/90 border-none rounded-[calc(var(--radius)*0.5625)] md:rounded-[calc(var(--radius)*0.6875)] transition-all shadow-sm group"
+          className="flex items-center gap-2 px-3.5 py-2 md:px-5 md:h-11 text-xs md:text-sm font-black text-white bg-primary hover:bg-primary/90 border-none rounded-[calc(var(--radius)*0.5625)] md:rounded-[calc(var(--radius)*0.6875)] transition-all shadow-sm group cursor-pointer"
         >
-          <User size={16} className="text-white group-hover:scale-110 transition-all" />
+          <User size={16} className="text-white" />
           <span>INGRESAR</span>
         </Link>
       </motion.div>

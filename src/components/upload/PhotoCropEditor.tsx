@@ -92,8 +92,6 @@ export function PhotoCropEditor({
 
       {/* Confirm button */}
       <motion.button
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.98 }}
         onClick={handleConfirm}
         disabled={confirmed}
         className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-xs uppercase tracking-wider transition-all

@@ -16,7 +16,6 @@ const STAGE_CONFIG = {
     title: 'Optimizando',
     subtitle: 'El servidor está procesando y adaptando el material.',
     note: '¡Subida completada! Ya puedes cerrar esta pestaña o salir de la app de forma segura. El servidor terminará el procesamiento en segundo plano.',
-    badge: 'Procesamiento en Servidor (AI-First)',
     spinLabel: 'Adaptando',
   },
   processing_client: {
@@ -24,7 +23,6 @@ const STAGE_CONFIG = {
     title: 'Optimizando Anuncio',
     subtitle: 'Tu dispositivo está procesando y adaptando el material en alta calidad.',
     note: 'Por favor no cierres esta pestaña. La conversión ocurre localmente.',
-    badge: 'Procesamiento Local (Client-Side FFmpeg)',
     spinLabel: 'Procesando',
   },
   uploading: {
@@ -32,7 +30,6 @@ const STAGE_CONFIG = {
     title: 'Subiendo Material',
     subtitle: 'Estamos enviando tu video de alta calidad.',
     note: 'Por favor no cierres esta ventana.',
-    badge: 'Conectando con Cloudflare R2 Edge',
     spinLabel: 'Sincronizando',
   },
 }
@@ -97,9 +94,6 @@ export function UploadLoading({ progress, stage = 'uploading' }: UploadLoadingPr
             />
           </div>
 
-          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest pt-2">
-            {config.badge}
-          </p>
         </div>
       </div>
     </motion.div>
