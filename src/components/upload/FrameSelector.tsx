@@ -14,6 +14,8 @@ export interface Frame {
 export const AVAILABLE_FRAMES: Frame[] = [
   { id: 'none', label: 'Sin Marco', src: '' },
   { id: 'birthday', label: 'Cumpleaños', src: '/assets/frames/frame-birthday.png' },
+  { id: 'special', label: 'Especial', src: '/assets/frames/frame2.png' },
+  { id: 'couple', label: 'Pareja', src: '/assets/frames/frame3.png' },
 ]
 
 interface FrameSelectorProps {
