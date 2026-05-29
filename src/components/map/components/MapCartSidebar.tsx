@@ -431,7 +431,7 @@ export default function MapCartSidebar({
                 variant="outline"
                 size="xl"
                 onClick={onQuoteClick}
-                className="w-[35%] h-14 font-bold text-xs flex items-center justify-center gap-1.5 border-border shrink-0 text-slate-700 dark:text-slate-200"
+                className="w-[35%] h-14 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 border-primary/30 text-primary bg-background hover:bg-primary/5 hover:border-primary shrink-0 transition-all shadow-sm rounded-xl"
               >
                 <FileText size={16} />
                 <span>Cotizar</span>
