@@ -52,8 +52,8 @@ export function PhotoCropEditor({
 
       {/* Crop canvas */}
       <div
-        className="relative w-full rounded-2xl overflow-hidden border border-border/50 bg-black"
-        style={{ height: 'min(65vw, 280px)' }}
+        className="relative w-full rounded-2xl overflow-hidden border border-border/50 bg-black touch-action-none"
+        style={{ height: 'min(65vw, 280px)', touchAction: 'none' }}
       >
         <Cropper
           image={imageSrc}

@@ -30,15 +30,40 @@ const Dialog = ({
   variant = "default",
   noScroll = false,
 }: DialogProps) => {
-  // Prevent scrolling when dialog is open
+  // Prevent scrolling when dialog is open (iOS Safari compatible)
   React.useEffect(() => {
     if (isOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
       document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = "unset";
+      const scrollY = document.body.style.top;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      document.body.style.overflow = "";
+      if (scrollY) {
+        const scrollYParsed = parseInt(scrollY, 10);
+        if (!isNaN(scrollYParsed)) {
+          window.scrollTo(0, scrollYParsed * -1);
+        }
+      }
     }
     return () => {
-      document.body.style.overflow = "unset";
+      // Restore page state on unmount if dialog was open
+      const scrollY = document.body.style.top;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      document.body.style.overflow = "";
+      if (scrollY) {
+        const scrollYParsed = parseInt(scrollY, 10);
+        if (!isNaN(scrollYParsed)) {
+          window.scrollTo(0, scrollYParsed * -1);
+        }
+      }
     };
   }, [isOpen]);
 

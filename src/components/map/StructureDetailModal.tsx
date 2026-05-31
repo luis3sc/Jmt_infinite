@@ -522,14 +522,12 @@ export default function StructureDetailModal({
                       }
                     }}
                     onClick={(e) => {
-                      try {
-                        e.currentTarget.showPicker();
-                      } catch (err) { }
-                    }}
-                    onFocus={(e) => {
-                      try {
-                        e.currentTarget.showPicker();
-                      } catch (err) { }
+                      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                      if (!isMobile && "showPicker" in e.currentTarget) {
+                        try {
+                          e.currentTarget.showPicker();
+                        } catch (err) { }
+                      }
                     }}
                     className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
                   />
@@ -542,14 +540,12 @@ export default function StructureDetailModal({
                     min={localStartDate || new Date().toISOString().split('T')[0]}
                     onChange={(e) => setLocalEndDate(e.target.value)}
                     onClick={(e) => {
-                      try {
-                        e.currentTarget.showPicker();
-                      } catch (err) { }
-                    }}
-                    onFocus={(e) => {
-                      try {
-                        e.currentTarget.showPicker();
-                      } catch (err) { }
+                      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                      if (!isMobile && "showPicker" in e.currentTarget) {
+                        try {
+                          e.currentTarget.showPicker();
+                        } catch (err) { }
+                      }
                     }}
                     className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
                   />

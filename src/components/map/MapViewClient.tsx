@@ -467,42 +467,49 @@ export function MapViewClient() {
   const locationQuery = searchParams?.get("location");
   const latParam = searchParams?.get("lat");
   const lngParam = searchParams?.get("lng");
+  const districtParam = searchParams?.get("district");
 
   const hasCoords = latParam && lngParam && !isNaN(Number(latParam)) && !isNaN(Number(lngParam));
-  if (locationQuery && !hasCoords && !dbLoaded) {
-   return; // Wait for dbStructures to load
+  
+  if (hasCoords) {
+   const lat = Number(latParam);
+   const lng = Number(lngParam);
+   setViewState(prev => {
+    if (prev.longitude === lng && prev.latitude === lat) {
+     return prev;
+    }
+    return {
+     ...prev,
+     longitude: lng,
+     latitude: lat,
+     zoom: 14,
+     transitionDuration: 1000
+    };
+   });
+
+   // Esperar a que el mapa se estabilice antes de cargar los paneles en el área
+   setTimeout(() => {
+    if (mapRef.current) {
+     const bounds = mapRef.current.getMap().getBounds();
+     if (bounds) fetchStructuresInBounds(bounds);
+    }
+   }, 1200);
+   return;
   }
 
-  if (locationQuery) {
-   setSearchQuery(locationQuery);
+  if (districtParam) {
+   // Si tenemos un distrito, dejamos que el useEffect de selectedDistrictFeature haga el fitBounds.
+   // No queremos buscar una estructura individual para centrar a zoom 15.
+   setTimeout(() => {
+    if (mapRef.current) {
+     const bounds = mapRef.current.getMap().getBounds();
+     if (bounds) fetchStructuresInBounds(bounds);
+    }
+   }, 1000);
+   return;
+  }
 
-   // Si las coordenadas exactas ya vienen en la URL, las usamos directamente sin re-geocodificar
-   if (hasCoords) {
-    const lat = Number(latParam);
-    const lng = Number(lngParam);
-    setViewState(prev => {
-     if (prev.longitude === lng && prev.latitude === lat) {
-      return prev;
-     }
-     return {
-      ...prev,
-      longitude: lng,
-      latitude: lat,
-      zoom: 14,
-      transitionDuration: 1000
-     };
-    });
-
-    // Esperar a que el mapa se estabilice antes de cargar los paneles en el área
-    setTimeout(() => {
-     if (mapRef.current) {
-      const bounds = mapRef.current.getMap().getBounds();
-      if (bounds) fetchStructuresInBounds(bounds);
-     }
-    }, 1200);
-    return;
-   }
-
+  if (locationQuery && dbLoaded) {
    // No coords in URL, but we have locationQuery and dbStructures is loaded: resolve locally
    const cleanLocation = locationQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
@@ -539,24 +546,17 @@ export function MapViewClient() {
       if (bounds) fetchStructuresInBounds(bounds);
      }
     }, 1200);
-   } else {
-    // Carga inicial en la ubicación por defecto como fallback si no se encontró coincidencia
-    setTimeout(() => {
-     if (mapRef.current) {
-      const bounds = mapRef.current.getMap().getBounds();
-      if (bounds) fetchStructuresInBounds(bounds);
-     }
-    }, 1000);
+    return;
    }
-  } else {
-   // Carga inicial en la ubicación por defecto
-   setTimeout(() => {
-    if (mapRef.current) {
-     const bounds = mapRef.current.getMap().getBounds();
-     if (bounds) fetchStructuresInBounds(bounds);
-    }
-   }, 1000);
   }
+
+  // Carga inicial en la ubicación por defecto
+  setTimeout(() => {
+   if (mapRef.current) {
+    const bounds = mapRef.current.getMap().getBounds();
+    if (bounds) fetchStructuresInBounds(bounds);
+   }
+  }, 1000);
  }, [searchParams, dbLoaded, fetchStructuresInBounds]);
 
  const executeSearch = async () => {

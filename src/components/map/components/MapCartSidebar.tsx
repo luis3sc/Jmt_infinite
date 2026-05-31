@@ -263,19 +263,7 @@ export default function MapCartSidebar({
                   <div className="px-3 pb-3 md:px-4 md:pb-4 md:pt-0 flex flex-col gap-3 min-w-0">
                     <div className="grid grid-cols-2 gap-3">
                       {/* Start Date */}
-                      <div
-                        className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-xl hover:border-primary/50 transition-colors cursor-pointer"
-                        onClick={(e) => {
-                          const input = e.currentTarget.querySelector("input");
-                          if (input && "showPicker" in input) {
-                            try {
-                              (input as any).showPicker();
-                            } catch (err) {
-                              console.warn(err);
-                            }
-                          }
-                        }}
-                      >
+                      <div className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-xl hover:border-primary/50 transition-colors cursor-pointer">
                         <label className="text-[10px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
                           <Calendar size={11} className="text-muted-foreground" />
                           Inicio
@@ -283,15 +271,15 @@ export default function MapCartSidebar({
                         <div className="text-xs font-bold text-foreground truncate pl-1">
                           {item.startDate
                             ? (() => {
-                              try {
-                                const d = parseISO(item.startDate);
-                                return isNaN(d.getTime())
-                                  ? "---"
-                                  : format(d, "dd/MM");
-                              } catch {
-                                return "---";
-                              }
-                            })()
+                               try {
+                                 const d = parseISO(item.startDate);
+                                 return isNaN(d.getTime())
+                                   ? "---"
+                                   : format(d, "dd/MM");
+                               } catch {
+                                 return "---";
+                               }
+                             })()
                             : "---"}
                         </div>
                         <Input
@@ -306,8 +294,8 @@ export default function MapCartSidebar({
                             )
                           }
                           onClick={(e) => {
-                            e.stopPropagation();
-                            if ("showPicker" in e.currentTarget) {
+                            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                            if (!isMobile && "showPicker" in e.currentTarget) {
                               try {
                                 (e.currentTarget as any).showPicker();
                               } catch (err) {
@@ -320,19 +308,7 @@ export default function MapCartSidebar({
                       </div>
 
                       {/* End Date */}
-                      <div
-                        className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-xl hover:border-primary/50 transition-colors cursor-pointer"
-                        onClick={(e) => {
-                          const input = e.currentTarget.querySelector("input");
-                          if (input && "showPicker" in input) {
-                            try {
-                              (input as any).showPicker();
-                            } catch (err) {
-                              console.warn(err);
-                            }
-                          }
-                        }}
-                      >
+                      <div className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-xl hover:border-primary/50 transition-colors cursor-pointer">
                         <label className="text-[10px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
                           <Calendar size={11} className="text-muted-foreground" />
                           Fin
@@ -340,15 +316,15 @@ export default function MapCartSidebar({
                         <div className="text-xs font-bold text-foreground truncate pl-1">
                           {item.endDate
                             ? (() => {
-                              try {
-                                const d = parseISO(item.endDate);
-                                return isNaN(d.getTime())
-                                  ? "---"
-                                  : format(d, "dd/MM");
-                              } catch {
-                                return "---";
-                              }
-                            })()
+                               try {
+                                 const d = parseISO(item.endDate);
+                                 return isNaN(d.getTime())
+                                   ? "---"
+                                   : format(d, "dd/MM");
+                               } catch {
+                                 return "---";
+                               }
+                             })()
                             : "---"}
                         </div>
                         <Input
@@ -366,8 +342,8 @@ export default function MapCartSidebar({
                             )
                           }
                           onClick={(e) => {
-                            e.stopPropagation();
-                            if ("showPicker" in e.currentTarget) {
+                            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                            if (!isMobile && "showPicker" in e.currentTarget) {
                               try {
                                 (e.currentTarget as any).showPicker();
                               } catch (err) {

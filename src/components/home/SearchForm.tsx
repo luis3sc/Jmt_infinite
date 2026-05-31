@@ -73,6 +73,13 @@ const getRelevanceScore = (text: string, query: string) => {
  return 0;
 };
 
+const formatDateLabel = (dateStr: string) => {
+  if (!dateStr) return "";
+  const parts = dateStr.split('-');
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
+  return dateStr;
+ };
+
 export function SearchForm() {
  const router = useRouter();
  const [location, setLocation] = useState("");
@@ -353,88 +360,76 @@ export function SearchForm() {
     {/* Dates Section */}
     <div className="flex items-center w-full md:w-auto gap-0">
      {/* Date From */}
-     <div
-      className="flex-1 md:flex-none flex items-center px-4 md:px-5 py-4 md:py-5 cursor-pointer group"
-      onClick={(e) => {
-       const input = e.currentTarget.querySelector<HTMLInputElement>('input');
-       if (input) {
-        if (typeof (input as any).showPicker === 'function') {
-         try {
-          (input as any).showPicker();
-         } catch (err) {
-          console.error("Failed to open datepicker:", err);
-          input.focus();
-         }
-        } else {
-         input.focus();
-        }
-       }
-      }}
-     >
-      <div className="flex flex-col md:flex-row md:items-center gap-0 md:gap-3">
-       <span className="text-[10px] font-black uppercase text-foreground/60 tracking-[0.2em] leading-none mb-1.5 md:mb-0 group-hover:opacity-80 transition-opacity">Desde</span>
-       <div className="relative flex items-center h-full">
-        {!dateFrom && (
-         <span className="absolute inset-0 pointer-events-none text-muted-foreground/75 text-sm md:text-base font-bold whitespace-nowrap flex items-center">
-          Seleccionar
-         </span>
-        )}
-        <input
-         type="date"
-         value={dateFrom}
-         min={new Date().toISOString().split('T')[0]}
-         onChange={(e) => setDateFrom(e.target.value)}
-         className={cn(
-          "bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 text-sm md:text-base font-bold [color-scheme:light] dark:[color-scheme:dark] pointer-events-none w-full md:w-[110px] text-foreground h-auto",
-          !dateFrom && "opacity-0"
+      <div className="relative flex-1 md:flex-none flex items-center px-4 md:px-5 py-4 md:py-5 cursor-pointer group">
+       <div className="pointer-events-none flex flex-col md:flex-row md:items-center gap-0 md:gap-3">
+        <span className="text-[10px] font-black uppercase text-foreground/60 tracking-[0.2em] leading-none mb-1.5 md:mb-0 group-hover:opacity-80 transition-opacity">Desde</span>
+        <div className="relative flex items-center h-full">
+         {!dateFrom ? (
+          <span className="text-muted-foreground/75 text-sm md:text-base font-bold whitespace-nowrap flex items-center">
+           Seleccionar
+          </span>
+         ) : (
+          <span className="text-sm md:text-base font-bold text-foreground whitespace-nowrap flex items-center">
+           {formatDateLabel(dateFrom)}
+          </span>
          )}
-        />
+        </div>
        </div>
-      </div>
-     </div>
-
-     <div className="h-8 w-px bg-border mx-1 md:mx-0" />
-
-     {/* Date To */}
-     <div
-      className="flex-1 md:flex-none flex items-center px-4 md:px-5 py-4 md:py-5 cursor-pointer group"
-      onClick={(e) => {
-       const input = e.currentTarget.querySelector<HTMLInputElement>('input');
-       if (input) {
-        if (typeof (input as any).showPicker === 'function') {
-         try {
-          (input as any).showPicker();
-         } catch (err) {
-          console.error("Failed to open datepicker:", err);
-          input.focus();
+       <input
+        type="date"
+        value={dateFrom}
+        min={new Date().toISOString().split('T')[0]}
+        onChange={(e) => setDateFrom(e.target.value)}
+        onClick={(e) => {
+         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+         if (!isMobile && 'showPicker' in e.currentTarget) {
+          try {
+           e.currentTarget.showPicker();
+          } catch (err) {
+           console.error("Failed to open datepicker:", err);
+          }
          }
-        } else {
-         input.focus();
-        }
-       }
-      }}
-     >
-      <div className="flex flex-col md:flex-row md:items-center gap-0 md:gap-3">
-       <span className="text-[10px] font-black uppercase text-foreground/60 tracking-[0.2em] leading-none mb-1.5 md:mb-0 group-hover:opacity-80 transition-opacity">Hasta</span>
-       <div className="relative flex items-center h-full">
-        {!dateTo && (
-         <span className="absolute inset-0 pointer-events-none text-muted-foreground/75 text-sm md:text-base font-bold whitespace-nowrap flex items-center">
-          Seleccionar
-         </span>
-        )}
-        <input
-         type="date"
-         value={dateTo}
-         min={dateFrom || new Date().toISOString().split('T')[0]}
-         onChange={(e) => setDateTo(e.target.value)}
-         className={cn(
-          "bg-transparent border-0 outline-none focus:outline-none focus:ring-0 p-0 text-sm md:text-base font-bold [color-scheme:light] dark:[color-scheme:dark] pointer-events-none w-full md:w-[110px] text-foreground h-auto",
-          !dateTo && "opacity-0"
-         )}
-        />
-       </div>
+        }}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [color-scheme:light] dark:[color-scheme:dark]"
+       />
       </div>
-     </div>
+
+      <div className="h-8 w-px bg-border mx-1 md:mx-0" />
+
+      {/* Date To */}
+      <div className="relative flex-1 md:flex-none flex items-center px-4 md:px-5 py-4 md:py-5 cursor-pointer group">
+       <div className="pointer-events-none flex flex-col md:flex-row md:items-center gap-0 md:gap-3">
+        <span className="text-[10px] font-black uppercase text-foreground/60 tracking-[0.2em] leading-none mb-1.5 md:mb-0 group-hover:opacity-80 transition-opacity">Hasta</span>
+        <div className="relative flex items-center h-full">
+         {!dateTo ? (
+          <span className="text-muted-foreground/75 text-sm md:text-base font-bold whitespace-nowrap flex items-center">
+           Seleccionar
+          </span>
+         ) : (
+          <span className="text-sm md:text-base font-bold text-foreground whitespace-nowrap flex items-center">
+           {formatDateLabel(dateTo)}
+          </span>
+         )}
+        </div>
+       </div>
+       <input
+        type="date"
+        value={dateTo}
+        min={dateFrom || new Date().toISOString().split('T')[0]}
+        onChange={(e) => setDateTo(e.target.value)}
+        onClick={(e) => {
+         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+         if (!isMobile && 'showPicker' in e.currentTarget) {
+          try {
+           e.currentTarget.showPicker();
+          } catch (err) {
+           console.error("Failed to open datepicker:", err);
+          }
+         }
+        }}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [color-scheme:light] dark:[color-scheme:dark]"
+       />
+      </div>
     </div>
 
     <div className="w-full md:w-auto p-2 md:p-1.5">
