@@ -40,7 +40,7 @@ export function FrameSelector({ previewSrc, selectedFrameId, onSelectFrame }: Fr
       </div>
 
       {/* Live preview con marco encima */}
-      <div className="relative w-full rounded-2xl overflow-hidden bg-black border border-border/50 aspect-video">
+      <div className="relative w-full rounded-card overflow-hidden bg-black border border-border/50 aspect-video">
         {previewSrc && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={previewSrc} alt="Imagen recortada" className="w-full h-full object-cover" />
@@ -68,7 +68,7 @@ export function FrameSelector({ previewSrc, selectedFrameId, onSelectFrame }: Fr
             <motion.button
               key={frame.id}
               onClick={() => onSelectFrame(frame)}
-              className={`relative flex-shrink-0 w-[90px] h-[52px] rounded-xl overflow-hidden border-2 transition-all duration-200
+              className={`relative flex-shrink-0 w-[90px] h-[52px] rounded-card overflow-hidden border-2 transition-all duration-200
                 ${isSelected ? 'border-primary shadow-lg shadow-primary/30' : 'border-border/50 hover:border-border'}`}
             >
               {frame.src ? (

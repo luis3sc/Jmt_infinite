@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { Logo } from '@/components/ui/Logo'
 
 export default function SignupPage() {
  const [error, setError] = useState<string | null>(null)
@@ -33,13 +34,7 @@ export default function SignupPage() {
      <div className="mb-10">
       <Link href="/" className="inline-block mb-10 transition-transform ">
        <div className="relative w-40 h-10">
-        <Image
-         src="/assets/images/jmtinfinite_logo.svg"
-         alt="JMT Infinite"
-         fill
-         className="object-contain object-left"
-         priority
-        />
+        <Logo fill priority objectPosition="object-left" />
        </div>
       </Link>
 

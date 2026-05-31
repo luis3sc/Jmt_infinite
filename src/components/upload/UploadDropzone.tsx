@@ -40,7 +40,7 @@ export function UploadDropzone({ file, setFile }: UploadDropzoneProps) {
   <div className="w-full">
    <div
     {...getRootProps()}
-    className={`relative group w-full rounded-2xl border-2 border-dashed transition-all duration-500 flex flex-col items-center justify-center p-6 md:p-10 text-center overflow-hidden cursor-pointer min-h-[180px] md:min-h-[260px]
+    className={`relative group w-full rounded-card border-2 border-dashed transition-all duration-500 flex flex-col items-center justify-center p-6 md:p-10 text-center overflow-hidden cursor-pointer min-h-[180px] md:min-h-[260px]
      ${isDragActive
       ? 'border-primary bg-primary/10 scale-[1.01] shadow-[0_0_40px_rgba(var(--primary-rgb),0.1)]'
       : isDragReject 
@@ -68,7 +68,7 @@ export function UploadDropzone({ file, setFile }: UploadDropzoneProps) {
       >
        <div className="relative">
         <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
-        <div className="relative w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
+        <div className="relative w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-card flex items-center justify-center text-primary border border-primary/20">
          <FileVideo size={36} strokeWidth={1.5} />
          <motion.div 
           initial={{ scale: 0 }}
@@ -83,7 +83,7 @@ export function UploadDropzone({ file, setFile }: UploadDropzoneProps) {
        
        <div className="space-y-1 text-center px-4">
         <p className="text-sm md:text-base font-bold text-foreground max-w-[280px] md:max-w-[320px] truncate">{file.name}</p>
-        <div className="flex items-center justify-center gap-2 text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-widest bg-muted/50 py-1 px-3 rounded-lg mx-auto w-fit">
+        <div className="flex items-center justify-center gap-2 text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-widest bg-muted/50 py-1 px-3 rounded-input mx-auto w-fit">
          <span>{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
         </div>
        </div>
@@ -100,7 +100,7 @@ export function UploadDropzone({ file, setFile }: UploadDropzoneProps) {
        exit={{ opacity: 0 }}
        className="space-y-4 flex flex-col items-center relative z-10"
       >
-       <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-all duration-500 ${isDragActive ? 'bg-primary text-white scale-110 shadow-2xl shadow-primary/30' : 'bg-primary/10 text-primary group-hover:bg-primary/20 shadow-inner'}`}>
+       <div className={`w-16 h-16 md:w-20 md:h-20 rounded-card flex items-center justify-center transition-all duration-500 ${isDragActive ? 'bg-primary text-white scale-110 shadow-2xl shadow-primary/30' : 'bg-primary/10 text-primary group-hover:bg-primary/20 shadow-inner'}`}>
         <UploadCloud size={32} strokeWidth={1.5} />
        </div>
        
@@ -113,7 +113,7 @@ export function UploadDropzone({ file, setFile }: UploadDropzoneProps) {
         </p>
        </div>
        
-       <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-card border border-border shadow-sm group-hover:bg-muted group-hover:border-primary/20 text-xs font-bold uppercase tracking-wider transition-all duration-300">
+       <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-button bg-card border border-border shadow-sm group-hover:bg-muted group-hover:border-primary/20 text-xs font-bold uppercase tracking-wider transition-all duration-300">
         <MousePointer2 size={14} className="text-primary" />
         <span className="text-muted-foreground group-hover:text-foreground">Seleccionar Archivo</span>
        </div>

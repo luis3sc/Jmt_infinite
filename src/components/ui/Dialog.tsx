@@ -170,9 +170,9 @@ const Dialog = ({
             className={cn(
               "relative bg-card text-card-foreground shadow-2xl flex flex-col overflow-hidden w-full",
               // Layout specific styles
-              variant === "default" && "max-w-lg rounded-[calc(var(--radius)*1.5)] max-h-[90vh] mx-4 border border-border/50",
-              variant === "fullscreen-mobile" && "h-[100dvh] md:h-[90vh] md:max-w-[90vw] rounded-none md:rounded-[calc(var(--radius)*1.5)] border-none md:border border-border/50 md:border-border mt-0 md:mt-0 shadow-2xl bg-card",
-              variant === "bottom-sheet" && "h-[85vh] md:h-[90vh] rounded-t-[calc(var(--radius)*1.5)] md:rounded-[calc(var(--radius)*1.5)] mt-auto md:mt-0 md:max-w-[90vw] border-t border-border/50 md:border",
+              variant === "default" && "max-w-lg rounded-dialog max-h-[90vh] mx-4 border border-border/50",
+              variant === "fullscreen-mobile" && "h-[100dvh] md:h-[90vh] md:max-w-[90vw] rounded-none md:rounded-dialog border-none md:border border-border/50 md:border-border mt-0 md:mt-0 shadow-2xl bg-card",
+              variant === "bottom-sheet" && "h-[85vh] md:h-[90vh] rounded-t-dialog md:rounded-dialog mt-auto md:mt-0 md:max-w-[90vw] border-t border-border/50 md:border",
               className
             )}
           >
@@ -193,7 +193,7 @@ const Dialog = ({
                   {!hideCloseButton && (
                     <button
                       onClick={onClose}
-                      className="rounded-[calc(var(--radius)*0.75)] p-2 opacity-70 transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border border-transparent hover:border-border"
+                      className="rounded-input p-2 opacity-70 transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border border-transparent hover:border-border"
                       aria-label="Close"
                     >
                       <X className="h-4 w-4" />

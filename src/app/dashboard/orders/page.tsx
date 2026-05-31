@@ -7,6 +7,10 @@ import AuthButton from '@/components/layout/AuthButton'
 import { OrdersList } from '@/components/dashboard/OrdersList'
 import { BackButton } from '@/components/ui/BackButton'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
+import { Container } from '@/components/ui/Container'
+import { Alert } from '@/components/ui/Alert'
+import { buttonVariants, buttonSizes } from '@/components/ui/Button'
+import { cn } from '@/lib/utils'
 
 export default async function OrdersPage() {
  const supabase = createClient()
@@ -61,7 +65,7 @@ export default async function OrdersPage() {
   <main className="min-h-screen bg-background text-foreground flex flex-col">
    <TopBar right={<AuthButton />} />
 
-   <div className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 pt-20 md:pt-24">
+   <Container maxW="6xl" className="pt-20 md:pt-24 flex-1 flex flex-col">
 
     {/* Back */}
     <BackButton href="/dashboard" label="Volver" variant="small" className="mb-10" />
@@ -86,21 +90,23 @@ export default async function OrdersPage() {
     <DashboardNav />
 
     {error ? (
-     <div className="p-10 rounded-lg bg-red-50 border border-red-200 text-center">
-      <AlertCircle size={36} className="text-red-500/40 mx-auto mb-3" />
-      <h3 className="text-sm font-black text-red-600 uppercase tracking-tight">Error de Conexión</h3>
-      <p className="text-slate-500 mt-1 text-xs">{error.message}</p>
-     </div>
+     <Alert variant="destructive" title="Error de Conexión" className="mb-8">
+      {error.message}
+     </Alert>
     ) : !orders || orders.length === 0 ? (
-     <div className="py-24 rounded-lg bg-card border border-dashed border-border text-center shadow-sm">
-      <ShoppingBag size={32} className="text-slate-300 mx-auto mb-5" strokeWidth={1} />
+     <div className="py-24 rounded-dialog bg-card border border-dashed border-border text-center shadow-sm">
+      <ShoppingBag size={32} className="text-muted-foreground/30 mx-auto mb-5" strokeWidth={1} />
       <h2 className="text-lg font-black text-foreground mb-2 uppercase tracking-tight">Sin pedidos</h2>
       <p className="text-muted-foreground mb-8 max-w-xs mx-auto text-sm font-medium">
        Tus compras de publicidad aparecerán aquí una vez que realices tu primer pedido.
       </p>
       <Link
        href="/map"
-       className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all "
+       className={cn(
+        buttonVariants.default,
+        buttonSizes.lg,
+        "inline-flex items-center gap-2 uppercase font-black tracking-wider text-xs shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+       )}
       >
        Explorar Pantallas
       </Link>
@@ -108,7 +114,7 @@ export default async function OrdersPage() {
     ) : (
      <OrdersList initialOrders={orders} />
     )}
-   </div>
+   </Container>
   </main>
  )
 }

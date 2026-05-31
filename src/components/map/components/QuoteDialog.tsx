@@ -44,7 +44,7 @@ export default function QuoteDialog({
       isOpen={isOpen}
       onClose={onClose}
       hideCloseButton
-      className="max-w-md p-6 bg-card border border-border rounded-2xl shadow-2xl relative overflow-hidden"
+      className="max-w-md p-6 bg-card border border-border rounded-dialog shadow-2xl relative overflow-hidden"
     >
       {/* Modal Header */}
       <div className="flex justify-between items-center pb-4 border-b border-border/50">
@@ -116,11 +116,11 @@ export default function QuoteDialog({
 
             <Button
               type="button"
-              variant="outline"
+              variant="outline-primary"
               disabled={isSavingQuote || !quoteCampaignName.trim()}
               size="xl"
               onClick={() => onSubmit(false)}
-              className="w-full font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 border-primary text-primary hover:bg-primary/5"
+              className="w-full font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2"
             >
               <LinkIcon size={16} />
               <span>Guardar y Obtener Enlace</span>
@@ -140,7 +140,7 @@ export default function QuoteDialog({
           </div>
 
           {/* Share Link field */}
-          <div className="w-full flex items-center gap-2 bg-muted/50 p-2.5 rounded-xl border border-border/80">
+          <div className="w-full flex items-center gap-2 bg-muted/50 p-2.5 rounded-input border border-border/80">
             <input
               readOnly
               type="text"

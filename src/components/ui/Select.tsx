@@ -11,7 +11,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       <div className="relative w-full">
         <select
           className={cn(
-            "flex w-full appearance-none rounded-[calc(var(--radius)*0.6875)] border border-input bg-background px-4 py-3 pr-10 text-base md:text-sm font-medium focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50 transition-colors cursor-pointer",
+            "flex w-full appearance-none rounded-input border border-input bg-background px-4 py-3 pr-10 text-base md:text-sm font-medium focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50 transition-colors cursor-pointer",
             className
           )}
           ref={ref}

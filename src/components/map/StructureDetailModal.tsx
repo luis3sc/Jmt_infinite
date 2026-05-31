@@ -478,7 +478,7 @@ export default function StructureDetailModal({
             variants={containerVariants}
             initial="hidden"
             animate="show"
-            className="px-6 py-4 space-y-5 md:flex-1 md:overflow-y-auto md:custom-scrollbar pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-24"
+            className="px-fluid-lg py-fluid-md space-y-fluid-md md:flex-1 md:overflow-y-auto md:custom-scrollbar pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-24"
           >
             <motion.div variants={itemVariants} className="space-y-3">
               <div className="flex flex-wrap gap-2">
@@ -489,7 +489,7 @@ export default function StructureDetailModal({
                   {currentActivePanel.format || "Panel"}
                 </Badge>
               </div>
-              <h2 className="text-2xl md:text-3xl font-extrabold text-foreground leading-tight tracking-tight">{selectedStructure.address}</h2>
+              <h2 className="text-fluid-3xl md:text-fluid-4xl font-extrabold text-foreground leading-tight tracking-tight">{selectedStructure.address}</h2>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 text-muted-foreground font-semibold text-sm">
                   <MapPin size={16} />
@@ -500,7 +500,7 @@ export default function StructureDetailModal({
             </motion.div>
 
             {/* DYNAMIC QUOTER & CAMPAIGN SUMMARY */}
-            <motion.div variants={itemVariants} className="w-full bg-primary/[0.03] border border-primary/20 rounded-2xl p-4 md:p-6 space-y-4 shadow-[0_8px_30px_-6px_rgba(59,130,246,0.08)]">
+            <motion.div variants={itemVariants} className="w-full bg-primary/[0.03] border border-primary/20 rounded-card p-fluid-md md:p-fluid-lg space-y-fluid-sm shadow-[0_8px_30px_-6px_rgba(59,130,246,0.08)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-primary">
                   <Calendar size={18} className="animate-pulse" />
@@ -529,7 +529,7 @@ export default function StructureDetailModal({
                         } catch (err) { }
                       }
                     }}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
+                    className="w-full bg-background border border-border rounded-input px-fluid-md py-fluid-sm text-fluid-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -547,7 +547,7 @@ export default function StructureDetailModal({
                         } catch (err) { }
                       }
                     }}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
+                    className="w-full bg-background border border-border rounded-input px-fluid-md py-fluid-sm text-fluid-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
                   />
                 </div>
               </div>
@@ -556,11 +556,11 @@ export default function StructureDetailModal({
 
               <div className="animate-fade-in">
 
-                <div className="bg-background/60 border border-border/50 rounded-xl p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-5 md:gap-8 transition-all duration-300">
+                <div className="bg-background/60 border border-border/50 rounded-card p-fluid-md md:p-fluid-lg flex flex-col md:flex-row md:items-center gap-fluid-md md:gap-fluid-lg transition-all duration-300">
                   {/* Column 1: Dynamic Quoted Price */}
                   <div className="flex flex-col shrink-0 min-w-[150px]">
                     <span className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mb-1">Presupuesto</span>
-                    <p className="text-3xl font-black text-foreground tracking-tight leading-none">
+                    <p className="text-fluid-4xl font-black text-foreground tracking-tight leading-none">
                       S/ {totalPriceWithIGV.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                     <p className="text-xs font-bold text-muted-foreground mt-1.5">
@@ -614,58 +614,46 @@ export default function StructureDetailModal({
                 <button
                   type="button"
                   onClick={() => setDetailTab("info")}
-                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 cursor-pointer ${detailTab === "info"
-                      ? "text-primary font-black"
-                      : "text-muted-foreground hover:text-foreground font-bold"
+                  className={`pb-2 text-fluid-xs font-black tracking-wider relative transition-all duration-300 cursor-pointer ${detailTab === "info"
+                    ? "text-primary font-black"
+                    : "text-muted-foreground hover:text-foreground font-bold"
                     }`}
                 >
                   Info
                   {detailTab === "info" && (
-                    <motion.div
-                      layoutId="activeTabUnderline"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
                   )}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDetailTab("especificaciones")}
-                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 cursor-pointer ${detailTab === "especificaciones"
-                      ? "text-primary font-black"
-                      : "text-muted-foreground hover:text-foreground font-bold"
+                  className={`pb-2 text-fluid-xs font-black  tracking-wider relative transition-all duration-300 cursor-pointer ${detailTab === "especificaciones"
+                    ? "text-primary font-black"
+                    : "text-muted-foreground hover:text-foreground font-bold"
                     }`}
                 >
-                  Especificaciones
+                  Detalles
                   {detailTab === "especificaciones" && (
-                    <motion.div
-                      layoutId="activeTabUnderline"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
                   )}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDetailTab("puntos_de_interes")}
-                  className={`pb-2 text-xs font-black uppercase tracking-wider relative transition-all duration-300 cursor-pointer ${detailTab === "puntos_de_interes"
-                      ? "text-primary font-black"
-                      : "text-muted-foreground hover:text-foreground font-bold"
+                  className={`pb-2 text-fluid-xs font-black tracking-wider relative transition-all duration-300 cursor-pointer ${detailTab === "puntos_de_interes"
+                    ? "text-primary font-black"
+                    : "text-muted-foreground hover:text-foreground font-bold"
                     }`}
                 >
                   Puntos de Interés
                   {detailTab === "puntos_de_interes" && (
-                    <motion.div
-                      layoutId="activeTabUnderline"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
                   )}
                 </button>
               </div>
 
               {detailTab === "info" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-6 animate-fade-in mt-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-fluid-md gap-x-fluid-lg animate-fade-in mt-1">
                   {/* Cerca de */}
                   {(selectedStructure.reference || currentActivePanel.traffic_view) && (
                     <div className="flex items-start gap-3">
@@ -728,7 +716,7 @@ export default function StructureDetailModal({
               )}
 
               {detailTab === "especificaciones" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-6 animate-fade-in mt-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-fluid-md gap-x-fluid-lg animate-fade-in mt-1">
                   {/* Medidas del arte */}
                   <div className="flex items-start gap-3">
                     <ImageIcon className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
@@ -769,13 +757,13 @@ export default function StructureDetailModal({
               {detailTab === "puntos_de_interes" && (
                 <div className="animate-fade-in mt-1">
                   {nearbyPois.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 gap-3 text-center bg-muted/20 border border-border/40 rounded-2xl">
+                    <div className="flex flex-col items-center justify-center py-10 gap-3 text-center bg-muted/20 border border-border/40 rounded-card">
                       <MapIcon className="w-10 h-10 text-muted-foreground/30 animate-pulse" />
                       <p className="text-sm font-bold text-muted-foreground">Sin puntos de interés cercanos</p>
                       <p className="text-xs text-muted-foreground/80 max-w-[240px]">No se registraron locales comerciales ni servicios en un radio de 500m.</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-fluid-md gap-x-fluid-lg">
                       {nearbyPois.map((poi, idx) => {
                         const Icon = poi.icon;
                         return (

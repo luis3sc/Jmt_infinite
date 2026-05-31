@@ -15,6 +15,9 @@ import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { createClient } from '@/lib/supabase/client'
 import { BackButton } from '@/components/ui/BackButton'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { Alert } from '@/components/ui/Alert'
+import { Container } from '@/components/ui/Container'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -364,7 +367,7 @@ export default function CheckoutPage() {
         right={<AuthButton />}
       />
 
-      <div className="flex-1 flex flex-col md:flex-row pt-14 md:pt-16 overflow-hidden relative">
+      <Container maxW="7xl" clean={true} className="flex flex-col md:flex-row pt-14 md:pt-16 overflow-hidden relative">
 
         {/* SECCIÓN IZQUIERDA: FORMULARIO */}
         <div className="flex-1 px-4 pt-4 pb-24 md:p-10 md:max-w-2xl md:mx-auto md:w-full overflow-y-auto custom-scrollbar">
@@ -372,13 +375,13 @@ export default function CheckoutPage() {
           <BackButton className="mb-8" />
 
           {/* RESUMEN COLLAPSABLE (Solo Mobile) */}
-          <div className="md:hidden mb-8 border border-border rounded-[calc(var(--radius)*0.75)] bg-card overflow-hidden">
+          <div className="md:hidden mb-8 border border-border rounded-input bg-card overflow-hidden">
             <button
               onClick={() => setShowSummary(!showSummary)}
               className="w-full flex items-center justify-between p-4 bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-[calc(var(--radius)*0.75)]">
+                <div className="p-2 bg-primary/10 rounded-input">
                   <ShoppingCart size={18} className="text-primary" />
                 </div>
                 <div className="text-left">
@@ -461,48 +464,25 @@ export default function CheckoutPage() {
                 className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500"
               >
                 {user && (
-                  <div className="bg-primary/10 border border-primary/20 rounded-[calc(var(--radius)*0.75)] p-4 flex items-center gap-3 mb-2">
-                    <CheckCircle2 size={20} className="text-primary" />
-                    <div>
-                      <p className="text-[10px] text-primary font-black uppercase tracking-widest mb-0.5">Sesión Activa</p>
-                      <p className="text-sm text-foreground font-bold">{email}</p>
-                    </div>
-                  </div>
+                  <Alert variant="success" title="Sesión Activa" className="mb-2">
+                    <span className="font-bold">{email}</span>
+                  </Alert>
                 )}
 
-                {/* Tipo de Usuario */}
                 <div>
                   <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3">
                     ¿Cuál es tu objetivo?
                   </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { id: 'individual', label: 'Momento Especial', sub: 'Mensaje personalizado', icon: Heart },
-                      { id: 'entrepreneur', label: 'Mi Negocio', sub: 'Compartir anuncio', icon: Briefcase },
-                      { id: 'influencer', label: 'Mis Redes', sub: 'Perfil de creador', icon: Share2 }
-                    ].map((type) => {
-                      const Icon = type.icon
-                      return (
-                        <button
-                          key={type.id}
-                          type="button"
-                          onClick={() => setUserType(type.id as any)}
-                          className={`flex flex-col items-center justify-center p-3 rounded-[calc(var(--radius)*0.75)] border transition-all gap-1.5 cursor-pointer ${userType === type.id
-                              ? 'border-primary bg-primary/5 text-primary shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                              : 'bg-card text-muted-foreground border-border hover:bg-muted'
-                            }`}
-                        >
-                          <div className={`p-2 rounded-[calc(var(--radius)*0.5)] ${userType === type.id ? 'bg-primary/20' : 'bg-muted'}`}>
-                            <Icon size={18} />
-                          </div>
-                          <div className="text-center">
-                            <p className="text-[10px] font-black uppercase tracking-tight leading-none">{type.label}</p>
-                            <p className="text-[8px] opacity-60 mt-0.5 leading-none">{type.sub}</p>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
+                  <SegmentedControl
+                    options={[
+                      { value: 'individual', label: 'Momento Especial', subLabel: 'Mensaje personalizado', icon: Heart },
+                      { value: 'entrepreneur', label: 'Mi Negocio', subLabel: 'Compartir anuncio', icon: Briefcase },
+                      { value: 'influencer', label: 'Mis Redes', subLabel: 'Perfil de creador', icon: Share2 }
+                    ]}
+                    value={userType}
+                    onChange={(val) => setUserType(val as any)}
+                    gridCols="grid-cols-3"
+                  />
                 </div>
 
                 {/* Email */}
@@ -550,29 +530,16 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {/* Tipo de Comprobante (Toggle) */}
-                <div className="grid grid-cols-2 gap-3 pt-2 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => setReceiptType('boleta')}
-                    className={`py-3 rounded-[calc(var(--radius)*0.6875)] text-sm font-bold tracking-wider uppercase transition-all border cursor-pointer ${receiptType === 'boleta'
-                      ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                      : 'bg-card text-muted-foreground border-border hover:bg-muted'
-                      }`}
-                  >
-                    Boleta
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReceiptType('factura')}
-                    className={`py-3 rounded-[calc(var(--radius)*0.6875)] text-sm font-bold tracking-wider uppercase transition-all border cursor-pointer ${receiptType === 'factura'
-                      ? 'border-primary text-primary bg-transparent shadow-[0_0_15px_hsl(var(--primary)/0.1)]'
-                      : 'bg-card text-muted-foreground border-border hover:bg-muted'
-                      }`}
-                  >
-                    Factura
-                  </button>
-                </div>
+                <SegmentedControl
+                  options={[
+                    { value: 'boleta', label: 'Boleta' },
+                    { value: 'factura', label: 'Factura' }
+                  ]}
+                  value={receiptType}
+                  onChange={(val) => setReceiptType(val as any)}
+                  gridCols="grid-cols-2"
+                  className="pt-2 pb-2"
+                />
 
                 {/* Documento */}
                 <div className="flex gap-3">
@@ -892,7 +859,7 @@ export default function CheckoutPage() {
           <div className="h-[env(safe-area-inset-bottom)]" />
         </div>
 
-      </div>
+      </Container>
 
       {/* ===== MODAL DE PAGO ===== */}
       <Dialog
@@ -904,7 +871,7 @@ export default function CheckoutPage() {
         className="sm:max-w-lg"
       >
         {/* Total */}
-        <div className="mx-6 mt-4 mb-4 bg-primary/10 border border-primary/20 rounded-[calc(var(--radius)*0.75)] px-5 py-3 flex items-center justify-between">
+        <div className="mx-6 mt-4 mb-4 bg-primary/10 border border-primary/20 rounded-input px-5 py-3 flex items-center justify-between">
           <p className="text-xs text-primary font-bold uppercase tracking-widest">Total a pagar</p>
           <p className="text-2xl font-black text-primary">
             S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
@@ -916,7 +883,7 @@ export default function CheckoutPage() {
           <Button
             variant={paymentTab === 'card' ? 'default' : 'secondary'}
             onClick={() => setPaymentTab('card')}
-            className={`flex-1 py-2.5 rounded-[calc(var(--radius)*0.625)] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${paymentTab === 'card' ? 'shadow-lg shadow-primary/30' : ''
+            className={`flex-1 py-2.5 rounded-button text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${paymentTab === 'card' ? 'shadow-lg shadow-primary/30' : ''
               }`}
           >
             <CreditCard size={14} /> Tarjeta
@@ -924,7 +891,7 @@ export default function CheckoutPage() {
           <Button
             variant={paymentTab === 'qr' ? 'default' : 'secondary'}
             onClick={() => setPaymentTab('qr')}
-            className={`flex-1 py-2.5 rounded-[calc(var(--radius)*0.625)] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${paymentTab === 'qr' ? 'shadow-lg shadow-primary/30' : ''
+            className={`flex-1 py-2.5 rounded-button text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${paymentTab === 'qr' ? 'shadow-lg shadow-primary/30' : ''
               }`}
           >
             <QrCode size={14} /> QR / Yape
@@ -936,7 +903,7 @@ export default function CheckoutPage() {
           {paymentTab === 'card' ? (
             <div className="space-y-3">
               {/* Mock card visual */}
-              <div className="relative h-[120px] rounded-[calc(var(--radius)*0.75)] bg-gradient-to-br from-card-gradient-from to-card-gradient-to border border-white/10 p-4 overflow-hidden mb-4">
+              <div className="relative h-[120px] rounded-input bg-gradient-to-br from-card-gradient-from to-card-gradient-to border border-white/10 p-4 overflow-hidden mb-4">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -translate-y-8 translate-x-8" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full translate-y-8 -translate-x-8" />
                 <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-2">Culqi · Pago Seguro</p>
@@ -967,7 +934,7 @@ export default function CheckoutPage() {
           ) : (
             <div className="flex flex-col items-center py-2">
               {/* QR SVG placeholder */}
-              <div className="w-44 h-44 bg-white rounded-[calc(var(--radius)*0.75)] p-3 mb-4 border border-border">
+              <div className="w-44 h-44 bg-white rounded-input p-3 mb-4 border border-border">
                 <svg viewBox="0 0 200 200" className="w-full h-full">
                   {/* Simple QR pattern mockup */}
                   {[0, 1, 2, 3, 4, 5, 6].map(r => [0, 1, 2, 3, 4, 5, 6].map(c => {
@@ -981,7 +948,7 @@ export default function CheckoutPage() {
               </div>
               <p className="text-xs font-bold text-foreground mb-1">Escanea con Yape o Plin</p>
               <p className="text-[10px] text-muted-foreground text-center">Apunta la cámara al QR y completa el pago de <span className="text-primary font-bold">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span></p>
-              <div className="mt-4 bg-muted border border-border rounded-[calc(var(--radius)*0.75)] px-4 py-2 text-center w-full">
+              <div className="mt-4 bg-muted border border-border rounded-input px-4 py-2 text-center w-full">
                 <p className="text-[10px] text-muted-foreground">Número de cuenta demo</p>
                 <p className="text-sm font-mono font-bold text-foreground">9 999 999 999</p>
               </div>

@@ -44,7 +44,7 @@ export function UploadLoading({ progress, stage = 'uploading' }: UploadLoadingPr
       animate={{ opacity: 1 }}
       className="flex-1 flex flex-col justify-center items-center py-12 md:py-20 w-full"
     >
-      <div className="bg-card/40 backdrop-blur-2xl border border-border/50 rounded-lg p-10 md:p-16 max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
+      <div className="bg-card/40 backdrop-blur-2xl border border-border/50 rounded-card p-10 md:p-16 max-w-lg w-full shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent animate-shimmer" />
 
         <div className="relative mb-10">
@@ -53,12 +53,12 @@ export function UploadLoading({ progress, stage = 'uploading' }: UploadLoadingPr
             transition={{ duration: 2, repeat: Infinity }}
             className="absolute inset-0 bg-primary/20 blur-3xl rounded-full"
           />
-          <div className="relative w-24 h-24 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg flex items-center justify-center border border-primary/20 shadow-inner">
+          <div className="relative w-24 h-24 bg-gradient-to-br from-primary/20 to-primary/5 rounded-card flex items-center justify-center border border-primary/20 shadow-inner">
             <Icon size={42} className="text-primary animate-pulse" />
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-              className="absolute inset-0 border-2 border-dashed border-primary/30 rounded-lg"
+              className="absolute inset-0 border-2 border-dashed border-primary/30 rounded-card"
             />
           </div>
         </div>

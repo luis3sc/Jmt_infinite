@@ -19,9 +19,26 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+
+  --color-upload: hsl(var(--upload));
+  --color-upload-hover: hsl(var(--upload-hover));
   
-  --radius-xl: 1rem;
-  --radius-2xl: 1.5rem;
+  --radius-sm: calc(var(--radius) * 0.25);
+  --radius-md: calc(var(--radius) * 0.5);
+  --radius-lg: calc(var(--radius) * 0.75);
+  --radius-xl: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 2.0);
+  --radius-button-sm: calc(var(--radius) * 0.5);
+  --radius-button: calc(var(--radius) * 0.625);
+  --radius-button-lg: calc(var(--radius) * 0.6875);
+  --radius-button-xl: calc(var(--radius) * 0.875);
+  --radius-button-2xl: calc(var(--radius) * 1.0);
+  --radius-card: calc(var(--radius) * 1.25);
+  --radius-input: calc(var(--radius) * 0.75);
+  --radius-dialog: calc(var(--radius) * 1.5);
+  --radius-avatar: 9999px;
+  --radius-badge: calc(var(--radius) * 0.375);
 
   /* --- FLUID SPACING SYSTEM (Paddings, Margins, Gaps) --- */
   /* Dynamically adjusts based on viewport width (vw), fully responsive without breakpoints */
@@ -85,6 +102,8 @@
     --brand-blue: 223 38% 17%;      /* #1a233a */
     --card-gradient-from: 217 62% 27%; /* #1a3a6e */
     --card-gradient-to: 217 65% 15%;   /* #0d1f3c */
+    --upload: 262.1 83.3% 57.8%;      /* #8b5cf6 */
+    --upload-hover: 262.1 83.3% 47.8%;/* darker violet */
   }
 }
 

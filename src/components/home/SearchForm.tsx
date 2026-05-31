@@ -275,7 +275,7 @@ export function SearchForm() {
      "bg-card border border-border/80 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] transition-all duration-300",
      "hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.12)] hover:border-primary",
      "focus-within:border-primary",
-     "rounded-[calc(var(--radius)*1.5)] p-2 flex flex-col md:flex-row items-center gap-1 md:gap-0"
+     "rounded-dialog p-2 flex flex-col md:flex-row items-center gap-1 md:gap-0"
     )}
    >
     {/* Location Section */}
@@ -319,7 +319,7 @@ export function SearchForm() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10, scale: 0.95 }}
         onMouseDown={(e) => e.preventDefault()}
-        className="absolute top-[calc(100%+2px)] left-0 right-0 bg-card border border-border rounded-[calc(var(--radius)*1.5)] shadow-xl z-[100] max-h-72 overflow-y-auto"
+        className="absolute top-[calc(100%+2px)] left-0 right-0 bg-card border border-border rounded-dialog shadow-xl z-[100] max-h-72 overflow-y-auto"
        >
         {suggestions.map((suggestion, index) => (
          <div
@@ -343,7 +343,7 @@ export function SearchForm() {
            setShowSuggestions(false);
           }}
          >
-          <div className="w-8 h-2 rounded-[calc(var(--radius)*0.75)] bg-muted flex items-center justify-center shrink-0 group-hover/item:bg-primary/20 transition-colors">
+          <div className="w-8 h-2 rounded-input bg-muted flex items-center justify-center shrink-0 group-hover/item:bg-primary/20 transition-colors">
            <MapPin size={16} className="text-muted-foreground group-hover/item:text-primary transition-colors" />
           </div>
           <span className="text-sm font-semibold text-foreground group-hover/item:text-primary transition-colors truncate">{suggestion.place_name}</span>
@@ -436,7 +436,7 @@ export function SearchForm() {
      <Button
       type="submit"
       className={cn(
-       "w-full h-14 md:h-[64px] md:w-[64px] rounded-[calc(var(--radius)*0.875)] md:rounded-[var(--radius)] font-black text-xs uppercase tracking-[0.2em]",
+       "w-full h-14 md:h-[64px] md:w-[64px] rounded-button-xl md:rounded-button-2xl font-black text-xs uppercase tracking-[0.2em]",
        "flex items-center justify-center gap-3 hover:scale-[1.02]",
        "shadow-[0_15px_30px_-10px_rgba(0,0,0,0.5)] shadow-primary/40"
       )}

@@ -846,13 +846,28 @@ export function MapViewClient() {
           />
         }
         right={
-          <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-2 md:gap-2 lg:gap-3">
+            {/* Filtros: icon-only on md, icon+text on lg+ */}
+            <Button
+              variant="outline"
+              size="icon-lg"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={cn(
+                "hidden md:flex lg:hidden items-center justify-center",
+                isFilterOpen
+                  ? "bg-foreground text-background border-foreground shadow-md hover:bg-foreground/90"
+                  : "bg-card/60 backdrop-blur-md border-border text-foreground hover:bg-primary hover:text-background cursor-pointer"
+              )}
+              aria-label="Filtros"
+            >
+              <Filter size={18} />
+            </Button>
             <Button
               variant="outline"
               size="lg"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={cn(
-                "hidden md:flex px-4 items-center gap-2 text-sm font-medium",
+                "hidden lg:flex px-4 items-center gap-2 text-sm font-medium",
                 isFilterOpen
                   ? "bg-foreground text-background border-foreground shadow-md hover:bg-foreground/90"
                   : "bg-card/60 backdrop-blur-md border-border text-foreground hover:bg-primary hover:text-background cursor-pointer"
@@ -864,6 +879,7 @@ export function MapViewClient() {
             <AuthButton />
           </div>
         }
+
       />
 
       {/* GUEST CAMPAIGN LINKING BANNER */}
@@ -913,10 +929,10 @@ export function MapViewClient() {
     ${activeTab === "list" ? "flex" : "hidden md:flex"}`}
         >
           {/* Dynamic Context Header */}
-          <div className="px-4 py-3 border-b border-border sticky top-0 bg-background/95 backdrop-blur z-10">
+          <div className="px-fluid-md py-fluid-xs border-b border-border sticky top-0 bg-background/95 backdrop-blur z-10">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-base font-bold text-foreground tracking-tight">
+                <h2 className="text-fluid-base font-bold text-foreground tracking-tight">
                   {isLoading ? "Buscando paneles..." : "Paneles en esta área"}
                 </h2>
                 <AnimatePresence mode="wait">
@@ -925,7 +941,7 @@ export function MapViewClient() {
                       key={totalCount}
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-xs text-muted-foreground mt-0.5"
+                      className="text-fluid-xs text-muted-foreground mt-0.5"
                     >
                       {totalCount === 0
                         ? "Sin resultados en esta zona"
@@ -937,7 +953,7 @@ export function MapViewClient() {
                       key="loading"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-xs text-muted-foreground mt-0.5"
+                      className="text-fluid-xs text-muted-foreground mt-0.5"
                     >
                       Actualizando resultados...
                     </motion.p>
@@ -961,7 +977,7 @@ export function MapViewClient() {
           {/* Scrollable List */}
           <div
             ref={listScrollRef}
-            className="flex-1 overflow-y-auto p-4 space-y-3 pb-[180px] md:pb-4"
+            className="flex-1 overflow-y-auto p-fluid-md space-y-fluid-xs pb-[180px] md:pb-4"
             onScroll={(e) => {
               const el = e.currentTarget;
               const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
@@ -970,11 +986,11 @@ export function MapViewClient() {
           >
             {isLoading && structures.length === 0 ? (
               // Layout-matching skeleton cards
-              <div className="space-y-3">
+              <div className="space-y-fluid-xs">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="bg-card border border-border rounded-xl overflow-hidden animate-pulse flex flex-col h-auto">
                     <div className="w-full h-[180px] bg-muted shrink-0" />
-                    <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
+                    <div className="p-fluid-sm flex-1 flex flex-col justify-between min-w-0">
                       <div>
                         <div className="h-4 bg-muted rounded w-3/4 mb-2" />
                         <div className="h-3 bg-muted rounded w-1/2" />
@@ -991,13 +1007,13 @@ export function MapViewClient() {
                 ))}
               </div>
             ) : structures.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+              <div className="flex flex-col items-center justify-center py-fluid-xl gap-fluid-sm text-center">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
                   <MapPin size={28} className="text-muted-foreground/40" />
                 </div>
                 <div>
-                  <p className="font-semibold text-foreground text-sm">Sin paneles en esta zona</p>
-                  <p className="text-xs text-muted-foreground mt-1">Mueve el mapa para explorar otras áreas</p>
+                  <p className="font-semibold text-foreground text-fluid-sm">Sin paneles en esta zona</p>
+                  <p className="text-fluid-xs text-muted-foreground mt-1">Mueve el mapa para explorar otras áreas</p>
                 </div>
               </div>
             ) : (
@@ -1033,18 +1049,18 @@ export function MapViewClient() {
                         {s.panels?.length || 0}
                       </div>
                     </div>
-                    <div className="p-3 flex-1 flex flex-col justify-between min-w-0">
+                    <div className="p-fluid-sm flex-1 flex flex-col justify-between min-w-0">
                       <div>
-                        <div className="flex justify-between items-start mb-1 gap-2">
-                          <h3 className={`font-semibold line-clamp-2 text-sm ${selectedStructure?.id === s.id ? "text-foreground" : "text-foreground"}`} title={s.address}>{s.address}</h3>
+                        <div className="flex justify-between items-start mb-1 gap-fluid-2xs">
+                          <h3 className={`font-semibold line-clamp-2 text-fluid-sm ${selectedStructure?.id === s.id ? "text-foreground" : "text-foreground"}`} title={s.address}>{s.address}</h3>
                           <Badge variant="secondary" className={cn("text-[10px] font-mono px-1.5 py-0.5 rounded whitespace-nowrap shrink-0", selectedStructure?.id === s.id ? "bg-primary/10 text-primary border-primary/20 font-semibold" : "text-muted-foreground/80")}>{s.code}</Badge>
                         </div>
-                        <p className="text-xs truncate text-muted-foreground">{s.district}</p>
+                        <p className="text-fluid-xs truncate text-muted-foreground">{s.district}</p>
                       </div>
 
                       <div className="flex justify-between items-end pt-2 border-t border-border/50">
                         <div>
-                          <p className="font-bold text-sm leading-none text-foreground">
+                          <p className="font-bold text-fluid-sm leading-none text-foreground">
                             S/ {calculateDisplayPrice(s).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             <span className="text-[10px] font-normal text-muted-foreground"> por día</span>
                           </p>
@@ -1059,9 +1075,9 @@ export function MapViewClient() {
 
                 {/* Infinite Scroll Trigger */}
                 {hasMore && (
-                  <div className="py-4 flex justify-center">
+                  <div className="py-fluid-sm flex justify-center">
                     {isLoadingMore ? (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-fluid-2xs text-fluid-xs text-muted-foreground">
                         <Loader2 size={14} className="animate-spin text-primary" />
                         <span>Cargando más paneles...</span>
                       </div>
@@ -1070,7 +1086,7 @@ export function MapViewClient() {
                         variant="ghost"
                         size="sm"
                         onClick={handleLoadMore}
-                        className="text-xs text-muted-foreground hover:text-foreground font-semibold hover:bg-transparent hover:underline cursor-pointer"
+                        className="text-fluid-xs text-muted-foreground hover:text-foreground font-semibold hover:bg-transparent hover:underline cursor-pointer"
                       >
                         Cargar más
                       </Button>

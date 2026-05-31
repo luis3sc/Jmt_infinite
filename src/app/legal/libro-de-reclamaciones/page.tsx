@@ -66,11 +66,11 @@ const EMPRESA = {
 
 function SectionHeader({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
   return (
-    <div className="flex items-center gap-2 mb-5 pb-3 border-b border-slate-200">
-      <div className="p-1.5 bg-primary/10 rounded-lg text-primary shrink-0">
+    <div className="flex items-center gap-2 mb-5 pb-3 border-b border-border">
+      <div className="p-1.5 bg-primary/10 rounded-input text-primary shrink-0">
         <Icon size={16} />
       </div>
-      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">{label}</h3>
+      <h3 className="text-sm font-bold text-card-foreground uppercase tracking-wider">{label}</h3>
     </div>
   )
 }
@@ -90,25 +90,25 @@ function InputField({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       {children}
-      {hint && !error && <p className="text-xs text-slate-400">{hint}</p>}
+      {hint && !error && <p className="text-xs text-muted-foreground/80">{hint}</p>}
       {error && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={11} />{error}</p>}
     </div>
   )
 }
 
 const inputClass =
-  'w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-200'
+  'w-full px-3.5 py-2.5 bg-card border border-border rounded-input text-sm text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-200'
 
 const selectClass =
-  'w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-200 appearance-none cursor-pointer'
+  'w-full px-3.5 py-2.5 bg-card border border-border rounded-input text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-200 appearance-none cursor-pointer'
 
 const textareaClass =
-  'w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-200 resize-none min-h-[100px]'
+  'w-full px-3.5 py-2.5 bg-card border border-border rounded-input text-sm text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition-all duration-200 resize-none min-h-[100px]'
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
@@ -214,18 +214,18 @@ export default function LibroReclamacionesPage() {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-3xl font-extrabold text-slate-900">
+            <h1 className="text-3xl font-extrabold text-foreground">
               Reclamo Registrado
             </h1>
-            <p className="text-slate-500 max-w-md">
+            <p className="text-muted-foreground max-w-md">
               Su reclamo ha sido registrado exitosamente en el Libro de Reclamaciones Virtual de{' '}
-              <strong className="text-slate-700">{EMPRESA.nombre_comercial}</strong>.
+              <strong className="text-foreground">{EMPRESA.nombre_comercial}</strong>.
             </p>
           </div>
 
           {/* Número de reclamo */}
-          <div className="w-full max-w-sm bg-slate-50 border-2 border-dashed border-primary/30 rounded-2xl p-6 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+          <div className="w-full max-w-sm bg-muted/40 border-2 border-dashed border-primary/30 rounded-card p-6 space-y-3">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
               N° de Código de Reclamo
             </p>
             <div className="flex items-center justify-center gap-3">
@@ -235,7 +235,7 @@ export default function LibroReclamacionesPage() {
               <button
                 onClick={copyToClipboard}
                 title="Copiar código"
-                className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all"
+                className="p-2 rounded-button bg-primary/10 hover:bg-primary/20 text-primary transition-all cursor-pointer"
               >
                 <ClipboardCopy size={18} />
               </button>
@@ -245,7 +245,7 @@ export default function LibroReclamacionesPage() {
                 ✓ Código copiado al portapapeles
               </p>
             )}
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground/80">
               Registrado el {fecha} a las {hora}
             </p>
           </div>
@@ -267,13 +267,13 @@ export default function LibroReclamacionesPage() {
           <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
             <button
               onClick={() => { setResult(null); setForm(INITIAL_FORM) }}
-              className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all"
+              className="flex-1 px-4 py-2.5 border border-border rounded-button text-sm font-semibold text-muted-foreground hover:bg-muted transition-all cursor-pointer"
             >
               Nuevo reclamo
             </button>
             <a
               href="/"
-              className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold text-center hover:bg-primary/90 transition-all"
+              className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-button text-sm font-semibold text-center hover:bg-primary/90 transition-all"
             >
               Volver al inicio
             </a>
@@ -289,41 +289,41 @@ export default function LibroReclamacionesPage() {
     <article className="space-y-8">
 
       {/* ── Encabezado ── */}
-      <header className="border-b border-slate-200 pb-6 mb-8">
+      <header className="border-b border-border pb-6 mb-8">
         <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 bg-primary/10 rounded-lg text-primary">
+          <div className="p-2 bg-primary/10 rounded-input text-primary">
             <BookOpen size={24} />
           </div>
           <p className="text-sm text-primary font-semibold uppercase tracking-wider">
             Ley N° 29571 — Código de Protección al Consumidor
           </p>
         </div>
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground mb-2">
           Libro de Reclamaciones Virtual
         </h1>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground/80">
           Establecimiento Virtual · {EMPRESA.nombre_comercial} ({EMPRESA.razon_social})
         </p>
       </header>
 
       {/* ── Sección 0: Datos de la Empresa ── */}
-      <section className="bg-slate-50 border border-slate-200/60 rounded-2xl p-5 md:p-6">
+      <section className="bg-muted/40 border border-border/60 rounded-card p-5 md:p-6">
         <SectionHeader icon={Building2} label="I. Datos del Proveedor" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-slate-700">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-foreground">
           <div>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Razón Social</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">Razón Social</span>
             <span className="font-semibold">{EMPRESA.razon_social}</span>
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Nombre Comercial</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">Nombre Comercial</span>
             <span className="font-semibold">{EMPRESA.nombre_comercial}</span>
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-0.5">RUC</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">RUC</span>
             <span className="font-semibold">{EMPRESA.ruc}</span>
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Domicilio Fiscal</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">Domicilio Fiscal</span>
             <span className="font-semibold">{EMPRESA.domicilio}</span>
           </div>
         </div>
@@ -333,7 +333,7 @@ export default function LibroReclamacionesPage() {
       <form onSubmit={handleSubmit} className="space-y-8" noValidate>
 
         {/* ── Sección 1: Datos del Reclamante ── */}
-        <section className="bg-white border border-slate-200/80 rounded-2xl p-5 md:p-6 shadow-sm">
+        <section className="bg-card border border-border/80 rounded-card p-5 md:p-6 shadow-sm">
           <SectionHeader icon={User} label="II. Datos del Reclamante" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
@@ -401,7 +401,7 @@ export default function LibroReclamacionesPage() {
               <div className="relative">
                 <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
-                  type="tel"
+                  type="text"
                   placeholder="Ej. 987654321"
                   className={`${inputClass} pl-9`}
                   value={form.reclamante_telefono}
@@ -410,12 +410,12 @@ export default function LibroReclamacionesPage() {
               </div>
             </InputField>
 
-            <InputField label="Correo Electrónico" required error={errors.reclamante_email} hint="Se le enviará la respuesta a este correo">
+            <InputField label="Correo Electrónico" required error={errors.reclamante_email}>
               <div className="relative">
                 <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
                   type="email"
-                  placeholder="correo@ejemplo.com"
+                  placeholder="Ej. reclamante@correo.com"
                   className={`${inputClass} pl-9`}
                   value={form.reclamante_email}
                   onChange={e => set('reclamante_email', e.target.value)}
@@ -427,7 +427,7 @@ export default function LibroReclamacionesPage() {
         </section>
 
         {/* ── Sección 2: Identificación del Bien / Servicio ── */}
-        <section className="bg-white border border-slate-200/80 rounded-2xl p-5 md:p-6 shadow-sm">
+        <section className="bg-card border border-border/80 rounded-card p-5 md:p-6 shadow-sm">
           <SectionHeader icon={FileText} label="III. Identificación del Bien o Servicio" />
           <div className="space-y-5">
 
@@ -437,10 +437,10 @@ export default function LibroReclamacionesPage() {
                 {(['producto', 'servicio'] as const).map(tipo => (
                   <label
                     key={tipo}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 font-semibold text-sm capitalize
+                    className={`flex items-center justify-center gap-2 p-3 rounded-input border-2 cursor-pointer transition-all duration-200 font-semibold text-sm capitalize
                       ${form.tipo_bien === tipo
                         ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                        : 'border-border bg-card text-muted-foreground hover:border-border/80 hover:bg-muted'
                       }`}
                   >
                     <input
@@ -483,21 +483,21 @@ export default function LibroReclamacionesPage() {
         </section>
 
         {/* ── Sección 3: Detalle de la Reclamación ── */}
-        <section className="bg-white border border-slate-200/80 rounded-2xl p-5 md:p-6 shadow-sm">
+        <section className="bg-card border border-border/80 rounded-card p-5 md:p-6 shadow-sm">
           <SectionHeader icon={MessageSquareWarning} label="IV. Detalle de la Reclamación" />
           <div className="space-y-5">
 
             {/* Tipo de disconformidad: Reclamo vs Queja */}
             <div className="space-y-3">
-              <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Tipo <span className="text-red-500">*</span>
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label
-                  className={`relative flex flex-col gap-1.5 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200
+                  className={`relative flex flex-col gap-1.5 p-4 rounded-input border-2 cursor-pointer transition-all duration-200
                     ${form.tipo_disconformidad === 'reclamo'
-                      ? 'border-red-400 bg-red-50 text-red-800'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      ? 'border-red-400 bg-red-500/5 text-red-500'
+                      : 'border-border bg-card text-muted-foreground hover:border-border/80 hover:bg-muted'
                     }`}
                 >
                   <input
@@ -518,10 +518,10 @@ export default function LibroReclamacionesPage() {
                 </label>
 
                 <label
-                  className={`relative flex flex-col gap-1.5 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200
+                  className={`relative flex flex-col gap-1.5 p-4 rounded-input border-2 cursor-pointer transition-all duration-200
                     ${form.tipo_disconformidad === 'queja'
-                      ? 'border-amber-400 bg-amber-50 text-amber-800'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      ? 'border-amber-400 bg-amber-500/5 text-amber-500'
+                      : 'border-border bg-card text-muted-foreground hover:border-border/80 hover:bg-muted'
                     }`}
                 >
                   <input
@@ -556,7 +556,7 @@ export default function LibroReclamacionesPage() {
                 value={form.detalle_reclamo}
                 onChange={e => set('detalle_reclamo', e.target.value)}
               />
-              <p className="text-xs text-slate-400 text-right mt-1">
+              <p className="text-xs text-muted-foreground/80 text-right mt-1">
                 {form.detalle_reclamo.length} / 30 mín.
               </p>
             </InputField>
@@ -575,9 +575,9 @@ export default function LibroReclamacionesPage() {
         </section>
 
         {/* ── Aviso legal ── */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1">
-          <p className="text-xs text-slate-600 font-semibold">Declaración del reclamante:</p>
-          <p className="text-xs text-slate-500 leading-relaxed">
+        <div className="bg-muted/40 border border-border rounded-card p-4 space-y-1">
+          <p className="text-xs text-muted-foreground font-semibold">Declaración del reclamante:</p>
+          <p className="text-xs text-muted-foreground/80 leading-relaxed">
             Declaro que los datos proporcionados son verídicos y que el presente reclamo está sustentado en hechos reales.
             Autorizo a <strong>{EMPRESA.razon_social}</strong> a tratar mis datos personales para la gestión de este reclamo,
             conforme a la Ley N° 29733 (Ley de Protección de Datos Personales del Perú).
@@ -588,7 +588,7 @@ export default function LibroReclamacionesPage() {
 
         {/* ── Error global ── */}
         {submitError && (
-          <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+          <div className="flex items-start gap-3 bg-red-500/5 border border-red-500/20 rounded-card p-4 text-red-500">
             <AlertCircle size={18} className="shrink-0 mt-0.5" />
             <p className="text-sm font-medium">{submitError}</p>
           </div>
@@ -598,7 +598,7 @@ export default function LibroReclamacionesPage() {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full py-3.5 px-6 bg-primary text-white font-bold text-sm rounded-xl hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md shadow-primary/20"
+          className="w-full py-3.5 px-6 bg-primary text-primary-foreground font-bold text-sm rounded-button hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-md shadow-primary/20 cursor-pointer"
         >
           {isPending ? (
             <>
@@ -614,8 +614,8 @@ export default function LibroReclamacionesPage() {
         </button>
 
         {/* ── Nota de plazo ── */}
-        <p className="text-center text-xs text-slate-400 italic">
-          ⏱ JMT Outdoors dará respuesta en un plazo no mayor a <strong className="text-slate-500">15 días hábiles</strong> improrrogables conforme a la ley.
+        <p className="text-center text-xs text-muted-foreground/80 italic">
+          ⏱ JMT Outdoors dará respuesta en un plazo no mayor a <strong className="text-muted-foreground">15 días hábiles</strong> improrrogables conforme a la ley.
         </p>
 
       </form>

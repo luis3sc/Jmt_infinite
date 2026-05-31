@@ -7,6 +7,10 @@ import AuthButton from '@/components/layout/AuthButton'
 import { DashboardSummary } from '@/components/dashboard/DashboardSummary'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
 import { BackButton } from '@/components/ui/BackButton'
+import { Container } from '@/components/ui/Container'
+import { Alert } from '@/components/ui/Alert'
+import { buttonVariants, buttonSizes } from '@/components/ui/Button'
+import { cn } from '@/lib/utils'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -36,11 +40,9 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground flex flex-col">
-      <TopBar
-        right={<AuthButton />}
-      />
+      <TopBar right={<AuthButton />} />
 
-      <div className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 pt-20 md:pt-24">
+      <Container maxW="6xl" className="pt-20 md:pt-24 flex-1 flex flex-col">
         {/* Botón Volver */}
         <BackButton href="/map" label="Volver" variant="small" className="mb-8" />
 
@@ -58,15 +60,13 @@ export default async function DashboardPage() {
         <DashboardNav />
 
         {error ? (
-          <div className="p-12 rounded-3xl bg-red-50 border border-red-100 text-center">
-            <AlertCircle size={48} className="text-red-500/40 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-red-600 uppercase tracking-tight">Error de Conexión</h3>
-            <p className="text-red-500 mt-2 text-sm">{error.message}</p>
-          </div>
+          <Alert variant="destructive" title="Error de Conexión" className="mb-8">
+            {error.message}
+          </Alert>
         ) : !orders || orders.length === 0 ? (
-          <div className="p-12 md:p-24 rounded-[2.5rem] bg-card border border-dashed border-border text-center backdrop-blur-md relative overflow-hidden group shadow-sm">
+          <div className="p-12 md:p-24 rounded-dialog bg-card border border-dashed border-border text-center backdrop-blur-md relative overflow-hidden group shadow-sm">
             <div className="relative z-10 flex flex-col items-center">
-              <div className="w-24 h-24 bg-primary/5 rounded-[2rem] flex items-center justify-center mb-10 border border-primary/10 shadow-inner transition-transform duration-700">
+              <div className="w-24 h-24 bg-primary/5 rounded-button-2xl flex items-center justify-center mb-10 border border-primary/10 shadow-inner transition-transform duration-700">
                 <LayoutDashboard size={42} className="text-primary/40" strokeWidth={1} />
               </div>
               <h2 className="text-3xl font-black text-foreground mb-4 uppercase tracking-tight">Sin actividad reciente</h2>
@@ -76,14 +76,22 @@ export default async function DashboardPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/map"
-                  className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-2xl shadow-primary/20 "
+                  className={cn(
+                    buttonVariants.default,
+                    buttonSizes.xl,
+                    "inline-flex items-center gap-3 uppercase font-black tracking-wider text-xs shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
+                  )}
                 >
                   <PlusCircle size={18} />
                   Explorar Pantallas
                 </Link>
                 <Link
                   href="/dashboard/orders"
-                  className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-card text-foreground text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all border border-border shadow-sm"
+                  className={cn(
+                    buttonVariants.outline,
+                    buttonSizes.xl,
+                    "inline-flex items-center gap-3 uppercase font-black tracking-wider text-xs hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200"
+                  )}
                 >
                   Ver mis pedidos
                 </Link>
@@ -96,7 +104,7 @@ export default async function DashboardPage() {
         ) : (
           <DashboardSummary orders={orders} />
         )}
-      </div>
+      </Container>
     </main>
   )
 }

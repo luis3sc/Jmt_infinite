@@ -43,8 +43,8 @@ function UploadFallbackUI({ error, reset, step, onGoBack }: UploadFallbackUIProp
   const { icon: Icon, title, detail } = stepLabels[step]
 
   return (
-    <div className="w-full rounded-2xl border border-destructive/20 bg-destructive/5 p-5 flex flex-col items-center gap-4 text-center">
-      <div className="p-3 rounded-2xl bg-destructive/10 border border-destructive/15">
+    <div className="w-full rounded-dialog border border-destructive/20 bg-destructive/5 p-5 flex flex-col items-center gap-4 text-center">
+      <div className="p-3 rounded-card bg-destructive/10 border border-destructive/15">
         <Icon size={22} className="text-destructive/70" />
       </div>
 
@@ -55,7 +55,7 @@ function UploadFallbackUI({ error, reset, step, onGoBack }: UploadFallbackUIProp
 
       {/* Dev detail (shown only in development) */}
       {process.env.NODE_ENV === 'development' && (
-        <p className="text-[10px] font-mono text-destructive/60 bg-background/60 border border-border/40 rounded-lg px-3 py-1.5 max-w-full break-all">
+        <p className="text-[10px] font-mono text-destructive/60 bg-background/60 border border-border/40 rounded-input px-3 py-1.5 max-w-full break-all">
           {error.message}
         </p>
       )}
@@ -63,7 +63,7 @@ function UploadFallbackUI({ error, reset, step, onGoBack }: UploadFallbackUIProp
       <div className="flex items-center gap-3 flex-wrap justify-center">
         <button
           onClick={reset}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
+          className="flex items-center gap-2 px-4 py-2 rounded-button bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
         >
           <RefreshCw size={12} />
           Intentar de nuevo

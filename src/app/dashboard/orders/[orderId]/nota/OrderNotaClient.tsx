@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Download, Printer, ArrowLeft, Loader2, Sparkles } from 'lucide-react'
 import html2canvas from 'html2canvas-pro'
 import { jsPDF } from 'jspdf'
+import { Logo } from '@/components/ui/Logo'
 
 interface OrderNotaClientProps {
   order: any
@@ -212,7 +213,7 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
           >
             {/* LOGO DE AGUA DECORATIVO (Solo pantalla) */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.015] pointer-events-none print:hidden">
-              <img src="/assets/images/jmtinfinite_logo.svg" alt="" className="w-[500px]" />
+              <Logo isPrint width={500} className="w-[500px]" />
             </div>
 
             {/* CABECERA (JMT Logo - Título - Calidad) */}

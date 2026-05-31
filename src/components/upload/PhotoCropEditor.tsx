@@ -3,8 +3,9 @@
 import { useState, useCallback } from 'react'
 import Cropper from 'react-easy-crop'
 import type { Area, Point } from 'react-easy-crop'
-import { motion } from 'framer-motion'
 import { Crop, Check } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { cn } from '@/lib/utils'
 
 interface PhotoCropEditorProps {
   imageSrc: string
@@ -34,14 +35,14 @@ export function PhotoCropEditor({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-fluid-xs">
       {/* Editor label */}
-      <div className="flex items-center gap-2">
-        <div className="p-1.5 rounded-lg bg-primary/10">
+      <div className="flex items-center gap-fluid-2xs">
+        <div className="p-1.5 rounded-button-sm bg-primary/10">
           <Crop size={14} className="text-primary" />
         </div>
         <div>
-          <p className="text-xs font-bold tracking-wider text-foreground">
+          <p className="text-fluid-xs font-bold tracking-wider text-foreground">
             Ajustar recorte
           </p>
           <p className="text-[10px] text-muted-foreground">
@@ -52,7 +53,7 @@ export function PhotoCropEditor({
 
       {/* Crop canvas */}
       <div
-        className="relative w-full rounded-2xl overflow-hidden border border-border/50 bg-black touch-action-none"
+        className="relative w-full rounded-card overflow-hidden border border-border/50 bg-black touch-action-none"
         style={{ height: 'min(65vw, 280px)', touchAction: 'none' }}
       >
         <Cropper
@@ -65,7 +66,7 @@ export function PhotoCropEditor({
           onCropComplete={handleCropComplete}
           showGrid={true}
           style={{
-            containerStyle: { borderRadius: '1rem', background: '#000' },
+            containerStyle: { borderRadius: 'var(--radius-card)', background: '#000' },
             cropAreaStyle: {
               border: '2px solid hsl(var(--primary))',
               boxShadow: '0 0 0 9999em rgba(0,0,0,0.65)',
@@ -75,7 +76,7 @@ export function PhotoCropEditor({
       </div>
 
       {/* Zoom slider */}
-      <div className="flex items-center gap-3 px-1">
+      <div className="flex items-center gap-fluid-xs px-fluid-3xs">
         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest w-8">
           {zoom.toFixed(1)}x
         </span>
@@ -91,18 +92,19 @@ export function PhotoCropEditor({
       </div>
 
       {/* Confirm button */}
-      <motion.button
+      <Button
         onClick={handleConfirm}
         disabled={confirmed}
-        className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-xs uppercase tracking-wider transition-all
-          ${confirmed
+        className={cn(
+          "w-full font-semibold text-xs uppercase tracking-wider transition-all",
+          confirmed
             ? 'bg-green-500/20 border border-green-500/30 text-green-400'
             : 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20'
-          }`}
+        )}
       >
         <Check size={16} />
         {confirmed ? 'Confirmado' : 'Confirmar'}
-      </motion.button>
+      </Button>
     </div>
   )
 }

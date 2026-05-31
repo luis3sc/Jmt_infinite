@@ -37,10 +37,10 @@ export default function MobileSearchBox({
 
  return (
   <div className="px-4 pb-4 pointer-events-auto">
-   <div className="relative w-full shadow-2xl rounded-[calc(var(--radius)*1.0)] bg-card border border-border">
+   <div className="relative w-full shadow-2xl rounded-button-2xl bg-card border border-border">
     <button
      onClick={onSearch}
-     className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground z-10 p-1.5 hover:bg-muted rounded-[calc(var(--radius)*0.6875)] transition-all "
+     className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground z-10 p-1.5 hover:bg-muted rounded-input transition-all "
     >
      <Search size={20} strokeWidth={2.5} />
     </button>
@@ -57,7 +57,7 @@ export default function MobileSearchBox({
      }}
      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
      placeholder="¿Dónde quieres anunciarte?"
-     className="w-full pl-11 pr-12 py-3.5 bg-transparent rounded-[calc(var(--radius)*1.0)] text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 shadow-none ring-offset-transparent border-none h-auto"
+     className="w-full pl-11 pr-12 py-3.5 bg-transparent rounded-button-2xl text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 shadow-none ring-offset-transparent border-none h-auto"
     />
     {searchQuery && (
      <button
@@ -71,7 +71,7 @@ export default function MobileSearchBox({
     {showSuggestions && suggestions.length > 0 && (
      <ul
       onMouseDown={(e) => e.preventDefault()}
-      className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-[calc(var(--radius)*0.6875)] shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto"
+      className="absolute bottom-full mb-2 left-0 right-0 bg-card border border-border rounded-input shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto"
      >
       {suggestions.map((s: any, idx: number) => (
        <div
@@ -86,7 +86,7 @@ export default function MobileSearchBox({
          )
         }
        >
-        <div className="w-8 h-8 rounded-[calc(var(--radius)*0.75)] bg-muted flex items-center justify-center shrink-0 group-hover/item:bg-primary/20 transition-colors">
+        <div className="w-8 h-8 rounded-input bg-muted flex items-center justify-center shrink-0 group-hover/item:bg-primary/20 transition-colors">
          <MapPin
           size={16}
           className="text-muted-foreground group-hover/item:text-primary transition-colors"

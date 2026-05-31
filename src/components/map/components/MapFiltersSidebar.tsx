@@ -53,34 +53,34 @@ export default function MapFiltersSidebar({
           />
 
           {/* Modal Container */}
-          <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 pointer-events-none">
+          <div className="fixed inset-0 z-[210] flex items-center justify-center p-fluid-md pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="pointer-events-auto w-full max-w-[420px] bg-card border border-border rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+              className="pointer-events-auto w-full max-w-[420px] bg-card border border-border rounded-dialog shadow-2xl flex flex-col overflow-hidden"
             >
-              <div className="p-6 border-b border-border flex justify-between items-center bg-muted/30">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-muted rounded-2xl text-foreground">
+              <div className="p-fluid-md border-b border-border flex justify-between items-center bg-muted/30">
+                <div className="flex items-center gap-fluid-xs">
+                  <div className="p-2.5 bg-muted rounded-card text-foreground">
                     <Filter size={22} />
                   </div>
-                  <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Filtros</h2>
+                  <h2 className="text-fluid-xl font-black text-foreground uppercase tracking-tight">Filtros</h2>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={onClose}
-                  className="rounded-2xl text-muted-foreground hover:text-foreground"
+                  className="rounded-card text-muted-foreground hover:text-foreground"
                 >
                   <X size={20} />
                 </Button>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <div className="flex flex-col gap-8 p-6">
+                <div className="flex flex-col gap-fluid-md p-fluid-md">
                   {/* Media Type */}
-                  <div className="space-y-4">
+                  <div className="space-y-fluid-sm">
                     <div className="flex justify-between items-end">
                       <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
                         Tipo de Medio
@@ -98,7 +98,7 @@ export default function MapFiltersSidebar({
                       onChange={(e) =>
                         setFilters({ ...filters, mediaType: e.target.value })
                       }
-                      className="bg-muted/50 rounded-[calc(var(--radius)*0.6875)] px-5 py-4 font-bold border-border"
+                      className="bg-muted/50 rounded-input px-fluid-md py-fluid-sm font-bold border-border"
                     >
                       <option value="">Todos los tipos</option>
                       {filterOptions.mediaTypes.map((m) => (
@@ -110,11 +110,11 @@ export default function MapFiltersSidebar({
                   </div>
 
                   {/* Daily Price Range */}
-                  <div className="space-y-4">
+                  <div className="space-y-fluid-sm">
                     <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
                       Rango de Inversión Diaria
                     </label>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-fluid-sm">
                       <Select
                         value={filters.minPrice || ""}
                         onChange={(e) =>
@@ -123,7 +123,7 @@ export default function MapFiltersSidebar({
                             minPrice: e.target.value ? Number(e.target.value) : null,
                           })
                         }
-                        className="bg-muted/50 rounded-[calc(var(--radius)*0.6875)] px-5 py-4 font-bold border-border"
+                        className="bg-muted/50 rounded-input px-fluid-md py-fluid-sm font-bold border-border"
                       >
                         <option value="">Mínimo</option>
                         {filterOptions.prices.map((p) => (
@@ -140,7 +140,7 @@ export default function MapFiltersSidebar({
                             maxPrice: e.target.value ? Number(e.target.value) : null,
                           })
                         }
-                        className="bg-muted/50 rounded-[calc(var(--radius)*0.6875)] px-5 py-4 font-bold border-border"
+                        className="bg-muted/50 rounded-input px-fluid-md py-fluid-sm font-bold border-border"
                       >
                         <option value="">Máximo</option>
                         {filterOptions.prices.map((p) => (
@@ -153,7 +153,7 @@ export default function MapFiltersSidebar({
                   </div>
 
                   {/* Potential Audience */}
-                  <div className="space-y-4">
+                  <div className="space-y-fluid-sm">
                     <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
                       Alcance Potencial (Audiencia)
                     </label>
@@ -165,7 +165,7 @@ export default function MapFiltersSidebar({
                           audience: e.target.value ? Number(e.target.value) : null,
                         })
                       }
-                      className="bg-muted/50 rounded-[calc(var(--radius)*0.6875)] px-5 py-4 font-bold border-border"
+                      className="bg-muted/50 rounded-input px-fluid-md py-fluid-sm font-bold border-border"
                     >
                       <option value="">Cualquier alcance</option>
                       {filterOptions.audiences.map((a) => (
@@ -177,7 +177,7 @@ export default function MapFiltersSidebar({
                   </div>
 
                   {/* Near POI */}
-                  <div className="space-y-4">
+                  <div className="space-y-fluid-sm">
                     <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
                       Puntos de Interés Cercanos (POI)
                     </label>
@@ -197,7 +197,7 @@ export default function MapFiltersSidebar({
                           });
                         }
                       }}
-                      className="bg-muted/50 rounded-[calc(var(--radius)*0.6875)] px-5 py-4 font-bold border-border"
+                      className="bg-muted/50 rounded-input px-fluid-md py-fluid-sm font-bold border-border"
                     >
                       <option value="">Cualquier punto de interés</option>
                       <option value="Banco">Banco / ATM</option>
@@ -220,7 +220,7 @@ export default function MapFiltersSidebar({
                   </div>
 
                   {filters.poi?.category && (
-                    <div className="space-y-4 animate-fade-in">
+                    <div className="space-y-fluid-sm animate-fade-in">
                       <div className="flex justify-between items-center">
                         <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
                           Radio de Búsqueda

@@ -72,7 +72,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
         <div className="w-8 h-2 bg-muted animate-pulse rounded-full" />
       </div>
     ) : (
-      <div className="h-9 w-24 bg-muted animate-pulse rounded-[calc(var(--radius)*0.75)]" />
+      <div className="h-9 w-24 bg-muted animate-pulse rounded-input" />
     );
   }
 
@@ -95,7 +95,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
     <div className="relative">
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 pl-2 pr-3 py-1.5 md:pl-3 md:pr-4 md:h-11 bg-muted border border-border text-muted-foreground rounded-[calc(var(--radius)*0.5625)] md:rounded-[calc(var(--radius)*0.6875)] transition-all hover:bg-muted/80 group cursor-pointer"
+        className="flex items-center gap-2 pl-2 pr-3 py-1.5 md:pl-3 md:pr-4 md:h-11 bg-muted border border-border text-muted-foreground rounded-button-sm md:rounded-input transition-all hover:bg-muted/80 group cursor-pointer"
       >
         <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-foreground flex items-center justify-center text-background shadow-sm overflow-hidden flex-shrink-0">
           <User size={16} />
@@ -121,7 +121,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="absolute right-0 mt-3 w-64 bg-card border border-border rounded-[calc(var(--radius)*1.0)] shadow-2xl z-50 overflow-hidden"
+              className="absolute right-0 mt-3 w-64 bg-card border border-border rounded-button-2xl shadow-2xl z-50 overflow-hidden"
             >
               <div className="px-5 py-4 border-b border-border bg-muted/40">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Bienvenido</p>
@@ -133,9 +133,9 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                   <Link
                     href="/gestor"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-[calc(var(--radius)*0.6875)] transition-all group cursor-pointer"
+                    className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 rounded-input transition-all group cursor-pointer"
                   >
-                    <div className="p-2 bg-amber-500/10 rounded-[calc(var(--radius)*0.5)] group-hover:bg-amber-500/20 transition-colors">
+                    <div className="p-2 bg-amber-500/10 rounded-button-sm group-hover:bg-amber-500/20 transition-colors">
                       <Clapperboard size={18} />
                     </div>
                     Panel de Gestión
@@ -145,9 +145,9 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                     <Link
                       href="/dashboard/orders"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-[calc(var(--radius)*0.6875)] transition-all group cursor-pointer"
+                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-input transition-all group cursor-pointer"
                     >
-                      <div className="p-2 bg-muted rounded-[calc(var(--radius)*0.5)] group-hover:bg-muted/80 group-hover:text-foreground transition-colors">
+                      <div className="p-2 bg-muted rounded-button-sm group-hover:bg-muted/80 group-hover:text-foreground transition-colors">
                         <ShoppingBag size={18} />
                       </div>
                       Mis Pedidos
@@ -156,9 +156,9 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                     <Link
                       href="/dashboard"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-[calc(var(--radius)*0.6875)] transition-all group cursor-pointer"
+                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-input transition-all group cursor-pointer"
                     >
-                      <div className="p-2 bg-muted rounded-[calc(var(--radius)*0.5)] group-hover:bg-muted/80 group-hover:text-foreground transition-colors">
+                      <div className="p-2 bg-muted rounded-button-sm group-hover:bg-muted/80 group-hover:text-foreground transition-colors">
                         <LayoutDashboard size={18} />
                       </div>
                       Panel de Control
@@ -169,9 +169,9 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                 <Button
                   variant="ghost"
                   onClick={handleLogout}
-                  className="w-full h-auto p-0 flex items-center justify-start gap-3 px-3.5 py-3 text-sm font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-[calc(var(--radius)*0.6875)] transition-all group cursor-pointer"
+                  className="w-full h-auto p-0 flex items-center justify-start gap-3 px-3.5 py-3 text-sm font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-input transition-all group cursor-pointer"
                 >
-                  <div className="p-2 bg-red-500/10 rounded-[calc(var(--radius)*0.5)] group-hover:bg-red-500/20 transition-colors">
+                  <div className="p-2 bg-red-500/10 rounded-button-sm group-hover:bg-red-500/20 transition-colors">
                     <LogOut size={18} />
                   </div>
                   Cerrar Sesión
@@ -187,7 +187,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
       <motion.div >
         <Link
           href="/login"
-          className="flex items-center gap-2 px-3.5 py-2 md:px-5 md:h-11 text-xs md:text-sm font-black text-white bg-primary hover:bg-primary/90 border-none rounded-[calc(var(--radius)*0.5625)] md:rounded-[calc(var(--radius)*0.6875)] transition-all shadow-sm group cursor-pointer"
+          className="flex items-center gap-2 px-3.5 py-2 md:px-5 md:h-11 text-xs md:text-sm font-black text-white bg-primary hover:bg-primary/90 border-none rounded-button-sm md:rounded-input transition-all shadow-sm group cursor-pointer"
         >
           <User size={16} className="text-white" />
           <span>INGRESAR</span>

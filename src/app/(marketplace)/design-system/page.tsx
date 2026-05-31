@@ -37,6 +37,7 @@ import { PhotoCropEditor } from "@/components/upload/PhotoCropEditor";
 import { composeImage } from "@/lib/imageComposer";
 
 // Import custom atomic UI components
+import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -45,6 +46,9 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Dialog, DialogVariant } from "@/components/ui/Dialog";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { OrderTrackingStepper } from "@/components/ui/OrderTrackingStepper";
+import { BackButton } from "@/components/ui/BackButton";
 import {
   Card,
   CardHeader,
@@ -79,6 +83,19 @@ const typographyScale = [
   { token: "text-fluid-4xl", min: "2.8rem (44.8px)", max: "3.8rem (60.8px)", css: "clamp(2.8rem, 3.5vw + 1.6rem, 3.8rem)", minRem: 2.8, maxRem: 3.8, prefVw: 3.5, baseRem: 1.6, desc: "Títulos de banners principales (H1)" },
   { token: "text-fluid-5xl", min: "3.8rem (60.8px)", max: "5.2rem (83.2px)", css: "clamp(3.8rem, 4.5vw + 2rem, 5.2rem)", minRem: 3.8, maxRem: 5.2, prefVw: 4.5, baseRem: 2, desc: "Encabezados hero monumentales o estadísticas masivas" }
 ];
+
+const BuggyComponent = () => {
+  const [crash, setCrash] = React.useState(false);
+  if (crash) throw new Error("Simulated error for Design System");
+  return (
+    <div className="p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col items-center justify-center gap-4 w-full h-full min-h-[160px]">
+       <p className="text-sm font-medium">Componente Funcional Seguro</p>
+       <Button variant="outline" size="sm" onClick={() => setCrash(true)} className="border-red-500 text-red-500 hover:bg-red-500/10">
+         Simular Fallo
+       </Button>
+    </div>
+  );
+};
 
 export default function DesignSystemPage() {
   // Navigation tabs state
@@ -146,6 +163,7 @@ export default function DesignSystemPage() {
     { id: "forms", label: "Formularios", icon: Sliders },
     { id: "cards", label: "Tarjetas y Badges", icon: Type },
     { id: "overlays", label: "Modales (Dialog)", icon: MessageSquare },
+    { id: "feedback", label: "Estados & Feedback", icon: CheckCircle2 },
     { id: "uploads", label: "Carga & Media", icon: UploadCloud },
     { id: "fluid", label: "Espaciado & Tipografía Fluida", icon: Expand },
   ];
@@ -302,6 +320,48 @@ export default function DesignSystemPage() {
                 </Card>
               ))}
             </div>
+
+            {/* Logotipos Centralizados Showcase */}
+            <div className="space-y-3 pt-6 border-t border-border/20">
+              <h3 className="text-sm font-black uppercase tracking-wider text-muted-foreground">Logotipo Centralizado (&lt;Logo /&gt;)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="hover:shadow-md transition-shadow relative overflow-hidden bg-card border border-border/60">
+                  <div className="h-28 bg-white flex items-center justify-center p-4 border-b border-border/30">
+                    <Logo width={160} height={53} />
+                  </div>
+                  <CardHeader className="p-4 space-y-1">
+                    <CardTitle className="text-sm font-bold">Variante Estándar</CardTitle>
+                    <CardDescription className="text-xs font-mono select-all text-muted-foreground">
+                      &lt;Logo width={160} height={53} /&gt;
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                <Card className="hover:shadow-md transition-shadow relative overflow-hidden bg-card border border-border/60">
+                  <div className="h-28 bg-brand-dark flex items-center justify-center p-4 border-b border-border/30">
+                    <Logo width={160} height={53} className="brightness-125" />
+                  </div>
+                  <CardHeader className="p-4 space-y-1">
+                    <CardTitle className="text-sm font-bold">Variante Dark Contrast</CardTitle>
+                    <CardDescription className="text-xs font-mono select-all text-muted-foreground">
+                      &lt;Logo className="brightness-125" /&gt;
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                <Card className="hover:shadow-md transition-shadow relative overflow-hidden bg-card border border-border/60">
+                  <div className="h-28 bg-white flex items-center justify-center p-4 border-b border-border/30">
+                    <Logo isPrint width={140} className="w-[140px]" />
+                  </div>
+                  <CardHeader className="p-4 space-y-1">
+                    <CardTitle className="text-sm font-bold">Variante Impresión (Safe &lt;img&gt;)</CardTitle>
+                    <CardDescription className="text-xs font-mono select-all text-muted-foreground">
+                      &lt;Logo isPrint width={140} /&gt;
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </div>
+            </div>
           </motion.section>
         )}
 
@@ -377,6 +437,15 @@ export default function DesignSystemPage() {
                     <Button variant="outline" size="icon" isLoading={btnLoading} disabled={btnDisabled} className="rounded-full">
                       <Settings className="h-4 w-4" />
                     </Button>
+                  </div>
+                </div>
+
+                {/* Back Button */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Botón de Retroceso</h4>
+                  <div className="flex flex-wrap items-center gap-6 p-4 rounded-xl bg-muted/30 border border-border/40">
+                    <BackButton onClick={() => alert("Back button clicked")} />
+                    <BackButton variant="small" onClick={() => alert("Small back button clicked")} />
                   </div>
                 </div>
 
@@ -760,6 +829,86 @@ export default function DesignSystemPage() {
                 </div>
               </CardContent>
             </Card>
+          </motion.section>
+        )}
+
+        {/* --- SECTION: FEEDBACK & STATUS --- */}
+        {(activeTab === "all" || activeTab === "feedback") && (
+          <motion.section
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-xl text-primary">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold tracking-tight">Estados & Feedback Visual</h2>
+                <p className="text-xs text-muted-foreground">Componentes para comunicar progreso, estados de pedidos y manejo de errores elegantes.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+              {/* OrderTrackingStepper */}
+              <Card className="p-6 space-y-6 border border-border/60">
+                <div className="flex items-center justify-between border-b pb-3 border-border/40">
+                  <div className="space-y-0.5">
+                    <h3 className="text-base font-bold flex items-center justify-between">
+                      <span>Línea de Tiempo (Stepper)</span>
+                      <span className="text-[11px] font-mono text-muted-foreground ml-4 hidden sm:inline-block">OrderTrackingStepper.tsx</span>
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">Componente responsivo para el seguimiento de la orden. Alterna entre layout vertical (móvil) y horizontal (desktop).</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-8 bg-muted/15 p-4 md:p-6 rounded-xl border border-border/40">
+                  <div className="space-y-4">
+                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Estado: En Revisión (VIDEO_SENT)</h4>
+                     <OrderTrackingStepper status="VIDEO_SENT" />
+                  </div>
+                  
+                  <div className="space-y-4 pt-8 border-t border-border/40">
+                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Estado: Observado (REJECTED)</h4>
+                     <OrderTrackingStepper status="REJECTED" />
+                  </div>
+                </div>
+              </Card>
+
+              {/* ErrorBoundary */}
+              <Card className="p-6 space-y-6 border border-border/60">
+                <div className="flex items-center justify-between border-b pb-3 border-border/40">
+                  <div className="space-y-0.5">
+                    <h3 className="text-base font-bold flex items-center justify-between">
+                      <span>Frontera de Errores (Error Boundary)</span>
+                      <span className="text-[11px] font-mono text-muted-foreground ml-4 hidden sm:inline-block">ErrorBoundary.tsx</span>
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">Recuperación elegante de fallos en la interfaz sin romper la aplicación completa.</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-3">
+                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Variante Completa (Card)</h4>
+                     <div className="p-1 h-full min-h-[220px]">
+                       <ErrorBoundary label="el componente de pago">
+                          <BuggyComponent />
+                       </ErrorBoundary>
+                     </div>
+                   </div>
+                   
+                   <div className="space-y-3">
+                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Variante Inline</h4>
+                     <div className="p-1 h-full min-h-[220px]">
+                       <ErrorBoundary inline={true} label="el mapa interactivo">
+                           <BuggyComponent />
+                       </ErrorBoundary>
+                     </div>
+                   </div>
+                </div>
+              </Card>
+            </div>
           </motion.section>
         )}
 

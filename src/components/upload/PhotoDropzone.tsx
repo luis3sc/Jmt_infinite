@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone'
 import type { FileRejection } from 'react-dropzone'
 import { ImageIcon, Upload, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '@/lib/utils'
 
 interface PhotoDropzoneProps {
   onFile: (file: File) => void
@@ -63,26 +64,30 @@ export function PhotoDropzone({ onFile }: PhotoDropzoneProps) {
           >
             <div
               {...getRootProps()}
-              className={`relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-10 md:p-14 cursor-pointer transition-all duration-300 select-none
-                ${isDragActive
-                  ? 'border-violet-400/80 bg-violet-500/10 scale-[1.01]'
-                  : 'border-border/60 bg-background/30 hover:border-violet-400/40 hover:bg-violet-500/5'
-                }`}
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-fluid-sm rounded-card border-2 border-dashed p-fluid-lg md:p-fluid-xl cursor-pointer transition-all duration-300 select-none",
+                isDragActive
+                  ? 'border-upload/80 bg-upload/10 scale-[1.01]'
+                  : 'border-border/60 bg-background/30 hover:border-upload/40 hover:bg-upload/5'
+              )}
             >
               <input {...getInputProps()} />
-              <div className={`p-4 rounded-2xl transition-colors ${isDragActive ? 'bg-violet-500/20' : 'bg-muted/40'}`}>
-                <ImageIcon size={36} className={isDragActive ? 'text-violet-400' : 'text-muted-foreground'} strokeWidth={1.5} />
+              <div className={cn(
+                "p-fluid-sm rounded-card transition-colors",
+                isDragActive ? 'bg-upload/20' : 'bg-muted/40'
+              )}>
+                <ImageIcon size={36} className={isDragActive ? 'text-upload' : 'text-muted-foreground'} strokeWidth={1.5} />
               </div>
-              <div className="text-center space-y-1">
-                <p className="font-bold text-sm">
+              <div className="text-center space-y-fluid-3xs">
+                <p className="font-bold text-fluid-sm">
                   {isDragActive ? 'Suelta la imagen aquí' : 'Arrastra tu imagen aquí'}
                 </p>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-fluid-xs">
                   O haz click para seleccionar · JPG o PNG · Máx. 100 MB
                 </p>
               </div>
               {!isDragActive && (
-                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/60 border border-border text-xs font-bold text-muted-foreground">
+                <div className="flex items-center gap-fluid-2xs px-fluid-md py-fluid-2xs rounded-button-sm bg-muted/60 border border-border text-fluid-xs font-bold text-muted-foreground">
                   <Upload size={13} />
                   Seleccionar imagen
                 </div>
@@ -95,7 +100,7 @@ export function PhotoDropzone({ onFile }: PhotoDropzoneProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="relative rounded-2xl overflow-hidden border border-violet-400/30 bg-black aspect-video"
+            className="relative rounded-card overflow-hidden border border-upload/30 bg-black aspect-video"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -104,16 +109,16 @@ export function PhotoDropzone({ onFile }: PhotoDropzoneProps) {
               className="w-full h-full object-contain"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-white">
+            <div className="absolute bottom-fluid-xs left-fluid-xs right-fluid-xs flex items-center justify-between">
+              <div className="flex items-center gap-fluid-2xs text-white">
                 <ImageIcon size={14} />
-                <span className="text-xs font-bold truncate max-w-[180px]">
+                <span className="text-fluid-xs font-bold truncate max-w-[180px]">
                   {selectedFile?.name}
                 </span>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); clearFile() }}
-                className="p-1.5 rounded-xl bg-black/60 text-white hover:bg-black/80 transition-all"
+                className="p-1.5 rounded-button-sm bg-black/60 text-white hover:bg-black/80 transition-all cursor-pointer"
               >
                 <X size={14} />
               </button>

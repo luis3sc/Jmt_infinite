@@ -10,6 +10,7 @@ import { Dialog } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
 import {
   ShoppingCart,
   X,
@@ -114,15 +115,15 @@ export default function MapCartSidebar({
       {/* LEFT COLUMN: Header + Cart Items */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 border-r-0 md:border-r border-border">
         {/* Header */}
-        <div className="p-5 pt-[calc(1.25rem+env(safe-area-inset-top))] md:pt-5 border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
+        <div className="p-fluid-md pt-[calc(1.25rem+env(safe-area-inset-top))] md:pt-fluid-md border-b border-border flex justify-between items-center bg-muted/30 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-muted rounded-xl">
+            <div className="p-2 bg-muted rounded-input">
               <ShoppingCart size={20} className="text-foreground" />
             </div>
-            <h2 className="text-lg font-bold text-foreground tracking-tight">
+            <h2 className="text-fluid-lg font-bold text-foreground tracking-tight">
               Tu Campaña
             </h2>
-            <span className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+            <span className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-badge">
               {cartItemCount}
             </span>
           </div>
@@ -137,18 +138,18 @@ export default function MapCartSidebar({
         </div>
 
         {/* Scrollable Items */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar min-h-0">
+        <div className="flex-1 overflow-y-auto p-fluid-md space-y-fluid-sm custom-scrollbar min-h-0">
           {checkoutSuccess ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="h-full flex flex-col items-center justify-center text-center p-8 space-y-6"
+              className="h-full flex flex-col items-center justify-center text-center p-fluid-lg space-y-fluid-md"
             >
               <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-2">
                 <CheckCircle2 size={48} className="text-emerald-600" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">
+                <h3 className="text-fluid-2xl font-black text-foreground uppercase tracking-tight">
                   ¡Pedido Recibido!
                 </h3>
                 <p className="text-sm text-muted-foreground max-w-[240px] mx-auto font-medium leading-relaxed">
@@ -159,7 +160,7 @@ export default function MapCartSidebar({
                   ha sido enviada con éxito.
                 </p>
               </div>
-              <div className="bg-muted/50 p-4 rounded-xl w-full border border-border/50 text-xs text-muted-foreground">
+              <div className="bg-muted/50 p-fluid-md rounded-card w-full border border-border/50 text-xs text-muted-foreground">
                 Un asesor de JMT se pondrá en contacto contigo en breve para
                 finalizar los detalles técnicos y contractuales.
               </div>
@@ -175,7 +176,7 @@ export default function MapCartSidebar({
               </Button>
             </motion.div>
           ) : cartItems.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-8">
+            <div className="h-full flex flex-col items-center justify-center text-center p-fluid-lg space-y-fluid-lg">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
                 <div className="relative w-28 h-28 bg-muted rounded-full flex items-center justify-center border border-border/50 shadow-2xl">
@@ -183,7 +184,7 @@ export default function MapCartSidebar({
                 </div>
               </div>
               <div className="space-y-3">
-                <h3 className="text-xl font-black text-foreground uppercase tracking-tight">
+                <h3 className="text-fluid-xl font-black text-foreground uppercase tracking-tight">
                   Tu Campaña está vacía
                 </h3>
                 <p className="text-sm text-muted-foreground max-w-[220px] mx-auto font-medium leading-relaxed">
@@ -199,14 +200,14 @@ export default function MapCartSidebar({
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-fluid-sm">
               {cartItems.map((item) => (
-                <motion.div
+                <Card
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   key={item.panelId}
-                  className="flex flex-col md:grid md:grid-cols-[160px_1fr] rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-all group overflow-hidden"
+                  className="flex flex-col md:grid md:grid-cols-[160px_1fr] rounded-card hover:shadow-md transition-all group overflow-hidden border-border"
                 >
                   {/* Image */}
                   <div className="relative w-full h-[180px] md:h-full md:row-span-2 shrink-0 bg-muted border-b md:border-b-0 md:border-r border-border/10">
@@ -225,7 +226,7 @@ export default function MapCartSidebar({
                   </div>
 
                   {/* Top row: Basic info */}
-                  <div className="p-3 md:p-4 flex flex-col gap-1.5 min-w-0">
+                  <div className="p-fluid-sm md:p-fluid-md flex flex-col gap-fluid-2xs min-w-0">
                     <div className="flex justify-between items-start gap-2">
                       <p className="font-bold text-sm text-foreground leading-tight line-clamp-2">
                         {item.address}
@@ -260,10 +261,10 @@ export default function MapCartSidebar({
                   </div>
 
                   {/* Bottom row: Dates */}
-                  <div className="px-3 pb-3 md:px-4 md:pb-4 md:pt-0 flex flex-col gap-3 min-w-0">
+                  <div className="px-fluid-sm pb-fluid-sm md:px-fluid-md md:pb-fluid-md md:pt-0 flex flex-col gap-fluid-xs min-w-0">
                     <div className="grid grid-cols-2 gap-3">
                       {/* Start Date */}
-                      <div className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-xl hover:border-primary/50 transition-colors cursor-pointer">
+                      <div className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-input hover:border-primary/50 transition-colors cursor-pointer">
                         <label className="text-[10px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
                           <Calendar size={11} className="text-muted-foreground" />
                           Inicio
@@ -308,7 +309,7 @@ export default function MapCartSidebar({
                       </div>
 
                       {/* End Date */}
-                      <div className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-xl hover:border-primary/50 transition-colors cursor-pointer">
+                      <div className="relative group flex flex-col gap-1 p-2 bg-background border border-border/50 rounded-input hover:border-primary/50 transition-colors cursor-pointer">
                         <label className="text-[10px] font-black text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
                           <Calendar size={11} className="text-muted-foreground" />
                           Fin
@@ -356,14 +357,14 @@ export default function MapCartSidebar({
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </Card>
               ))}
-
+              
               {/* Promotional Card */}
-              <motion.div
+              <Card
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col rounded-xl border border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-sm hover:shadow-md transition-all justify-between items-center text-center gap-4 min-h-[220px] overflow-hidden group hover:border-primary cursor-pointer"
+                className="flex flex-col rounded-card border border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-transparent p-fluid-md shadow-sm hover:shadow-md transition-all justify-between items-center text-center gap-fluid-sm min-h-[220px] overflow-hidden group hover:border-primary cursor-pointer"
                 onClick={onClose}
               >
                 <div className="relative mt-2">
@@ -390,24 +391,24 @@ export default function MapCartSidebar({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full bg-background border-primary/30 text-primary hover:bg-primary/5 hover:border-primary transition-all font-bold text-xs uppercase tracking-wider py-4 rounded-xl shadow-sm"
+                  className="w-full bg-background border-primary/30 text-primary hover:bg-primary/5 hover:border-primary transition-all font-bold text-xs uppercase tracking-wider py-4 rounded-button shadow-sm"
                 >
                   + Añadir más Paneles
                 </Button>
-              </motion.div>
+              </Card>
             </div>
           )}
         </div>
 
         {/* MOBILE BOTTOM BAR */}
         {cartItems.length > 0 && !checkoutSuccess && (
-          <div className="md:hidden p-4 border-t border-border bg-background shrink-0 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-10 pb-safe">
+          <div className="md:hidden p-fluid-md border-t border-border bg-background shrink-0 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-10 pb-safe">
             <div className="flex gap-2 w-full">
               <Button
                 variant="outline"
                 size="xl"
                 onClick={onQuoteClick}
-                className="w-[35%] h-14 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 border-primary/30 text-primary bg-background hover:bg-primary/5 hover:border-primary shrink-0 transition-all shadow-sm rounded-xl"
+                className="w-[35%] h-14 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 border-primary/30 text-primary bg-background hover:bg-primary/5 hover:border-primary shrink-0 transition-all shadow-sm rounded-button"
               >
                 <FileText size={16} />
                 <span>Cotizar</span>
@@ -440,7 +441,7 @@ export default function MapCartSidebar({
       {/* RIGHT COLUMN: Payment Summary */}
       {cartItems.length > 0 && !checkoutSuccess && (
         <div className="hidden md:flex w-full md:w-[340px] shrink-0 flex-col bg-muted/20">
-          <div className="p-5 border-b border-border shrink-0">
+          <div className="p-fluid-md border-b border-border shrink-0">
             <h3 className="text-sm font-black text-foreground uppercase tracking-widest">
               Resumen del Pedido
             </h3>
@@ -457,7 +458,7 @@ export default function MapCartSidebar({
             {cartItems.map((summaryItem) => (
               <div
                 key={summaryItem.panelId}
-                className="flex justify-between items-center px-5 py-3.5 border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors"
+                className="flex justify-between items-center px-fluid-md py-fluid-sm border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors"
               >
                 <div className="min-w-0 flex-1 pr-3">
                   <p className="font-bold text-sm text-foreground truncate uppercase tracking-tight">
@@ -512,8 +513,8 @@ export default function MapCartSidebar({
             ))}
           </div>
 
-          <div className="p-5 border-t border-border bg-card/80 backdrop-blur-md shrink-0">
-            <div className="space-y-3 mb-6">
+          <div className="p-fluid-md border-t border-border bg-card/80 backdrop-blur-md shrink-0">
+            <div className="space-y-fluid-xs mb-6">
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Subtotal</span>
                 <span className="text-foreground font-bold">
@@ -540,7 +541,7 @@ export default function MapCartSidebar({
                     Inversión Total
                   </p>
                   <div className="flex items-baseline gap-0.5">
-                    <p className="text-2xl font-black text-foreground tracking-tighter">
+                    <p className="text-fluid-2xl font-black text-foreground tracking-tighter">
                       S/{" "}
                       {Number(cartTotal.toFixed(2).split(".")[0]).toLocaleString()}
                     </p>
@@ -588,9 +589,10 @@ export default function MapCartSidebar({
             </Button>
 
             <Button
+              variant="outline-primary"
               size="xl"
               onClick={onQuoteClick}
-              className="w-full mt-2.5 bg-primary text-white hover:bg-primary/90 text-sm font-bold flex items-center justify-center gap-2"
+              className="w-full mt-2.5 text-sm font-bold flex items-center justify-center gap-2"
             >
               <span>Guardar y Cotizar</span>
             </Button>

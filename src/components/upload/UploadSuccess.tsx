@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { Alert } from '@/components/ui/Alert'
 
 interface UploadSuccessProps {
   videoUrl?: string;
@@ -96,10 +97,10 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                 rotateX: isVideoHovered ? -2 : 0,
                 scale: isVideoHovered ? 1.01 : 1
               }}
-              className="relative aspect-video w-full rounded-lg bg-zinc-950 p-1.5 ring-1 ring-white/10 overflow-hidden"
+              className="relative aspect-video w-full rounded-card bg-zinc-950 p-1.5 ring-1 ring-white/10 overflow-hidden"
             >
               {/* Inner Bezel */}
-              <div className="h-full w-full rounded-lg overflow-hidden bg-black relative">
+              <div className="h-full w-full rounded-card overflow-hidden bg-black relative">
                 {videoUrl ? (
                   <video
                     key={videoUrl}
@@ -171,7 +172,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
 
 
               {/* Order Tracking Stepper */}
-              <div className="w-full mb-3 md:mb-6 p-3 md:p-4 rounded-xl bg-muted/30 border border-border/50">
+              <div className="w-full mb-3 md:mb-6 p-3 md:p-4 rounded-card bg-muted/30 border border-border/50">
                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-3">
                   Estado de tu campaña
                 </p>
@@ -186,7 +187,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                   disabled={loadingBtn}
                   onClick={handleFinish}
                   isLoading={loadingBtn}
-                  className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] h-auto rounded-[calc(var(--radius)*0.875)]"
+                  className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] h-auto rounded-button-xl"
                 >
                   Listo, ir a Mis Pedidos
                 </Button>
@@ -194,7 +195,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                   <Button
                     variant="outline"
                     onClick={() => window.open(videoUrl, '_blank')}
-                    className="w-full sm:w-auto px-5 py-3 text-xs font-black uppercase tracking-widest gap-2 h-auto rounded-[calc(var(--radius)*0.875)]"
+                    className="w-full sm:w-auto px-5 py-3 text-xs font-black uppercase tracking-widest gap-2 h-auto rounded-button-xl"
                   >
                     <ExternalLink size={14} className="text-primary" />
                     <span>Ver mi diseño</span>
@@ -204,16 +205,10 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
             </div>
           </motion.div>
 
-          <motion.div
-            variants={itemVariants}
-            className="flex items-start gap-3 p-4 rounded-lg md:rounded-lg bg-primary/5 border border-primary/10"
-          >
-            <div className="p-1.5 bg-primary/10 rounded-lg text-primary shrink-0">
-              <Info size={14} />
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+          <motion.div variants={itemVariants}>
+            <Alert variant="info" className="p-4">
               Te avisaremos al WhatsApp y correo de inmediato cuando tu anuncio sea aprobado. Tiempo estimado: <span className="text-foreground font-bold">24 horas útiles</span>.
-            </p>
+            </Alert>
           </motion.div>
         </div>
 

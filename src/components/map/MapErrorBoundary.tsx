@@ -14,10 +14,10 @@ function MapFallback({ error, reset }: { error: Error; reset: () => void }) {
     error.message.toLowerCase().includes('load')
 
   return (
-    <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center gap-5 rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm">
+    <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center gap-5 rounded-card border border-border/50 bg-card/40 backdrop-blur-sm">
       {/* Icon group */}
       <div className="relative">
-        <div className="p-4 rounded-2xl bg-muted/50 border border-border/40">
+        <div className="p-4 rounded-card bg-muted/50 border border-border/40">
           <MapPin size={32} className="text-muted-foreground/50" />
         </div>
         {isNetworkError && (
@@ -42,7 +42,7 @@ function MapFallback({ error, reset }: { error: Error; reset: () => void }) {
       {/* Retry */}
       <button
         onClick={reset}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+        className="flex items-center gap-2 px-5 py-2.5 rounded-button bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 cursor-pointer"
       >
         <RefreshCw size={13} />
         Recargar mapa

@@ -69,19 +69,19 @@ export function UploadTypeSelector({ onSelect, userType }: UploadTypeSelectorPro
             variants={cardVariants}
             whileHover={{ y: -2 }}
             onClick={() => onSelect(type)}
-            className="group relative flex flex-col items-start gap-2.5 sm:gap-4 p-3 sm:p-5 rounded-2xl bg-card border border-border hover:border-primary backdrop-blur-xl text-left transition-all duration-300 shadow-md hover:shadow-xl overflow-hidden"
+            className="group relative flex flex-col items-start gap-2.5 sm:gap-4 p-3 sm:p-5 rounded-card bg-card border border-border hover:border-primary backdrop-blur-xl text-left transition-all duration-300 shadow-md hover:shadow-xl overflow-hidden"
           >
             {/* Glow effect */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-primary/3 rounded-2xl" />
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-primary/3 rounded-card" />
 
-            <div className="p-1.5 sm:p-2.5 rounded-xl bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors duration-300 w-fit">
+            <div className="p-1.5 sm:p-2.5 rounded-input bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors duration-300 w-fit">
               <Icon size={20} className="sm:w-6 sm:h-6" strokeWidth={1.5} />
             </div>
 
             <div className="space-y-0.5 sm:space-y-1">
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-bold tracking-tight">{title}</h3>
-                <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-border/80 bg-muted/40 text-muted-foreground group-hover:border-primary/20 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
+                <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-badge border border-border/80 bg-muted/40 text-muted-foreground group-hover:border-primary/20 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
                   {subtitle}
                 </span>
               </div>

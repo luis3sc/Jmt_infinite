@@ -1099,7 +1099,7 @@ export default function OrderSuccessPage() {
                           <Button
                             disabled={!photoFile || !acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
-                            className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-[calc(var(--radius)*0.875)] shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                            className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-button-xl shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                           >
                             <Send size={14} className="mr-2" />
                             <span>
@@ -1142,7 +1142,7 @@ export default function OrderSuccessPage() {
                           <Button
                             disabled={!acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
-                            className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-[calc(var(--radius)*0.875)] shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                            className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-button-xl shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                           >
                             <Send size={14} className="mr-2" />
                             <span>
@@ -1202,7 +1202,7 @@ export default function OrderSuccessPage() {
                       <Button
                         disabled={!videoFile || !acceptedTerms || !acceptedNoLogos}
                         onClick={handleVideoUpload}
-                        className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-[calc(var(--radius)*0.875)] shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                        className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-button-xl shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                       >
                         <Send size={14} className="mr-2" />
                         <span>
