@@ -89,7 +89,7 @@ export function useQuoteFlow({ onOpenCart, onTriggerToast }: UseQuoteFlowProps) 
 
           if (data && Array.isArray(data.items)) {
             // Set cart items in store
-            useCartStore.setState({ items: data.items });
+            useCartStore.setState({ items: data.items, campaignId: data.id });
             setQuoteId(data.id);
             setQuoteCampaignName(data.campaign_name || "");
             setQuoteClientName(data.client_name || "");

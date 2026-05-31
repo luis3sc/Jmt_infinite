@@ -315,7 +315,19 @@ export default function CheckoutPage() {
         }
       }
 
-      // 3. Limpiar Campaña
+      // 3. Eliminar la cotización guardada si existe
+      const campaignId = useCartStore.getState().campaignId
+      if (campaignId) {
+        const { error: deleteError } = await supabase
+          .from('saved_campaigns')
+          .delete()
+          .eq('id', campaignId)
+        if (deleteError) {
+          console.error('Error al eliminar la cotización convertida:', deleteError)
+        }
+      }
+
+      // 4. Limpiar Campaña
       useCartStore.getState().clearCart()
 
       setShowPaymentModal(false)

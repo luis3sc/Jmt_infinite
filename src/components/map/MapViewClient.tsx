@@ -213,8 +213,12 @@ export function MapViewClient() {
 
           const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
           const fitPadding = isMobile
-            ? { top: 120, bottom: 240, left: 65, right: 65 }
-            : { top: 120, bottom: 140, left: 120, right: 120 };
+            ? { top: 60, bottom: 120, left: 25, right: 25 }
+            : { top: 120, bottom: 140, left: 60, right: 60 };
+
+          const camera = mapInstance.cameraForBounds(bbox, {
+            padding: fitPadding
+          });
 
           mapInstance.fitBounds(bbox, {
             padding: fitPadding,
@@ -223,14 +227,26 @@ export function MapViewClient() {
           });
 
           if (isInitial) {
-            // Sincronizar el estado viewState de React inmediatamente
-            const newCenter = mapInstance.getCenter();
-            const newZoom = mapInstance.getZoom();
-            
+            let targetLng = initialLng;
+            let targetLat = initialLat;
+            let targetZoom = initialZoom;
+
+            if (camera && camera.center) {
+              targetLng = camera.center.lng;
+              targetLat = camera.center.lat;
+              targetZoom = typeof camera.zoom === "number" ? camera.zoom : targetZoom;
+            } else {
+              const newCenter = mapInstance.getCenter();
+              const newZoom = mapInstance.getZoom();
+              targetLng = newCenter.lng;
+              targetLat = newCenter.lat;
+              targetZoom = newZoom;
+            }
+
             setViewState({
-              longitude: newCenter.lng,
-              latitude: newCenter.lat,
-              zoom: newZoom
+              longitude: targetLng,
+              latitude: targetLat,
+              zoom: targetZoom
             });
 
             isInitialLoadRef.current = false;
