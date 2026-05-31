@@ -234,7 +234,7 @@ export default function MapCartSidebar({
                         variant="ghost"
                         size="icon-xs"
                         onClick={() => removeCartItem(item.panelId)}
-                        className="text-red-500 hover:text-white hover:bg-red-500 transition-all bg-red-50 dark:bg-red-950/30 shrink-0"
+                        className="text-red-500 hover:text-white hover:bg-red-500 transition-all bg-red-50 shrink-0"
                         title="Eliminar"
                       >
                         <Trash2 size={15} />
@@ -271,15 +271,15 @@ export default function MapCartSidebar({
                         <div className="text-xs font-bold text-foreground truncate pl-1">
                           {item.startDate
                             ? (() => {
-                               try {
-                                 const d = parseISO(item.startDate);
-                                 return isNaN(d.getTime())
-                                   ? "---"
-                                   : format(d, "dd/MM");
-                               } catch {
-                                 return "---";
-                               }
-                             })()
+                              try {
+                                const d = parseISO(item.startDate);
+                                return isNaN(d.getTime())
+                                  ? "---"
+                                  : format(d, "dd/MM");
+                              } catch {
+                                return "---";
+                              }
+                            })()
                             : "---"}
                         </div>
                         <Input
@@ -316,15 +316,15 @@ export default function MapCartSidebar({
                         <div className="text-xs font-bold text-foreground truncate pl-1">
                           {item.endDate
                             ? (() => {
-                               try {
-                                 const d = parseISO(item.endDate);
-                                 return isNaN(d.getTime())
-                                   ? "---"
-                                   : format(d, "dd/MM");
-                               } catch {
-                                 return "---";
-                               }
-                             })()
+                              try {
+                                const d = parseISO(item.endDate);
+                                return isNaN(d.getTime())
+                                  ? "---"
+                                  : format(d, "dd/MM");
+                              } catch {
+                                return "---";
+                              }
+                            })()
                             : "---"}
                         </div>
                         <Input
