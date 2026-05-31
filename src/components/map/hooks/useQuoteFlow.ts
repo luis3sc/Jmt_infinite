@@ -40,6 +40,7 @@ export function useQuoteFlow({ onOpenCart, onTriggerToast }: UseQuoteFlowProps) 
   const [quoteRecoveryUrl, setQuoteRecoveryUrl] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
   const quoteDocRef = useRef<HTMLDivElement>(null);
+  const loadedCampaignIdRef = useRef<string | null>(null);
 
   // Cargar usuario actual para pre-llenar datos
   useEffect(() => {
@@ -73,7 +74,8 @@ export function useQuoteFlow({ onOpenCart, onTriggerToast }: UseQuoteFlowProps) 
   // Rehidratar campaña compartida desde la URL ?campaign=UUID
   const campaignIdParam = searchParams?.get("campaign");
   useEffect(() => {
-    if (campaignIdParam) {
+    if (campaignIdParam && campaignIdParam !== loadedCampaignIdRef.current) {
+      loadedCampaignIdRef.current = campaignIdParam;
       const loadSharedCampaign = async () => {
         setIsCampaignLoading(true);
         try {

@@ -188,15 +188,31 @@ export function MapViewClient() {
      ];
 
      const isInitial = isInitialLoadRef.current;
-     if (isInitial) {
-      isInitialLoadRef.current = false;
-     }
 
-     mapRef.current.getMap().fitBounds(bbox, {
-      padding: 50,
-      duration: isInitial ? 0 : 1200,
-      essential: true
-     });
+     const executeFit = () => {
+      if (mapRef.current) {
+       const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+       const fitPadding = isMobile
+        ? { top: 80, bottom: 200, left: 40, right: 40 }
+        : { top: 100, bottom: 120, left: 80, right: 80 };
+
+       mapRef.current.getMap().fitBounds(bbox, {
+        padding: fitPadding,
+        duration: isInitial ? 0 : 1200,
+        essential: true
+       });
+
+       if (isInitial) {
+        isInitialLoadRef.current = false;
+       }
+      }
+     };
+
+     if (isInitial) {
+      setTimeout(executeFit, 300);
+     } else {
+      executeFit();
+     }
     }
    } catch (err) {
     console.error("Error adjusting map boundaries (fitBounds) for selected district:", err);
@@ -225,13 +241,13 @@ export function MapViewClient() {
  const cartItemCount = useCartStore((state) => state.getTotalItems());
  const cartTotal = useCartStore((state) => state.items.reduce((total, item) => total + item.totalPrice, 0));
 
- const triggerToast = (message: string) => {
+ const [showToast, setShowToast] = useState({ show: false, message: "" });
+ const [isCartOpen, setIsCartOpen] = useState(false);
+
+ const triggerToast = useCallback((message: string) => {
   setShowToast({ show: true, message });
   setTimeout(() => setShowToast({ show: false, message: "" }), 3000);
- };
-
-
- const [isCartOpen, setIsCartOpen] = useState(false);
+ }, []);
 
  // Hook de Cotización
  const {
@@ -265,10 +281,9 @@ export function MapViewClient() {
   handleSaveAndDownloadQuote,
   handleLinkCampaignToUser,
  } = useQuoteFlow({
-  onOpenCart: () => setIsCartOpen(true),
+  onOpenCart: useCallback(() => setIsCartOpen(true), []),
   onTriggerToast: triggerToast,
  });
- const [showToast, setShowToast] = useState({ show: false, message: "" });
  const [structures, setStructures] = useState<Structure[]>([]);
  const [allStructures, setAllStructures] = useState<Structure[]>([]);
  const [selectedStructure, setSelectedStructure] = useState<Structure | null>(null);
