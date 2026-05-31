@@ -223,11 +223,32 @@ export function MapViewClient() {
           });
 
           if (isInitial) {
+            // Sincronizar el estado viewState de React inmediatamente
+            const newCenter = mapInstance.getCenter();
+            const newZoom = mapInstance.getZoom();
+            
+            setViewState({
+              longitude: newCenter.lng,
+              latitude: newCenter.lat,
+              zoom: newZoom
+            });
+
             isInitialLoadRef.current = false;
             // Defer hiding loader slightly so map renders its new viewport frame first
             setTimeout(() => {
               setIsInitialFitDone(true);
             }, 100);
+          } else {
+            // Sincronizar al terminar la animación
+            mapInstance.once('moveend', () => {
+              const newCenter = mapInstance.getCenter();
+              const newZoom = mapInstance.getZoom();
+              setViewState({
+                longitude: newCenter.lng,
+                latitude: newCenter.lat,
+                zoom: newZoom
+              });
+            });
           }
         };
 
