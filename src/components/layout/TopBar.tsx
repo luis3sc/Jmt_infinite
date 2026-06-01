@@ -51,7 +51,7 @@ export default function TopBar({
       )}
 
       {/* Right Section (e.g. Auth Buttons, User Profile) */}
-      <div className="flex items-center gap-2 md:gap-3 pointer-events-auto shrink-0 ml-auto md:ml-0">
+      <div className="flex items-center gap-2 md:gap-3 pointer-events-auto shrink-0 ml-auto">
         {right}
       </div>
     </header>

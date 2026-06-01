@@ -50,7 +50,7 @@ export default function TopBarSearch({
   };
 
   return (
-    <div className="flex items-center gap-1.5 bg-background/60 backdrop-blur-md border border-border/80 px-2 py-1.5 rounded-input shadow-sm w-full">
+    <div className="flex items-center gap-1.5 bg-background/60 backdrop-blur-md border border-border/80 px-2 py-1.5 rounded-input shadow-sm w-full md:max-w-[460px] lg:max-w-[580px] xl:max-w-[640px] mx-auto transition-all duration-300">
       
       {/* Search Input – grows to fill all available space */}
       <div className="flex-1 flex items-center gap-2 pl-2 relative min-w-0">

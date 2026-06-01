@@ -39,6 +39,38 @@ export default function MapFiltersSidebar({
   onApply,
   onReset,
 }: MapFiltersSidebarProps) {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  const { maxPossible, minPossible } = React.useMemo(() => {
+    const prices = filterOptions.prices || [];
+    return {
+      maxPossible: prices.length > 1 ? Math.max(...prices) : null,
+      minPossible: prices.length > 1 ? Math.min(...prices) : null,
+    };
+  }, [filterOptions.prices]);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const slideVariants = {
+    initial: isMobile
+      ? { y: "100%", opacity: 1, scale: 1 }
+      : { opacity: 0, y: 30, scale: 0.95 },
+    animate: {
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      transition: { type: "spring" as const, damping: 25, stiffness: 200 }
+    },
+    exit: isMobile
+      ? { y: "100%", opacity: 1, scale: 1, transition: { duration: 0.25 } }
+      : { opacity: 0, y: 30, scale: 0.95, transition: { duration: 0.2 } }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -53,13 +85,13 @@ export default function MapFiltersSidebar({
           />
 
           {/* Modal Container */}
-          <div className="fixed inset-0 z-[210] flex items-center justify-center p-fluid-md pointer-events-none">
+          <div className="fixed inset-0 z-[210] flex items-end md:items-center justify-center p-0 md:p-fluid-md pointer-events-none">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="pointer-events-auto w-full max-w-[420px] bg-card border border-border rounded-dialog shadow-2xl flex flex-col overflow-hidden"
+              variants={slideVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="pointer-events-auto w-full h-[100dvh] md:h-auto max-h-[100dvh] md:max-h-[85vh] md:max-w-[420px] bg-card border-0 md:border border-border rounded-none md:rounded-dialog shadow-2xl flex flex-col overflow-hidden"
             >
               <div className="p-fluid-md border-b border-border flex justify-between items-center bg-muted/30">
                 <div className="flex items-center gap-fluid-xs">
@@ -126,11 +158,18 @@ export default function MapFiltersSidebar({
                         className="bg-muted/50 rounded-input px-fluid-md py-fluid-sm font-bold border-border"
                       >
                         <option value="">Mínimo</option>
-                        {filterOptions.prices.map((p) => (
-                          <option key={`min-${p}`} value={p}>
-                            S/ {p}
-                          </option>
-                        ))}
+                        {filterOptions.prices
+                          .filter((p) => {
+                            if (filters.maxPrice !== null && filters.maxPrice !== undefined) {
+                              return p < filters.maxPrice;
+                            }
+                            return maxPossible !== null ? p < maxPossible : true;
+                          })
+                          .map((p) => (
+                            <option key={`min-${p}`} value={p}>
+                              S/ {p}
+                            </option>
+                          ))}
                       </Select>
                       <Select
                         value={filters.maxPrice || ""}
@@ -143,38 +182,23 @@ export default function MapFiltersSidebar({
                         className="bg-muted/50 rounded-input px-fluid-md py-fluid-sm font-bold border-border"
                       >
                         <option value="">Máximo</option>
-                        {filterOptions.prices.map((p) => (
-                          <option key={`max-${p}`} value={p}>
-                            S/ {p}
-                          </option>
-                        ))}
+                        {filterOptions.prices
+                          .filter((p) => {
+                            if (filters.minPrice !== null && filters.minPrice !== undefined) {
+                              return p > filters.minPrice;
+                            }
+                            return minPossible !== null ? p > minPossible : true;
+                          })
+                          .map((p) => (
+                            <option key={`max-${p}`} value={p}>
+                              S/ {p}
+                            </option>
+                          ))}
                       </Select>
                     </div>
                   </div>
 
-                  {/* Potential Audience */}
-                  <div className="space-y-fluid-sm">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
-                      Alcance Potencial (Audiencia)
-                    </label>
-                    <Select
-                      value={filters.audience || ""}
-                      onChange={(e) =>
-                        setFilters({
-                          ...filters,
-                          audience: e.target.value ? Number(e.target.value) : null,
-                        })
-                      }
-                      className="bg-muted/50 rounded-input px-fluid-md py-fluid-sm font-bold border-border"
-                    >
-                      <option value="">Cualquier alcance</option>
-                      {filterOptions.audiences.map((a) => (
-                        <option key={a} value={a}>
-                          {a.toLocaleString()}+ impactos
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
+
 
                   {/* Near POI */}
                   <div className="space-y-fluid-sm">

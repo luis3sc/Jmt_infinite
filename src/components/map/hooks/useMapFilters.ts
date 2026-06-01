@@ -86,12 +86,44 @@ export function useMapFilters({ allStructures, activeDistrict }: UseMapFiltersPr
             .select("media_type, daily_price, audience");
           if (panelError) throw panelError;
 
+          const allValidPrices = panels?.map((p) => p.daily_price).filter(Boolean) as number[] || [];
+          const allValidDisplayPrices = allValidPrices.map(p => Math.round(p * 1.18 * 100) / 100);
+          
+          let optimalPrices: number[] = [];
+          if (allValidDisplayPrices.length > 0) {
+            const minP = Math.min(...allValidDisplayPrices);
+            const maxP = Math.max(...allValidDisplayPrices);
+            
+            // Redondear el mínimo hacia abajo al múltiplo de 50 más cercano
+            let start = Math.floor(minP / 50) * 50;
+            if (start < 0) start = 0;
+            
+            // Redondear el máximo hacia arriba al múltiplo de 50 más cercano
+            let end = Math.ceil(maxP / 50) * 50;
+            if (end <= start) end = start + 100;
+
+            const diff = end - start;
+            // Calcular un salto amigable (múltiplo de 10)
+            const step = Math.max(10, Math.ceil(diff / 5 / 10) * 10);
+            
+            for (let i = 0; i <= 5; i++) {
+              optimalPrices.push(start + step * i);
+            }
+            
+            // Asegurar que el último valor siempre cubra o supere el max real
+            if (optimalPrices[optimalPrices.length - 1] < maxP) {
+               optimalPrices.push(Math.ceil(maxP / 10) * 10);
+            }
+            
+            optimalPrices = [...new Set(optimalPrices)].sort((a, b) => a - b);
+          } else {
+            optimalPrices = [50, 100, 150, 200, 250, 300];
+          }
+
           const uniqueMediaTypes = [
             ...new Set(panels?.map((p) => p.media_type).filter(Boolean) || []),
           ].sort();
-          const uniquePrices = [
-            ...new Set(panels?.map((p) => p.daily_price).filter(Boolean) || []),
-          ].sort((a: any, b: any) => a - b);
+          
           const uniqueAudiences = [
             ...new Set(panels?.map((p) => p.audience).filter(Boolean) || []),
           ].sort((a: any, b: any) => a - b);
@@ -100,7 +132,7 @@ export function useMapFilters({ allStructures, activeDistrict }: UseMapFiltersPr
             mediaTypes: uniqueMediaTypes.length
               ? (uniqueMediaTypes as string[])
               : ["Estática", "Digital"],
-            prices: uniquePrices as number[],
+            prices: optimalPrices,
             audiences: uniqueAudiences as number[],
           });
           return; // Success, exit

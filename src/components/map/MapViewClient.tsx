@@ -511,10 +511,10 @@ export function MapViewClient() {
           query = query.eq("panels.media_type", activeFilters.mediaType);
         }
         if (activeFilters.minPrice) {
-          query = query.gte("panels.daily_price", activeFilters.minPrice);
+          query = query.gte("panels.daily_price", activeFilters.minPrice / 1.18);
         }
         if (activeFilters.maxPrice) {
-          query = query.lte("panels.daily_price", activeFilters.maxPrice);
+          query = query.lte("panels.daily_price", activeFilters.maxPrice / 1.18);
         }
 
         const result = await query;
