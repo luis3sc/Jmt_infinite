@@ -14,7 +14,8 @@ interface OrdersListProps {
   initialOrders: any[]
 }
 import { Input } from "@/components/ui/Input"
-import { Button } from "@/components/ui/Button"
+import { Button, buttonVariants, buttonSizes } from "@/components/ui/Button"
+import { cn } from "@/lib/utils"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
   CONFIRMED: { label: '¡Al aire!', color: 'text-emerald-500', dot: 'bg-emerald-500' },
@@ -202,11 +203,15 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                         </div>
 
                         {/* Actions row */}
-                        <div className="flex flex-wrap gap-2 pt-1">
+                        <div className="flex flex-col sm:flex-row gap-2 pt-1 w-full">
                           {order.status === 'PENDING_UPLOAD' && (
                             <Link
                               href={`/order-success/${order.id}`}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-sm"
+                              className={cn(
+                                buttonVariants.default,
+                                buttonSizes.lg,
+                                "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                              )}
                             >
                               <Upload size={13} />
                               Subir Contenido
@@ -215,7 +220,11 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                           {order.status === 'REJECTED' && (
                             <Link
                               href={`/order-success/${order.id}`}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-sm"
+                              className={cn(
+                                buttonVariants.default,
+                                buttonSizes.lg,
+                                "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                              )}
                             >
                               <AlertCircle size={13} />
                               Corregir Foto o Video
@@ -224,7 +233,11 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                           {(order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
                             <Link
                               href={`/order-success/${order.id}`}
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted border border-border text-foreground text-[10px] font-black uppercase tracking-widest hover:bg-primary/80 transition-all bg-primary text-primary-foreground "
+                              className={cn(
+                                buttonVariants.default,
+                                buttonSizes.lg,
+                                "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                              )}
                             >
                               <ExternalLink size={13} />
                               Ver mi Anuncio
@@ -234,7 +247,11 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                             href={`/dashboard/orders/${order.id}/nota`}
                             target="_blank"
                             onClick={e => e.stopPropagation()}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest bg-muted/40 border border-border  border-primary  transition-all "
+                            className={cn(
+                              buttonVariants.secondary,
+                              buttonSizes.lg,
+                              "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                            )}
                           >
                             <FileText size={13} />
                             Nota de Pedido

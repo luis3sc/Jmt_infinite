@@ -109,9 +109,7 @@ function ConsentCheckboxes({
   }
 
   return (
-    <div className="bg-card/45 backdrop-blur-md border border-border/50 rounded-2xl p-4 sm:p-5 my-4 space-y-4 shadow-sm relative overflow-hidden group/consent">
-      {/* Glow sutil en el fondo del consentimiento */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50 pointer-events-none" />
+    <div className="py-2 my-2 space-y-4 relative group/consent">
 
       <div className="grid grid-cols-[24px_1fr] items-start gap-3 relative z-10">
         <Checkbox
@@ -189,7 +187,7 @@ function ImportantNote({ userType }: { userType: string }) {
   const note = getNoteContent()
 
   return (
-    <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-4 space-y-3 mt-3 shadow-inner">
+    <div className="space-y-3 mt-3">
       <p className="text-xs font-extrabold text-destructive uppercase tracking-wider flex items-center gap-2">
         {note.title}
       </p>
@@ -1099,7 +1097,8 @@ export default function OrderSuccessPage() {
                           <Button
                             disabled={!photoFile || !acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
-                            className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-button-xl shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                            size="xl"
+                            className="w-full sm:w-auto font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                           >
                             <Send size={14} className="mr-2" />
                             <span>
@@ -1142,7 +1141,8 @@ export default function OrderSuccessPage() {
                           <Button
                             disabled={!acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
-                            className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-button-xl shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                            size="xl"
+                            className="w-full sm:w-auto font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                           >
                             <Send size={14} className="mr-2" />
                             <span>
@@ -1202,7 +1202,8 @@ export default function OrderSuccessPage() {
                       <Button
                         disabled={!videoFile || !acceptedTerms || !acceptedNoLogos}
                         onClick={handleVideoUpload}
-                        className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest h-auto rounded-button-xl shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                        size="xl"
+                        className="w-full sm:w-auto font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                       >
                         <Send size={14} className="mr-2" />
                         <span>

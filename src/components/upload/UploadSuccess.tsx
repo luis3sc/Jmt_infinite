@@ -187,17 +187,19 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                   disabled={loadingBtn}
                   onClick={handleFinish}
                   isLoading={loadingBtn}
-                  className="w-full sm:w-auto px-6 py-3 text-xs font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] h-auto rounded-button-xl"
+                  size="xl"
+                  className="w-full sm:w-auto font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                 >
                   Listo, ir a Mis Pedidos
                 </Button>
                 {videoUrl && (
                   <Button
-                    variant="outline"
+                    variant="secondary"
+                    size="xl"
                     onClick={() => window.open(videoUrl, '_blank')}
-                    className="w-full sm:w-auto px-5 py-3 text-xs font-black uppercase tracking-widest gap-2 h-auto rounded-button-xl"
+                    className="w-full sm:w-auto font-black uppercase tracking-widest gap-2"
                   >
-                    <ExternalLink size={14} className="text-primary" />
+                    <ExternalLink size={14} />
                     <span>Ver mi diseño</span>
                   </Button>
                 )}

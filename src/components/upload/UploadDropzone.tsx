@@ -4,6 +4,8 @@ import React, { useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { UploadCloud, CheckCircle, FileVideo, MousePointer2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '@/lib/utils'
+import { buttonVariants, buttonSizes } from '@/components/ui/Button'
 
 interface UploadDropzoneProps {
  file: File | null
@@ -113,7 +115,11 @@ export function UploadDropzone({ file, setFile }: UploadDropzoneProps) {
         </p>
        </div>
        
-       <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-button bg-card border border-border shadow-sm group-hover:bg-muted group-hover:border-primary/20 text-xs font-bold uppercase tracking-wider transition-all duration-300">
+       <div className={cn(
+        buttonVariants.outline,
+        buttonSizes.lg,
+        "inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer group"
+       )}>
         <MousePointer2 size={14} className="text-primary" />
         <span className="text-muted-foreground group-hover:text-foreground">Seleccionar Archivo</span>
        </div>

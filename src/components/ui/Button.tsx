@@ -9,7 +9,7 @@ const buttonVariants = {
   destructive: "bg-red-500 text-white shadow-sm hover:bg-red-500/90",
   outline: "border border-input bg-background hover:bg-muted hover:text-foreground",
   "outline-primary": "border border-primary bg-transparent text-primary hover:bg-primary hover:text-white shadow-sm",
-  secondary: "bg-muted text-muted-foreground shadow-sm hover:bg-muted/80",
+  secondary: "border border-primary bg-transparent text-primary hover:bg-primary hover:text-white shadow-sm",
   ghost: "hover:bg-muted hover:text-foreground",
   link: "text-primary underline-offset-4 hover:underline",
 };

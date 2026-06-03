@@ -529,7 +529,7 @@ export default function StructureDetailModal({
                         } catch (err) { }
                       }
                     }}
-                    className="w-full bg-background border border-border rounded-input px-fluid-md py-fluid-sm text-fluid-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
+                    className="w-full bg-background border border-border hover:border-primary rounded-input px-2 py-2 md:px-fluid-md md:py-fluid-sm text-xs md:text-fluid-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -547,7 +547,7 @@ export default function StructureDetailModal({
                         } catch (err) { }
                       }
                     }}
-                    className="w-full bg-background border border-border rounded-input px-fluid-md py-fluid-sm text-fluid-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
+                    className="w-full bg-background border border-border hover:border-primary rounded-input px-2 py-2 md:px-fluid-md md:py-fluid-sm text-xs md:text-fluid-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
                   />
                 </div>
               </div>
@@ -556,7 +556,7 @@ export default function StructureDetailModal({
 
               <div className="animate-fade-in">
 
-                <div className="bg-background/60 border border-border/50 rounded-card p-fluid-md md:p-fluid-lg flex flex-col md:flex-row md:items-center gap-fluid-md md:gap-fluid-lg transition-all duration-300">
+                <div className="bg-background/60 border border-border/50 rounded-card p-fluid-md md:p-fluid-sm flex flex-col md:flex-row md:items-center gap-fluid-md md:gap-fluid-lg transition-all duration-300">
                   {/* Column 1: Dynamic Quoted Price */}
                   <div className="flex flex-col shrink-0 min-w-[150px]">
                     <span className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mb-1">Presupuesto</span>
@@ -792,9 +792,9 @@ export default function StructureDetailModal({
         {currentIsInCart ? (
           <div className="flex gap-3 w-full animate-fade-in">
             <Button
-              variant="outline"
+              variant="outline-primary"
               size="xl"
-              className="hidden md:flex flex-1 font-black text-xs uppercase tracking-[0.1em] border-primary/20 text-foreground hover:bg-muted"
+              className="hidden md:flex flex-1 font-black text-xs uppercase tracking-[0.1em]"
               onClick={onClose}
             >
               Seguir Comprando
@@ -812,9 +812,9 @@ export default function StructureDetailModal({
         ) : (
           <div className="flex gap-3 w-full animate-fade-in">
             <Button
-              variant="outline"
+              variant="outline-primary"
               size="xl"
-              className="hidden md:flex flex-1 font-black text-xs uppercase tracking-[0.15em] border-primary/20 text-foreground hover:bg-muted"
+              className="hidden md:flex flex-1 font-black text-xs uppercase tracking-[0.15em]"
               onClick={onClose}
             >
               Seguir Comprando

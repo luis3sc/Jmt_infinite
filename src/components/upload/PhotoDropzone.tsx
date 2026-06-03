@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import type { FileRejection } from 'react-dropzone'
-import { ImageIcon, Upload, X } from 'lucide-react'
+import { ImageIcon, MousePointer2, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { buttonVariants, buttonSizes } from '@/components/ui/Button'
 
 interface PhotoDropzoneProps {
   onFile: (file: File) => void
@@ -87,9 +88,13 @@ export function PhotoDropzone({ onFile }: PhotoDropzoneProps) {
                 </p>
               </div>
               {!isDragActive && (
-                <div className="flex items-center gap-fluid-2xs px-fluid-md py-fluid-2xs rounded-button-sm bg-muted/60 border border-border text-fluid-xs font-bold text-muted-foreground">
-                  <Upload size={13} />
-                  Seleccionar imagen
+                <div className={cn(
+                  buttonVariants.outline,
+                  buttonSizes.lg,
+                  "inline-flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer group"
+                )}>
+                  <MousePointer2 size={14} className="text-primary" />
+                  <span className="text-muted-foreground group-hover:text-foreground">Seleccionar imagen</span>
                 </div>
               )}
             </div>
