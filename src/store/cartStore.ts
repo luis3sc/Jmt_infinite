@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
 
 export type CartItem = {
   panelId: string;
@@ -30,26 +32,33 @@ interface CartState {
   getTotalPrice: () => number;
 }
 
-export const useCartStore = create<CartState>((set, get) => ({
-  items: [],
-  campaignId: null,
-  addItem: (item) => set((state) => {
-    // Prevent adding duplicate panels
-    if (state.items.some(i => i.panelId === item.panelId)) {
-      return state;
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      campaignId: null,
+      addItem: (item) => set((state) => {
+        // Prevent adding duplicate panels
+        if (state.items.some(i => i.panelId === item.panelId)) {
+          return state;
+        }
+        return { items: [...state.items, item] };
+      }),
+      updateItem: (panelId, updates) => set((state) => ({
+        items: state.items.map(item => 
+          item.panelId === panelId ? { ...item, ...updates } : item
+        )
+      })),
+      removeItem: (panelId) => set((state) => ({
+        items: state.items.filter(item => item.panelId !== panelId)
+      })),
+      clearCart: () => set({ items: [], campaignId: null }),
+      setCampaignId: (id) => set({ campaignId: id }),
+      getTotalItems: () => get().items.length,
+      getTotalPrice: () => get().items.reduce((total, item) => total + item.totalPrice, 0),
+    }),
+    {
+      name: 'jmt-cart-storage',
     }
-    return { items: [...state.items, item] };
-  }),
-  updateItem: (panelId, updates) => set((state) => ({
-    items: state.items.map(item => 
-      item.panelId === panelId ? { ...item, ...updates } : item
-    )
-  })),
-  removeItem: (panelId) => set((state) => ({
-    items: state.items.filter(item => item.panelId !== panelId)
-  })),
-  clearCart: () => set({ items: [], campaignId: null }),
-  setCampaignId: (id) => set({ campaignId: id }),
-  getTotalItems: () => get().items.length,
-  getTotalPrice: () => get().items.reduce((total, item) => total + item.totalPrice, 0),
-}));
+  )
+);

@@ -70,7 +70,6 @@ scratch/
 .vscode/
 
 # Local/temporary test scripts
-test-supabase.ts
 test-*.ts
 test-*.js
 

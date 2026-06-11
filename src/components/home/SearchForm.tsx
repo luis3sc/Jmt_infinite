@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { addDays } from "date-fns";
 import { useCartStore } from "@/store/cartStore";
 
+
 const LIMA_CALLAO_DISTRICTS = [
  // LIMA
  { key: "Ancon", display: "Ancón", province: "Lima" },
@@ -93,6 +94,7 @@ export function SearchForm() {
 
  const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
+
  const [dbStructures, setDbStructures] = useState<any[]>([]);
 
  useEffect(() => {
@@ -101,6 +103,7 @@ export function SearchForm() {
  }, []);
 
  useEffect(() => {
+
   const supabase = createClient();
   async function loadSearchIndex() {
    try {
