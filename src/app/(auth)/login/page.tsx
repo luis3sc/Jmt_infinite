@@ -16,13 +16,20 @@ export default function LoginPage() {
  const [loading, setLoading] = useState(false)
  const router = useRouter()
 
- async function handleSubmit(formData: FormData) {
+ async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault()
   setLoading(true)
   setError(null)
-  const result = await login(formData)
-  if (result?.error) {
-   setError(result.error)
-   setLoading(false)
+  const formData = new FormData(e.currentTarget)
+  try {
+    const result = await login(formData)
+    if (result?.error) {
+     setError(result.error)
+     setLoading(false)
+    }
+  } catch (error) {
+    // If it's a redirect error, we don't want to reset loading state
+    console.error("Login redirecting or error:", error)
   }
  }
 
@@ -53,7 +60,7 @@ export default function LoginPage() {
       transition={{ duration: 0.5 }}
       className="mt-8"
      >
-      <form className="space-y-6" action={handleSubmit}>
+      <form className="space-y-6" onSubmit={handleSubmit}>
        <div className="space-y-1.5">
         <label htmlFor="email" className="block text-xs font-black uppercase tracking-widest text-muted-foreground/80 ml-1">
          Correo Electrónico
@@ -99,13 +106,13 @@ export default function LoginPage() {
         type="submit"
         disabled={loading}
         size="xl"
-        className="w-full uppercase tracking-widest text-sm font-black shadow-[0_10px_20px_-5px_rgba(37,99,235,0.3)]"
+        className="w-full uppercase tracking-widest text-sm font-black shadow-[0_10px_20px_-5px_rgba(37,99,235,0.3)] transition-all duration-200"
        >
         {loading ? (
-         <>
-          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-          <span>Iniciando...</span>
-         </>
+         <div className="flex items-center justify-center gap-2">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Iniciando sesión...</span>
+         </div>
         ) : (
          'Entrar'
         )}

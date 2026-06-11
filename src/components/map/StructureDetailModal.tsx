@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, MapPin, Map as MapIcon, Users, Maximize, Navigation, List, ShoppingCart, CheckCircle2,
-  ChevronLeft, ChevronRight, WifiOff, RefreshCw, Eye, Timer, Image as ImageIcon, Calendar, Clock,
+  ChevronLeft, ChevronRight, ChevronDown, WifiOff, RefreshCw, Eye, Timer, Image as ImageIcon, Calendar, Clock,
   Landmark, ShoppingBag, GraduationCap, School, Dumbbell, HeartPulse, Plane, Store, Fuel, Car,
   Sparkles, Pill, Utensils, Trees, PhoneCall
 } from "lucide-react";
@@ -500,7 +500,7 @@ export default function StructureDetailModal({
             </motion.div>
 
             {/* DYNAMIC QUOTER & CAMPAIGN SUMMARY */}
-            <motion.div variants={itemVariants} className="w-full bg-primary/[0.03] border border-primary/20 rounded-card p-fluid-md md:p-fluid-lg space-y-fluid-sm shadow-[0_8px_30px_-6px_rgba(59,130,246,0.08)]">
+            <motion.div variants={itemVariants} className="w-full bg-primary/[0.03]  rounded-card p-fluid-sm md:p-fluid-sm space-y-fluid-sm ">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-primary">
                   <Calendar size={18} className="animate-pulse" />
@@ -509,46 +509,81 @@ export default function StructureDetailModal({
               </div>
 
               <div className="grid grid-cols-2 gap-3 md:gap-4">
-                <div className="space-y-1.5">
+                {/* Desde */}
+                <div className="space-y-1.5 flex flex-col relative">
                   <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Desde</label>
-                  <input
-                    type="date"
-                    value={localStartDate}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => {
-                      setLocalStartDate(e.target.value);
-                      if (localEndDate && new Date(e.target.value) > new Date(localEndDate)) {
-                        setLocalEndDate("");
-                      }
-                    }}
-                    onClick={(e) => {
-                      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                      if (!isMobile && "showPicker" in e.currentTarget) {
+                  <div className="relative flex items-center justify-between bg-background border border-border hover:border-primary rounded-input px-3 h-10 md:h-11 transition-all cursor-pointer group">
+                    <span className="text-xs md:text-sm font-extrabold text-foreground truncate">
+                      {localStartDate ? (() => {
                         try {
-                          e.currentTarget.showPicker();
-                        } catch (err) { }
-                      }
-                    }}
-                    className="w-full bg-background border border-border hover:border-primary rounded-input px-2 py-2 md:px-fluid-md md:py-fluid-sm text-xs md:text-fluid-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
-                  />
+                          const parts = localStartDate.split('-');
+                          if (parts.length === 3) {
+                            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                          }
+                          return localStartDate;
+                        } catch {
+                          return localStartDate;
+                        }
+                      })() : "Seleccionar"}
+                    </span>
+                    <ChevronDown size={14} className="text-muted-foreground shrink-0 ml-1.5 group-hover:text-foreground transition-colors" />
+                    <input
+                      type="date"
+                      value={localStartDate}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        setLocalStartDate(e.target.value);
+                        if (localEndDate && new Date(e.target.value) > new Date(localEndDate)) {
+                          setLocalEndDate("");
+                        }
+                      }}
+                      onClick={(e) => {
+                        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                        if (!isMobile && "showPicker" in e.currentTarget) {
+                          try {
+                            e.currentTarget.showPicker();
+                          } catch (err) { }
+                        }
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none -webkit-appearance: none; border-none outline-none p-0 m-0"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
+
+                {/* Hasta */}
+                <div className="space-y-1.5 flex flex-col relative">
                   <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">Hasta</label>
-                  <input
-                    type="date"
-                    value={localEndDate}
-                    min={localStartDate || new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setLocalEndDate(e.target.value)}
-                    onClick={(e) => {
-                      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                      if (!isMobile && "showPicker" in e.currentTarget) {
+                  <div className="relative flex items-center justify-between bg-background border border-border hover:border-primary rounded-input px-3 h-10 md:h-11 transition-all cursor-pointer group">
+                    <span className="text-xs md:text-sm font-extrabold text-foreground truncate">
+                      {localEndDate ? (() => {
                         try {
-                          e.currentTarget.showPicker();
-                        } catch (err) { }
-                      }
-                    }}
-                    className="w-full bg-background border border-border hover:border-primary rounded-input px-2 py-2 md:px-fluid-md md:py-fluid-sm text-xs md:text-fluid-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-foreground cursor-pointer"
-                  />
+                          const parts = localEndDate.split('-');
+                          if (parts.length === 3) {
+                            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                          }
+                          return localEndDate;
+                        } catch {
+                          return localEndDate;
+                        }
+                      })() : "Seleccionar"}
+                    </span>
+                    <ChevronDown size={14} className="text-muted-foreground shrink-0 ml-1.5 group-hover:text-foreground transition-colors" />
+                    <input
+                      type="date"
+                      value={localEndDate}
+                      min={localStartDate || new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setLocalEndDate(e.target.value)}
+                      onClick={(e) => {
+                        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                        if (!isMobile && "showPicker" in e.currentTarget) {
+                          try {
+                            e.currentTarget.showPicker();
+                          } catch (err) { }
+                        }
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none -webkit-appearance: none; border-none outline-none p-0 m-0"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -556,7 +591,7 @@ export default function StructureDetailModal({
 
               <div className="animate-fade-in">
 
-                <div className="bg-background/60 border border-border/50 rounded-card p-fluid-md md:p-fluid-sm flex flex-col md:flex-row md:items-center gap-fluid-md md:gap-fluid-lg transition-all duration-300">
+                <div className="p-fluid-sm md:p-fluid-sm flex flex-col md:flex-row md:items-center gap-fluid-md md:gap-fluid-lg transition-all duration-300">
                   {/* Column 1: Dynamic Quoted Price */}
                   <div className="flex flex-col shrink-0 min-w-[150px]">
                     <span className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mb-1">Presupuesto</span>

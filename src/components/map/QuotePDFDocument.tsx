@@ -53,8 +53,10 @@ export default function QuotePDFDocument({
   const subTotal = totalAmount / 1.18
   const igv = totalAmount - subTotal
 
-  // Generate QR Code URL using api.qrserver.com
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(recoveryUrl)}`
+  // Generate QR Code URL using api.qrserver.com if recoveryUrl is present
+  const qrCodeUrl = recoveryUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(recoveryUrl)}`
+    : ''
 
   return (
     <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
@@ -221,20 +223,22 @@ export default function QuotePDFDocument({
             </div>
 
             {/* QR Recovery Section */}
-            <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-lg border border-dashed border-slate-300">
-              <img
-                src={qrCodeUrl}
-                alt="QR Recuperación"
-                width={80}
-                height={80}
-                className="bg-white p-1 border border-slate-200 rounded shadow-sm shrink-0"
-              />
-              <div className="text-[10px]">
-                <strong className="text-slate-800 uppercase block font-black mb-0.5 tracking-tight">¿Listo para comprar?</strong>
-                <p className="text-slate-500 mb-1 leading-tight">Escanea este código QR o usa el siguiente enlace para reabrir tu campaña en el navegador con tus paneles y fechas guardadas.</p>
-                <span className="font-mono text-[8px] text-primary break-all hover:underline">{recoveryUrl}</span>
+            {qrCodeUrl && (
+              <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-lg border border-dashed border-slate-300">
+                <img
+                  src={qrCodeUrl}
+                  alt="QR Recuperación"
+                  width={80}
+                  height={80}
+                  className="bg-white p-1 border border-slate-200 rounded shadow-sm shrink-0"
+                />
+                <div className="text-[10px]">
+                  <strong className="text-slate-800 uppercase block font-black mb-0.5 tracking-tight">¿Listo para comprar?</strong>
+                  <p className="text-slate-500 mb-1 leading-tight">Escanea este código QR o usa el siguiente enlace para reabrir tu campaña en el navegador con tus paneles y fechas guardadas.</p>
+                  <span className="font-mono text-[8px] text-primary break-all hover:underline">{recoveryUrl}</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Summary calculations */}

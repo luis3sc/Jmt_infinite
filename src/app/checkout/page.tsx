@@ -447,12 +447,12 @@ export default function CheckoutPage() {
                     const target = e.target as HTMLElement;
                     if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return;
                     e.preventDefault();
-                    
+
                     const form = e.currentTarget;
                     const inputs = Array.from(
                       form.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled])')
                     ) as HTMLElement[];
-                    
+
                     const index = inputs.indexOf(target);
                     if (index > -1 && index < inputs.length - 1) {
                       inputs[index + 1].focus();
@@ -477,7 +477,7 @@ export default function CheckoutPage() {
                     options={[
                       { value: 'individual', label: 'Momento Especial', subLabel: 'Mensaje personalizado', icon: Heart },
                       { value: 'entrepreneur', label: 'Mi Negocio', subLabel: 'Compartir anuncio', icon: Briefcase },
-                      { value: 'influencer', label: 'Mis Redes', subLabel: 'Perfil de creador', icon: Share2 }
+                      { value: 'influencer', label: 'Mis Redes', subLabel: 'Perfil de creador de contenido / Influencer', icon: Share2 }
                     ]}
                     value={userType}
                     onChange={(val) => setUserType(val as any)}
@@ -817,7 +817,7 @@ export default function CheckoutPage() {
             >
               {loading ? (
                 <>
-                   <Loader2 size={20} className="animate-spin" />
+                  <Loader2 size={20} className="animate-spin" />
                   <span>Procesando...</span>
                 </>
               ) : (

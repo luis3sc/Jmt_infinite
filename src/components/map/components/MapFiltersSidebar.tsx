@@ -41,12 +41,12 @@ export default function MapFiltersSidebar({
 }: MapFiltersSidebarProps) {
   const [isMobile, setIsMobile] = React.useState(false);
 
-  const { maxPossible, minPossible } = React.useMemo(() => {
+  const priceSteps = React.useMemo(() => {
     const prices = filterOptions.prices || [];
-    return {
-      maxPossible: prices.length > 1 ? Math.max(...prices) : null,
-      minPossible: prices.length > 1 ? Math.min(...prices) : null,
-    };
+    if (prices.length > 0) {
+      return [...prices].sort((a, b) => a - b);
+    }
+    return [150, 200, 250, 300];
   }, [filterOptions.prices]);
 
   React.useEffect(() => {
@@ -143,59 +143,49 @@ export default function MapFiltersSidebar({
 
                   {/* Daily Price Range */}
                   <div className="space-y-fluid-sm">
-                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
-                      Rango de Inversión Diaria
-                    </label>
-                    <div className="grid grid-cols-2 gap-fluid-sm">
-                      <Select
-                        value={filters.minPrice || ""}
-                        onChange={(e) =>
-                          setFilters({
-                            ...filters,
-                            minPrice: e.target.value ? Number(e.target.value) : null,
-                          })
-                        }
-                        className="bg-muted/50 rounded-input px-fluid-md py-fluid-sm font-bold border-border"
-                      >
-                        <option value="">Mínimo</option>
-                        {filterOptions.prices
-                          .filter((p) => {
-                            if (filters.maxPrice !== null && filters.maxPrice !== undefined) {
-                              return p < filters.maxPrice;
-                            }
-                            return maxPossible !== null ? p < maxPossible : true;
-                          })
-                          .map((p) => (
-                            <option key={`min-${p}`} value={p}>
-                              S/ {p}
-                            </option>
-                          ))}
-                      </Select>
-                      <Select
-                        value={filters.maxPrice || ""}
-                        onChange={(e) =>
-                          setFilters({
-                            ...filters,
-                            maxPrice: e.target.value ? Number(e.target.value) : null,
-                          })
-                        }
-                        className="bg-muted/50 rounded-input px-fluid-md py-fluid-sm font-bold border-border"
-                      >
-                        <option value="">Máximo</option>
-                        {filterOptions.prices
-                          .filter((p) => {
-                            if (filters.minPrice !== null && filters.minPrice !== undefined) {
-                              return p > filters.minPrice;
-                            }
-                            return minPossible !== null ? p > minPossible : true;
-                          })
-                          .map((p) => (
-                            <option key={`max-${p}`} value={p}>
-                              S/ {p}
-                            </option>
-                          ))}
-                      </Select>
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
+                        Presupuesto Máximo Diario
+                      </label>
+                      <span className="text-xs font-extrabold text-primary">
+                        {filters.maxPrice ? `Hasta S/ ${filters.maxPrice}` : 'Sin límite'}
+                      </span>
                     </div>
+                    {priceSteps.length > 1 ? (
+                      <div className="space-y-2 pt-2">
+                        <input
+                          type="range"
+                          min={0}
+                          max={priceSteps.length - 1}
+                          step={1}
+                          value={
+                            filters.maxPrice
+                              ? priceSteps.findIndex((p) => p >= filters.maxPrice!) !== -1
+                                ? priceSteps.findIndex((p) => p >= filters.maxPrice!)
+                                : priceSteps.length - 1
+                              : priceSteps.length - 1
+                          }
+                          onChange={(e) => {
+                            const val = priceSteps[Number(e.target.value)];
+                            setFilters({
+                              ...filters,
+                              minPrice: null, // we only use max price for slider
+                              maxPrice: Number(e.target.value) === priceSteps.length - 1 ? null : val,
+                            });
+                          }}
+                          className="w-full accent-primary bg-muted rounded-lg h-2 cursor-pointer appearance-none"
+                        />
+                        <div className="flex justify-between text-[10px] font-extrabold text-muted-foreground/60 px-1 mt-1">
+                          {priceSteps.map((step, idx) => (
+                            <span key={idx}>S/ {step}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs font-medium text-muted-foreground">
+                        Cargando rango de precios...
+                      </div>
+                    )}
                   </div>
 
 
