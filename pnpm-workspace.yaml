@@ -1,0 +1,13 @@
+packages:
+  - '.'
+
+allowBuilds:
+  core-js: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+overrides:
+  postcss: "^8.5.14"
+  ws: ">=8.20.0"
+  brace-expansion: ">=5.0.6"

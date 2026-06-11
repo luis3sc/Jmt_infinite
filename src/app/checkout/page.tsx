@@ -1,0 +1,974 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, ArrowRight, CreditCard, Loader2, ChevronDown, ChevronUp, ShoppingCart, X, QrCode, CheckCircle2, Lock, User, Briefcase, Star, Building2, UserCircle, Heart, Share2 } from 'lucide-react'
+import { useCartStore } from '@/store/cartStore'
+import { PhoneInput, defaultCountries } from 'react-international-phone'
+import 'react-international-phone/style.css'
+import Link from 'next/link'
+import TopBar from '@/components/layout/TopBar'
+import AuthButton from '@/components/layout/AuthButton'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
+import { Button } from '@/components/ui/Button'
+import { Dialog } from '@/components/ui/Dialog'
+import { createClient } from '@/lib/supabase/client'
+import { BackButton } from '@/components/ui/BackButton'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
+import { Alert } from '@/components/ui/Alert'
+import { Container } from '@/components/ui/Container'
+
+export default function CheckoutPage() {
+  const router = useRouter()
+  const cartItems = useCartStore((state) => state.items)
+  const cartTotal = useCartStore((state) => state.getTotalPrice())
+
+  const [isMounted, setIsMounted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [receiptType, setReceiptType] = useState<'boleta' | 'factura'>('boleta')
+  const [docType, setDocType] = useState('DNI')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [docNumber, setDocNumber] = useState('')
+  const [phone, setPhone] = useState('')
+  const [selectedCountry, setSelectedCountry] = useState('pe')
+  const [showSummary, setShowSummary] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [paymentTab, setPaymentTab] = useState<'card' | 'qr'>('card')
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [confirmedUserId, setConfirmedUserId] = useState<string | null>(null)
+  const [user, setUser] = useState<any>(null)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [profileExists, setProfileExists] = useState(false)
+  const [userType, setUserType] = useState<'individual' | 'entrepreneur' | 'influencer'>('individual')
+
+  const isSubmittingRef = useRef(false)
+
+
+  // Prevent hydration errors and check for session
+  useEffect(() => {
+    setIsMounted(true)
+    const initSession = async () => {
+      const supabase = createClient()
+
+      // Utilizamos getUser() en lugar de getSession() para forzar la validación con el servidor.
+      // Si eliminaste al usuario de auth.users, el token en localStorage será inválido,
+      // esto dará error y automáticamente limpiaremos el localStorage (signOut).
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        // Limpiamos la sesión "fantasma" que quedó en localStorage
+        await supabase.auth.signOut()
+        setUser(null)
+        setIsInitialLoading(false)
+        return
+      }
+
+      setUser(user)
+      setEmail(user.email || '')
+
+      // Pre-llenar datos del perfil si existen y validar si el perfil existe en DB
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (profile) {
+          setProfileExists(true)
+          setFullName(profile.full_name || '')
+          if (profile.document_type) setDocType(profile.document_type)
+          if (profile.receipt_type) setReceiptType(profile.receipt_type as 'boleta' | 'factura')
+          if (profile.user_type) setUserType(profile.user_type as any)
+          // NO pre-llenar DNI y teléfono por solicitud del usuario
+        } else {
+          // El perfil no existe en DB (puede haberse eliminado manualmente de 'profiles')
+          setProfileExists(false)
+          console.warn('Perfil no encontrado en DB para el usuario autenticado. Se creará al confirmar.')
+
+          // NOTA: El usuario aún existe en auth.users, por lo que la sesión es válida.
+          // Si quisieras que el usuario sea desconectado también cuando borras su perfil,
+          // se podría agregar un signOut() aquí, pero es mejor solo recrear el perfil.
+        }
+      } catch (err) {
+        console.warn("No se pudo cargar el perfil:", err)
+      }
+
+      setIsInitialLoading(false)
+    }
+
+    initSession()
+
+    // Suscribirse a cambios de autenticación para sincronización en tiempo real
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user)
+      } else {
+        setUser(null)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  // Sincronizar docType cuando cambie receiptType
+  useEffect(() => {
+    if (receiptType === 'factura') {
+      setDocType('RUC')
+    } else if (docType === 'RUC') {
+      setDocType('DNI')
+    }
+  }, [receiptType])
+
+  // If cart is empty and component is mounted, we might want to redirect back
+  // but for now let's just let it be or show a message.
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    if (e) e.preventDefault()
+
+    if (loading || isSubmittingRef.current) return
+    isSubmittingRef.current = true
+    setLoading(true)
+
+    try {
+      const supabase = createClient()
+
+      // Validaciones manuales robustas para evitar bloqueos silenciosos
+      if (!fullName || fullName.trim() === '') {
+        alert("Por favor, ingresa tu nombre completo o razón social.")
+        setLoading(false)
+        return
+      }
+
+      if (!docNumber || docNumber.trim() === '') {
+        alert(`Por favor, ingresa tu número de ${docType}.`)
+        setLoading(false)
+        return
+      }
+
+      if (!phone || phone.trim() === '' || phone.replace(/\D/g, '').length < 9) {
+        alert("Por favor, ingresa un número de teléfono válido (al menos 9 dígitos).")
+        setLoading(false)
+        return
+      }
+
+      let userId: string | null = null
+      let userEmail: string = email
+
+      // 1. Manejo de autenticación
+      // getUser() SIEMPRE valida contra el servidor (no usa cache local)
+      // Esto detecta sesiones stale cuando el usuario fue borrado de auth.users
+      const { data: { user: serverUser }, error: getUserError } = await supabase.auth.getUser()
+
+      if (serverUser && !getUserError) {
+        // Sesión válida confirmada por el servidor
+        userId = serverUser.id
+        userEmail = serverUser.email || email
+      } else {
+        // No hay sesión válida — limpiar sesión local stale si existe
+        if (getUserError) {
+          await supabase.auth.signOut()
+        }
+
+        if (!email || !password) {
+          alert("Por favor, completa tu correo y contraseña para continuar.")
+          setLoading(false)
+          return
+        }
+
+        // Intentar login con las credenciales ingresadas
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (!signInError && signInData.user) {
+          // Login exitoso — usuario existente
+          userId = signInData.user.id
+          userEmail = signInData.user.email || email
+          setUser(signInData.user)
+
+        } else if (signInError?.status === 429 || signInError?.message.toLowerCase().includes('rate limit')) {
+          throw new Error("Límite de intentos excedido. Por favor, espera unos minutos.")
+
+        } else if (signInError?.message.includes('Invalid login credentials')) {
+          // Credenciales inválidas → el email podría no existir, intentar registrar
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { full_name: fullName } }
+          })
+
+          if (!signUpError && signUpData.user) {
+            // Registro nuevo exitoso
+            userId = signUpData.user.id
+            userEmail = signUpData.user.email || email
+            setUser(signUpData.user)
+
+          } else if (
+            signUpError?.message.toLowerCase().includes('already registered') ||
+            signUpError?.message.toLowerCase().includes('user already registered') ||
+            signUpError?.message.toLowerCase().includes('database error saving new user') ||
+            signUpError?.message.toLowerCase().includes('duplicate key')
+          ) {
+            // El email ya existe con otra contraseña (el error 'database error saving new user'
+            // es disparado por Supabase cuando el email ya existe debido a restricciones de unicidad)
+            throw new Error(
+              "Ya existe una cuenta con este correo. Verifica tu contraseña o " +
+              "usa 'Olvidé mi contraseña' desde el botón de la barra superior."
+            )
+          } else if (signUpError) {
+            throw signUpError
+          }
+        } else if (signInError) {
+          throw signInError
+        }
+      }
+
+      if (!userId) {
+        throw new Error(
+          "No se pudo identificar al usuario. " +
+          "Si acabas de registrarte, revisa tu correo para confirmar la cuenta."
+        )
+      }
+
+      // 2. Sincronizar perfil con la función RPC SECURITY DEFINER
+      // Esta función bypasea RLS completamente — funciona aunque el perfil
+      // haya sido eliminado manualmente de la tabla profiles
+      const { error: rpcError } = await supabase.rpc('sync_user_profile', {
+        p_user_id: userId,
+        p_email: userEmail,
+        p_full_name: fullName,
+        p_phone: phone,
+        p_document_number: docNumber,
+        p_document_type: docType,
+        p_receipt_type: receiptType,
+        p_user_type: userType,
+      })
+
+      if (rpcError) {
+        console.error("Error al sincronizar perfil (no fatal):", rpcError.message)
+      } else {
+        setProfileExists(true)
+      }
+
+      // 5. Mostrar modal de pago
+      setConfirmedUserId(userId)
+      setShowPaymentModal(true)
+
+    } catch (err: any) {
+      console.error(err)
+      alert(err.message || "Ocurrió un error durante el proceso. Por favor revisa los datos e intenta nuevamente.")
+    } finally {
+      isSubmittingRef.current = false
+      setLoading(false)
+    }
+  }
+
+  const handleProceedToPayment = async () => {
+    // Siempre disparar el submit del formulario (handleSubmit valida y detecta sesión)
+    const form = document.getElementById('checkout-form') as HTMLFormElement
+    if (form) {
+      form.requestSubmit()
+    }
+  }
+
+  const handleConfirmPayment = async () => {
+    if (!confirmedUserId) return
+    setPaymentLoading(true)
+    const supabase = createClient()
+    try {
+      // 1. Crear el Pedido (Order)
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: confirmedUserId,
+          total_amount: cartTotal,
+          status: 'PENDING_UPLOAD'
+        })
+        .select()
+        .single()
+
+      if (orderError) throw orderError
+
+      const orderId = orderData.id
+
+      // 2. Crear las Reservas (Bookings) vinculadas al Pedido
+      if (cartItems.length > 0) {
+        const bookings = cartItems.map(item => ({
+          user_id: confirmedUserId,
+          order_id: orderId, // Vincular al pedido
+          panel_id: item.panelId,
+          client_name: fullName || 'Cliente',
+          start_date: item.startDate || new Date().toISOString().split('T')[0],
+          end_date: item.endDate || new Date().toISOString().split('T')[0],
+          amount: item.totalPrice || 0,
+          status: 'CONFIRMED'
+        }))
+        const { error: bookingError } = await supabase.from('bookings').insert(bookings)
+        if (bookingError) {
+          console.error('Error inserting bookings:', bookingError)
+          throw new Error(`Error al registrar las pantallas: ${bookingError.message}`)
+        }
+      }
+
+      // 3. Eliminar la cotización guardada si existe
+      const campaignId = useCartStore.getState().campaignId
+      if (campaignId) {
+        const { error: deleteError } = await supabase
+          .from('saved_campaigns')
+          .delete()
+          .eq('id', campaignId)
+        if (deleteError) {
+          console.error('Error al eliminar la cotización convertida:', deleteError)
+        }
+      }
+
+      // 4. Limpiar Campaña
+      useCartStore.getState().clearCart()
+
+      setShowPaymentModal(false)
+      router.push(`/order-success/${orderId}`)
+    } catch (err: any) {
+      console.error(err)
+      alert(err.message || 'Error al procesar el pago')
+    } finally {
+      setPaymentLoading(false)
+    }
+  }
+
+  const countryLimits: Record<string, number> = {
+    pe: 9, ar: 10, bo: 8, br: 11, cl: 9, co: 10, cr: 8, cu: 8, do: 10, ec: 9,
+    sv: 8, gt: 8, hn: 8, mx: 10, ni: 8, pa: 8, py: 9, uy: 9, ve: 10,
+    us: 10, ca: 10, es: 9, pr: 10, bz: 7
+  };
+
+  const countryData = defaultCountries.find(c => c[1] === selectedCountry);
+  const currentDialCode = countryData ? (countryData[2] as string) : '51';
+  const currentLimit = countryLimits[selectedCountry] || 9;
+  const maxPhoneLength = 1 + currentDialCode.length + currentLimit; // e.g. + (1) + 51 (2) + 9 (9) = 12
+
+  if (!isMounted) return null
+
+  return (
+    <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
+      <TopBar
+        center={
+          <h1 className="text-xs md:text-sm font-bold text-foreground uppercase tracking-[0.2em] hidden sm:block">
+            Confirmación y pago
+          </h1>
+        }
+        right={<AuthButton />}
+      />
+
+      <Container maxW="7xl" clean={true} className="flex flex-col md:flex-row pt-14 md:pt-16 overflow-hidden relative">
+
+        {/* SECCIÓN IZQUIERDA: FORMULARIO */}
+        <div className="flex-1 px-4 pt-4 pb-24 md:p-10 md:max-w-2xl md:mx-auto md:w-full overflow-y-auto custom-scrollbar">
+          {/* Botón Volver */}
+          <BackButton className="mb-8" />
+
+          {/* RESUMEN COLLAPSABLE (Solo Mobile) */}
+          <div className="md:hidden mb-8 border border-border rounded-input bg-card overflow-hidden">
+            <button
+              onClick={() => setShowSummary(!showSummary)}
+              className="w-full flex items-center justify-between p-4 bg-muted cursor-pointer hover:bg-muted/80 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-input">
+                  <ShoppingCart size={18} className="text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Resumen del pedido</p>
+                  <p className="text-sm font-black text-foreground">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                  {showSummary ? 'Ocultar' : 'Ver detalle'}
+                </span>
+                {showSummary ? <ChevronUp size={16} className="text-primary" /> : <ChevronDown size={16} className="text-primary" />}
+              </div>
+            </button>
+
+            {showSummary && (
+              <div className="p-4 space-y-4 border-t border-border bg-card/50 animate-in slide-in-from-top-2 duration-300">
+                <div className="space-y-3">
+                  {cartItems.map((item) => (
+                    <div key={item.panelId} className="flex justify-between items-start pb-3 border-b border-border last:border-0">
+                      <div className="pr-4 min-w-0">
+                        <p className="font-bold text-[11px] text-foreground uppercase tracking-tight truncate">{item.panelCode}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{item.address}</p>
+                      </div>
+                      <p className="font-bold text-[11px] text-foreground whitespace-nowrap">
+                        S/ {item.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 space-y-2">
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                    <span>Subtotal (Neto)</span>
+                    <span>S/ {(cartTotal / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                    <span>IGV (18%)</span>
+                    <span>S/ {(cartTotal - (cartTotal / 1.18)).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-foreground font-black uppercase tracking-widest pt-2 border-t border-border">
+                    <span>Total</span>
+                    <span className="text-primary">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+
+          {isInitialLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <p className="text-muted-foreground text-sm animate-pulse uppercase tracking-widest font-bold">Cargando tus datos...</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <form
+                id="checkout-form"
+                onSubmit={handleSubmit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const target = e.target as HTMLElement;
+                    if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return;
+                    e.preventDefault();
+                    
+                    const form = e.currentTarget;
+                    const inputs = Array.from(
+                      form.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled])')
+                    ) as HTMLElement[];
+                    
+                    const index = inputs.indexOf(target);
+                    if (index > -1 && index < inputs.length - 1) {
+                      inputs[index + 1].focus();
+                    } else {
+                      handleSubmit(e);
+                    }
+                  }
+                }}
+                className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500"
+              >
+                {user && (
+                  <Alert variant="success" title="Sesión Activa" className="mb-2">
+                    <span className="font-bold">{email}</span>
+                  </Alert>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3">
+                    ¿Cuál es tu objetivo?
+                  </label>
+                  <SegmentedControl
+                    options={[
+                      { value: 'individual', label: 'Momento Especial', subLabel: 'Mensaje personalizado', icon: Heart },
+                      { value: 'entrepreneur', label: 'Mi Negocio', subLabel: 'Compartir anuncio', icon: Briefcase },
+                      { value: 'influencer', label: 'Mis Redes', subLabel: 'Perfil de creador', icon: Share2 }
+                    ]}
+                    value={userType}
+                    onChange={(val) => setUserType(val as any)}
+                    gridCols="grid-cols-3"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="pt-2">
+                  <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
+                    Correo Electrónico
+                  </label>
+                  <Input
+                    id="checkout-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={!!user}
+                    className="w-full"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        document.getElementById(user ? 'checkout-doc-val' : 'checkout-password')?.focus()
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Password */}
+                {!user && (
+                  <div>
+                    <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
+                      Contraseña (para crear o acceder a tu cuenta)
+                    </label>
+                    <Input
+                      id="checkout-password"
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          document.getElementById('checkout-doc-val')?.focus()
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+
+                <SegmentedControl
+                  options={[
+                    { value: 'boleta', label: 'Boleta' },
+                    { value: 'factura', label: 'Factura' }
+                  ]}
+                  value={receiptType}
+                  onChange={(val) => setReceiptType(val as any)}
+                  gridCols="grid-cols-2"
+                  className="pt-2 pb-2"
+                />
+
+                {/* Documento */}
+                <div className="flex gap-3">
+                  <div className="w-1/3 md:w-1/4">
+                    <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
+                      Tipo
+                    </label>
+                    <Select
+                      value={docType}
+                      onChange={(e) => setDocType(e.target.value)}
+                    >
+                      {receiptType === 'factura' ? (
+                        <option value="RUC" className="bg-card text-foreground">RUC</option>
+                      ) : (
+                        <>
+                          <option value="DNI" className="bg-card text-foreground">DNI</option>
+                          <option value="CE" className="bg-card text-foreground">CE</option>
+                          <option value="PASAPORTE" className="bg-card text-foreground">Pasaporte</option>
+                        </>
+                      )}
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
+                      {receiptType === 'factura' ? 'Número de RUC' : `Número de ${docType}`}
+                    </label>
+                    <Input
+                      id="checkout-doc-val"
+                      type={docType === 'DNI' || docType === 'RUC' ? 'number' : 'text'}
+                      required
+                      value={docNumber}
+                      onChange={(e) => setDocNumber(e.target.value)}
+                      className="w-full"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          document.getElementById('checkout-fullName')?.focus()
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Nombres y Apellidos / Razón Social */}
+                <div>
+                  <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5">
+                    {receiptType === 'factura' ? 'Razón Social' : 'Nombres y Apellidos'}
+                  </label>
+                  <Input
+                    id="checkout-fullName"
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        document.getElementById('checkout-phone')?.focus()
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Teléfono */}
+                <div>
+                  <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1.5 flex justify-between">
+                    <span>Teléfono <span className="text-primary">*</span></span>
+                  </label>
+                  <style dangerouslySetInnerHTML={{
+                    __html: `
+                    .custom-phone-input {
+                      width: 100%;
+                      display: flex !important;
+                      align-items: stretch;
+                      position: relative;
+                      overflow: visible !important;
+                    }
+                    .custom-phone-input .react-international-phone-input {
+                      width: 100% !important;
+                      flex: 1;
+                      background-color: hsl(var(--card));
+                      border: 1px solid hsl(var(--border)) !important;
+                      border-left: none !important;
+                      border-radius: 0 calc(var(--radius)*0.5) calc(var(--radius)*0.5) 0 !important;
+                      padding: 0.75rem 1rem !important;
+                      color: hsl(var(--foreground)) !important;
+                      transition: all 0.2s;
+                      height: 48px !important;
+                      font-size: 14px;
+                    }
+                    .custom-phone-input .react-international-phone-input:focus {
+                      outline: none !important;
+                      border-color: hsl(var(--primary)) !important;
+                      box-shadow: 0 0 0 1px hsl(var(--primary)) !important;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-button {
+                      background-color: hsl(var(--card)) !important;
+                      border: 1px solid hsl(var(--border)) !important;
+                      border-radius: calc(var(--radius)*0.5) 0 0 calc(var(--radius)*0.5) !important;
+                      padding: 0 0.75rem !important;
+                      height: 48px !important;
+                      color: hsl(var(--foreground)) !important;
+                      transition: all 0.2s;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      min-width: 65px !important;
+                      gap: 4px;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-button:hover {
+                      background-color: hsl(var(--muted)) !important;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-button__dropdown-arrow {
+                      border-top-color: hsl(var(--muted-foreground)) !important;
+                      margin-left: 2px;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-dropdown {
+                      background-color: hsl(var(--card)) !important;
+                      border: 1px solid hsl(var(--border)) !important;
+                      color: hsl(var(--foreground)) !important;
+                      z-index: 9999 !important;
+                      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+                      border-radius: calc(var(--radius)*0.5) !important;
+                      margin-top: 4px;
+                      max-height: 300px !important;
+                      width: 250px !important;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-dropdown__list-item {
+                      background-color: hsl(var(--card)) !important;
+                      color: hsl(var(--foreground)) !important;
+                      padding: 12px 16px !important;
+                      transition: all 0.2s;
+                      display: flex;
+                      align-items: center;
+                      gap: 12px;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-dropdown__list-item:hover {
+                      background-color: hsl(var(--muted)) !important;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-dropdown__list-item--selected {
+                      background-color: hsl(var(--primary) / 0.2) !important;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-dropdown__country-name {
+                      color: hsl(var(--foreground)) !important;
+                      font-size: 14px !important;
+                    }
+                    .custom-phone-input .react-international-phone-country-selector-dropdown__dial-code {
+                      color: hsl(var(--muted-foreground)) !important;
+                      font-size: 13px !important;
+                      margin-left: auto;
+                    }
+                    /* Force the selector container to allow overflow */
+                    .custom-phone-input .react-international-phone-country-selector {
+                      overflow: visible !important;
+                    }
+                  `}} />
+                  <PhoneInput
+                    defaultCountry="pe"
+                    className="custom-phone-input"
+                    value={phone}
+                    onChange={(phone, { country }) => {
+                      setSelectedCountry(country.iso2);
+                      const format = country.format;
+                      const mask = (typeof format === 'string' ? format : format?.default || '') as string;
+
+                      const countryLimits: Record<string, number> = {
+                        pe: 9, ar: 10, bo: 8, br: 11, cl: 9, co: 10, cr: 8, cu: 8, do: 10, ec: 9,
+                        sv: 8, gt: 8, hn: 8, mx: 10, ni: 8, pa: 8, py: 9, uy: 9, ve: 10,
+                        us: 10, ca: 10, es: 9, pr: 10, bz: 7
+                      };
+
+                      const maxDigits = countryLimits[country.iso2] || (mask.split('.').length - 1) || 15;
+
+                      const dialCode = country.dialCode;
+                      const dialCodeWithPlus = `+${dialCode}`;
+                      const rawNumber = phone.startsWith(dialCodeWithPlus)
+                        ? phone.slice(dialCodeWithPlus.length).replace(/\D/g, '')
+                        : phone.replace(/\D/g, '');
+
+                      if (rawNumber.length <= maxDigits) {
+                        setPhone(phone);
+                      } else {
+                        const truncatedRaw = rawNumber.slice(0, maxDigits);
+                        setPhone(dialCodeWithPlus + truncatedRaw);
+                      }
+                    }}
+                    countries={defaultCountries.filter((c) =>
+                      ['pe', 'ar', 'bo', 'br', 'cl', 'co', 'cr', 'cu', 'do', 'ec',
+                        'sv', 'gt', 'hn', 'mx', 'ni', 'pa', 'py', 'uy', 've',
+                        'us', 'ca', 'es', 'pr', 'bz'].includes(c[1])
+                    )}
+                    preferredCountries={['pe', 'mx', 'es', 'us']}
+                    forceDialCode={true}
+                    charAfterDialCode=""
+                    inputProps={{
+                      id: 'checkout-phone-val',
+                      placeholder: '999999999',
+                      required: true,
+                      maxLength: maxPhoneLength,
+                      type: 'tel',
+                      inputMode: 'numeric',
+                      onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleProceedToPayment()
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+
+        {/* SECCIÓN DERECHA: RESUMEN Y PAGO (Desktop) */}
+        <div className="hidden md:flex md:w-[400px] lg:w-[480px] bg-card border-l border-border p-8 flex-col shrink-0">
+          <div className="flex-1 overflow-y-auto mb-6 pr-2 custom-scrollbar">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-widest mb-4">Resumen del Pedido</h3>
+            {cartItems.length === 0 ? (
+              <p className="text-muted-foreground text-sm italic">Tu Campaña está vacío.</p>
+            ) : (
+              <div className="space-y-4">
+                {cartItems.map((item) => (
+                  <div key={item.panelId} className="flex justify-between items-start pb-4 border-b border-border last:border-0">
+                    <div className="pr-4">
+                      <p className="font-bold text-sm text-foreground uppercase tracking-tight">{item.panelCode}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.address}</p>
+                      <div className="flex gap-2 items-center mt-2">
+                        <span className="text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded uppercase">{item.days} días</span>
+                      </div>
+                    </div>
+                    <p className="font-bold text-sm text-foreground whitespace-nowrap">
+                      S/ {item.totalPrice.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-auto">
+            <div className="space-y-3 mb-6 pb-6 border-b border-border">
+              <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                <span>Subtotal (Neto)</span>
+                <span>S/ {(cartTotal / 1.18).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                <span>IGV (18%)</span>
+                <span>S/ {(cartTotal - (cartTotal / 1.18)).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-end mb-4">
+              <div className="flex items-center justify-between w-full">
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Total a pagar</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-primary tracking-tighter">
+                    S/ {Number(cartTotal.toFixed(2).split('.')[0]).toLocaleString()}
+                  </span>
+                  <span className="text-lg font-black text-primary opacity-70">
+                    .{cartTotal.toFixed(2).split('.')[1]}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              onClick={handleProceedToPayment}
+              disabled={loading || cartItems.length === 0}
+              size="xl"
+              className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex justify-center items-center gap-3 disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                   <Loader2 size={20} className="animate-spin" />
+                  <span>Procesando...</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard size={20} />
+                  Confirmar y pagar
+                </>
+              )}
+            </Button>
+
+            <div className="mt-4 text-center">
+              <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1.5">
+                <span>Pagos seguros procesados por</span>
+                <strong className="text-foreground/80">Culqi</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-2xl border-t border-border z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+          <div className="px-5 py-3.5 max-w-md mx-auto">
+            <Button
+              type="button"
+              onClick={handleProceedToPayment}
+              disabled={loading || cartItems.length === 0}
+              size="xl"
+              className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={16} />
+              ) : (
+                <>
+                  <span>Proceder a Pagar</span>
+                  <ArrowRight size={14} />
+                </>
+              )}
+            </Button>
+          </div>
+          <div className="h-[env(safe-area-inset-bottom)]" />
+        </div>
+
+      </Container>
+
+      {/* ===== MODAL DE PAGO ===== */}
+      <Dialog
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        title="Elige tu método de pago"
+        description="Paso final"
+        variant="default"
+        className="sm:max-w-lg"
+      >
+        {/* Total */}
+        <div className="mx-6 mt-4 mb-4 bg-primary/10 border border-primary/20 rounded-input px-5 py-3 flex items-center justify-between">
+          <p className="text-xs text-primary font-bold uppercase tracking-widest">Total a pagar</p>
+          <p className="text-2xl font-black text-primary">
+            S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 px-6 mb-4">
+          <Button
+            variant={paymentTab === 'card' ? 'default' : 'secondary'}
+            onClick={() => setPaymentTab('card')}
+            className={`flex-1 py-2.5 rounded-button text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${paymentTab === 'card' ? 'shadow-lg shadow-primary/30' : ''
+              }`}
+          >
+            <CreditCard size={14} /> Tarjeta
+          </Button>
+          <Button
+            variant={paymentTab === 'qr' ? 'default' : 'secondary'}
+            onClick={() => setPaymentTab('qr')}
+            className={`flex-1 py-2.5 rounded-button text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 ${paymentTab === 'qr' ? 'shadow-lg shadow-primary/30' : ''
+              }`}
+          >
+            <QrCode size={14} /> QR / Yape
+          </Button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="px-6 pb-6">
+          {paymentTab === 'card' ? (
+            <div className="space-y-3">
+              {/* Mock card visual */}
+              <div className="relative h-[120px] rounded-input bg-gradient-to-br from-card-gradient-from to-card-gradient-to border border-white/10 p-4 overflow-hidden mb-4">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full -translate-y-8 translate-x-8" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full translate-y-8 -translate-x-8" />
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-2">Culqi · Pago Seguro</p>
+                <p className="text-white font-mono text-lg tracking-[0.2em]">•••• •••• •••• ••••</p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-white/50 text-[10px]">NOMBRE DEL TITULAR</p>
+                  <p className="text-white/50 text-[10px]">MM/AA</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Número de tarjeta</label>
+                <Input readOnly placeholder="4111 1111 1111 1111" className="w-full font-mono" />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Vencimiento</label>
+                  <Input readOnly placeholder="MM/AA" className="w-full font-mono" />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5">CVV</label>
+                  <Input readOnly placeholder="•••" className="w-full font-mono" />
+                </div>
+              </div>
+              <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <Lock size={10} /> Cifrado SSL · Procesado por Culqi
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center py-2">
+              {/* QR SVG placeholder */}
+              <div className="w-44 h-44 bg-white rounded-input p-3 mb-4 border border-border">
+                <svg viewBox="0 0 200 200" className="w-full h-full">
+                  {/* Simple QR pattern mockup */}
+                  {[0, 1, 2, 3, 4, 5, 6].map(r => [0, 1, 2, 3, 4, 5, 6].map(c => {
+                    const inFinder = (r < 2 && c < 2) || (r < 2 && c > 4) || (r > 4 && c < 2)
+                    return <rect key={`${r}-${c}`} x={r * 27 + 5} y={c * 27 + 5} width={22} height={22} fill={inFinder ? 'hsl(var(--primary))' : (Math.random() > 0.5 ? 'hsl(var(--foreground))' : 'transparent')} rx={2} />
+                  }))}
+                  <rect x={5} y={5} width={74} height={74} fill="none" stroke="hsl(var(--foreground))" strokeWidth={6} rx={4} />
+                  <rect x={121} y={5} width={74} height={74} fill="none" stroke="hsl(var(--foreground))" strokeWidth={6} rx={4} />
+                  <rect x={5} y={121} width={74} height={74} fill="none" stroke="hsl(var(--foreground))" strokeWidth={6} rx={4} />
+                </svg>
+              </div>
+              <p className="text-xs font-bold text-foreground mb-1">Escanea con Yape o Plin</p>
+              <p className="text-[10px] text-muted-foreground text-center">Apunta la cámara al QR y completa el pago de <span className="text-primary font-bold">S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</span></p>
+              <div className="mt-4 bg-muted border border-border rounded-input px-4 py-2 text-center w-full">
+                <p className="text-[10px] text-muted-foreground">Número de cuenta demo</p>
+                <p className="text-sm font-mono font-bold text-foreground">9 999 999 999</p>
+              </div>
+            </div>
+          )}
+
+          {/* Confirm Button */}
+          <Button
+            onClick={handleConfirmPayment}
+            disabled={paymentLoading}
+            className="w-full mt-5 h-auto py-4 font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+          >
+            {paymentLoading ? (
+              <><Loader2 size={18} className="mr-2 animate-spin" /> Procesando...</>
+            ) : (
+              <><CheckCircle2 size={18} className="mr-2" /> Confirmar pago · S/ {cartTotal.toLocaleString('es-PE', { minimumFractionDigits: 2 })}</>
+            )}
+          </Button>
+        </div>
+      </Dialog>
+    </div>
+  )
+}

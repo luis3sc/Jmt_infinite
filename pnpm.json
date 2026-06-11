@@ -1,0 +1,16 @@
+{
+  "overrides": {
+    "postcss": ">=8.5.10",
+    "ws": ">=8.20.0",
+    "brace-expansion": ">=2.0.2"
+  },
+  "onlyBuiltDependencies": [
+    "@aws-sdk/client-s3",
+    "@ffmpeg-installer/ffmpeg",
+    "@ffprobe-installer/ffprobe",
+    "@ffmpeg/core",
+    "mapbox-gl",
+    "sharp",
+    "unrs-resolver"
+  ]
+}
