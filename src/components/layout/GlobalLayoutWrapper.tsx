@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Loader2 } from "lucide-react";
@@ -35,7 +35,72 @@ export default function GlobalLayoutWrapper({ children }: GlobalLayoutWrapperPro
     setTimeout(() => setShowToast({ show: false, message: "" }), 3000);
   }, []);
 
-  // Hook de Cotización
+  return (
+    <>
+      {children}
+
+      {/* Persistent Bottom Navigation Bar */}
+      <BottomNavbar />
+
+      {/* Wrap everything else that relies on useQuoteFlow / useSearchParams in Suspense */}
+      <Suspense fallback={null}>
+        <GlobalQuoteFlowContainer
+          isCartOpen={isCartOpen}
+          setIsCartOpen={setIsCartOpen}
+          cartItems={cartItems}
+          cartTotal={cartTotal}
+          triggerToast={triggerToast}
+        />
+      </Suspense>
+
+      {/* Global Toast Notification */}
+      <AnimatePresence>
+        {showToast.show && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] bg-foreground text-background px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-border min-w-[300px]"
+          >
+            <div className="bg-emerald-600 p-1 rounded-full">
+              <CheckCircle2 size={18} className="text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-sm leading-tight">{showToast.message}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsCartOpen(true);
+                setShowToast({ show: false, message: "" });
+              }}
+              className="bg-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/20 hover:text-white border-white/10"
+            >
+              Ver Campaña
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+interface GlobalQuoteFlowContainerProps {
+  isCartOpen: boolean;
+  setIsCartOpen: (open: boolean) => void;
+  cartItems: any[];
+  cartTotal: number;
+  triggerToast: (message: string) => void;
+}
+
+function GlobalQuoteFlowContainer({
+  isCartOpen,
+  setIsCartOpen,
+  cartItems,
+  cartTotal,
+  triggerToast,
+}: GlobalQuoteFlowContainerProps) {
   const {
     isCampaignLoading,
     currentUser,
@@ -67,11 +132,6 @@ export default function GlobalLayoutWrapper({ children }: GlobalLayoutWrapperPro
 
   return (
     <>
-      {children}
-
-      {/* Persistent Bottom Navigation Bar */}
-      <BottomNavbar />
-
       {/* Global Campaign Cart Sidebar */}
       <MapCartSidebar
         isOpen={isCartOpen}
@@ -123,36 +183,6 @@ export default function GlobalLayoutWrapper({ children }: GlobalLayoutWrapperPro
           </p>
         </div>
       )}
-
-      {/* Global Toast Notification */}
-      <AnimatePresence>
-        {showToast.show && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] bg-foreground text-background px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-border min-w-[300px]"
-          >
-            <div className="bg-emerald-600 p-1 rounded-full">
-              <CheckCircle2 size={18} className="text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm leading-tight">{showToast.message}</p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setIsCartOpen(true);
-                setShowToast({ show: false, message: "" });
-              }}
-              className="bg-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/20 hover:text-white border-white/10"
-            >
-              Ver Campaña
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

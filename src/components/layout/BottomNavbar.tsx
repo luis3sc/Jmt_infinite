@@ -8,12 +8,21 @@ import { createClient } from "@/lib/supabase/client";
 import { useCartStore } from "@/store/cartStore";
 import { cn } from "@/lib/utils";
 
+// Module-level cache to persist state synchronously across client-side page transitions
+let cachedUser: any = undefined;
+let cachedRole: string | null = null;
+let hasInitialized = false;
+
 export default function BottomNavbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(
+    cachedUser !== undefined ? cachedUser : null
+  );
+  const [role, setRole] = useState<string | null>(
+    cachedUser !== undefined ? cachedRole : null
+  );
+  const [isLoading, setIsLoading] = useState(!hasInitialized);
 
   // Cart Store states
   const cartItemCount = useCartStore((state) => state.getTotalItems());
@@ -39,13 +48,13 @@ export default function BottomNavbar() {
     let initialized = false;
 
     const fetchRole = async (userId: string) => {
-      // Check sessionStorage cache first
       if (typeof window !== "undefined") {
         try {
-          const cachedRole = sessionStorage.getItem(`user_role_${userId}`);
-          if (cachedRole !== null) {
+          const cachedRoleStr = sessionStorage.getItem(`user_role_${userId}`);
+          if (cachedRoleStr !== null) {
+            cachedRole = cachedRoleStr || null;
             if (isMounted) {
-              setRole(cachedRole || null);
+              setRole(cachedRoleStr || null);
             }
             return;
           }
@@ -62,9 +71,11 @@ export default function BottomNavbar() {
           .single();
         
         const resolvedRole = profile?.role ?? "";
+        cachedRole = resolvedRole || null;
         if (typeof window !== "undefined") {
           try {
             sessionStorage.setItem(`user_role_${userId}`, resolvedRole);
+            sessionStorage.setItem("jmt_cached_role", resolvedRole);
           } catch (e) {
             console.warn("sessionStorage write failed", e);
           }
@@ -79,25 +90,67 @@ export default function BottomNavbar() {
     };
 
     const init = async () => {
+      // Synchronously check sessionStorage for cached user/role first to prevent delay on mount
+      if (typeof window !== "undefined" && !hasInitialized) {
+        try {
+          const cachedUserStr = sessionStorage.getItem("jmt_cached_user");
+          const cachedRoleStr = sessionStorage.getItem("jmt_cached_role");
+          if (cachedUserStr) {
+            const parsedUser = JSON.parse(cachedUserStr);
+            cachedUser = parsedUser;
+            cachedRole = cachedRoleStr || null;
+            hasInitialized = true;
+            if (isMounted) {
+              setUser(parsedUser);
+              setRole(cachedRoleStr || null);
+              setIsLoading(false);
+            }
+          }
+        } catch (e) {
+          console.warn("Error reading synchronous cache in init:", e);
+        }
+      }
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (isMounted) {
           const currentUser = session?.user ?? null;
           setUser(currentUser);
+          cachedUser = currentUser;
+
           if (currentUser) {
-            let cachedRole = null;
             if (typeof window !== "undefined") {
               try {
-                cachedRole = sessionStorage.getItem(`user_role_${currentUser.id}`);
+                sessionStorage.setItem("jmt_cached_user", JSON.stringify(currentUser));
+              } catch (e) {
+                console.warn(e);
+              }
+            }
+
+            let cachedRoleStr = null;
+            if (typeof window !== "undefined") {
+              try {
+                cachedRoleStr = sessionStorage.getItem(`user_role_${currentUser.id}`);
               } catch (e) {
                 console.warn("sessionStorage read failed", e);
               }
             }
-            if (cachedRole !== null) {
-              setRole(cachedRole || null);
+            if (cachedRoleStr !== null) {
+              cachedRole = cachedRoleStr || null;
+              setRole(cachedRoleStr || null);
             } else {
-              // Fetch role in background to avoid blocking isLoading
               fetchRole(currentUser.id);
+            }
+          } else {
+            cachedRole = null;
+            setRole(null);
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.removeItem("jmt_cached_user");
+                sessionStorage.removeItem("jmt_cached_role");
+              } catch (e) {
+                console.warn(e);
+              }
             }
           }
         }
@@ -105,6 +158,7 @@ export default function BottomNavbar() {
         console.warn("Error initializing bottom nav auth:", err);
       } finally {
         if (isMounted) {
+          hasInitialized = true;
           initialized = true;
           setIsLoading(false);
         }
@@ -117,24 +171,34 @@ export default function BottomNavbar() {
       async (event, session) => {
         if (!isMounted) return;
 
-        // If we are not initialized yet, we ignore setting isLoading to false to let init() complete
-        if (!initialized) {
-          const currentUser = session?.user ?? null;
-          setUser(currentUser);
-          if (currentUser) {
-            fetchRole(currentUser.id);
-          } else {
-            setRole(null);
-          }
-          return;
-        }
-
         const currentUser = session?.user ?? null;
         setUser(currentUser);
+        cachedUser = currentUser;
+
         if (currentUser) {
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem("jmt_cached_user", JSON.stringify(currentUser));
+            } catch (e) {
+              console.warn(e);
+            }
+          }
           fetchRole(currentUser.id);
         } else {
+          cachedRole = null;
           setRole(null);
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.removeItem("jmt_cached_user");
+              sessionStorage.removeItem("jmt_cached_role");
+            } catch (e) {
+              console.warn(e);
+            }
+          }
+        }
+
+        if (initialized) {
+          return;
         }
       }
     );

@@ -14,11 +14,20 @@ interface AuthButtonProps {
   initialRole?: string | null;
 }
 
+// Module-level cache to persist state synchronously across client-side page transitions
+let cachedUser: any = undefined;
+let cachedRole: string | null = null;
+let hasInitialized = false;
+
 export default function AuthButton({ mode = "desktop", initialRole }: AuthButtonProps) {
-  const [user, setUser] = useState<any>(null);
-  const [role, setRole] = useState<string | null>(initialRole ?? null);
+  const [user, setUser] = useState<any>(
+    cachedUser !== undefined ? cachedUser : null
+  );
+  const [role, setRole] = useState<string | null>(
+    cachedUser !== undefined ? cachedRole : (initialRole ?? null)
+  );
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!hasInitialized);
   const router = useRouter();
 
   const isGestor = role === 'gestor' || role === 'admin';
@@ -29,16 +38,15 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
     let initialized = false;
 
     const fetchRole = async (userId: string) => {
-      // Only fetch role from DB if it wasn't provided by the server
       if (initialRole !== undefined) return;
 
-      // Check sessionStorage cache first
       if (typeof window !== "undefined") {
         try {
-          const cachedRole = sessionStorage.getItem(`user_role_${userId}`);
-          if (cachedRole !== null) {
+          const cachedRoleStr = sessionStorage.getItem(`user_role_${userId}`);
+          if (cachedRoleStr !== null) {
+            cachedRole = cachedRoleStr || null;
             if (isMounted) {
-              setRole(cachedRole || null);
+              setRole(cachedRoleStr || null);
             }
             return;
           }
@@ -55,9 +63,11 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
           .single();
         
         const resolvedRole = profile?.role ?? "";
+        cachedRole = resolvedRole || null;
         if (typeof window !== "undefined") {
           try {
             sessionStorage.setItem(`user_role_${userId}`, resolvedRole);
+            sessionStorage.setItem("jmt_cached_role", resolvedRole);
           } catch (e) {
             console.warn("sessionStorage write failed", e);
           }
@@ -72,25 +82,67 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
     };
 
     const init = async () => {
+      // Synchronously check sessionStorage for cached user/role first to prevent loading skeleton on mount
+      if (typeof window !== "undefined" && !hasInitialized) {
+        try {
+          const cachedUserStr = sessionStorage.getItem("jmt_cached_user");
+          const cachedRoleStr = sessionStorage.getItem("jmt_cached_role");
+          if (cachedUserStr) {
+            const parsedUser = JSON.parse(cachedUserStr);
+            cachedUser = parsedUser;
+            cachedRole = cachedRoleStr || null;
+            hasInitialized = true;
+            if (isMounted) {
+              setUser(parsedUser);
+              setRole(cachedRoleStr || null);
+              setIsLoading(false);
+            }
+          }
+        } catch (e) {
+          console.warn("Error reading synchronous cache in init:", e);
+        }
+      }
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (isMounted) {
           const currentUser = session?.user ?? null;
           setUser(currentUser);
+          cachedUser = currentUser;
+          
           if (currentUser) {
-            let cachedRole = null;
             if (typeof window !== "undefined") {
               try {
-                cachedRole = sessionStorage.getItem(`user_role_${currentUser.id}`);
+                sessionStorage.setItem("jmt_cached_user", JSON.stringify(currentUser));
+              } catch (e) {
+                console.warn(e);
+              }
+            }
+
+            let cachedRoleStr = null;
+            if (typeof window !== "undefined") {
+              try {
+                cachedRoleStr = sessionStorage.getItem(`user_role_${currentUser.id}`);
               } catch (e) {
                 console.warn("sessionStorage read failed", e);
               }
             }
-            if (cachedRole !== null) {
-              setRole(cachedRole || null);
+            if (cachedRoleStr !== null) {
+              cachedRole = cachedRoleStr || null;
+              setRole(cachedRoleStr || null);
             } else {
-              // Fetch role in background to avoid blocking isLoading
               fetchRole(currentUser.id);
+            }
+          } else {
+            cachedRole = null;
+            setRole(null);
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.removeItem("jmt_cached_user");
+                sessionStorage.removeItem("jmt_cached_role");
+              } catch (e) {
+                console.warn(e);
+              }
             }
           }
         }
@@ -98,6 +150,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
         console.warn("Error initializing auth button:", err);
       } finally {
         if (isMounted) {
+          hasInitialized = true;
           initialized = true;
           setIsLoading(false);
         }
@@ -109,23 +162,34 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
 
-      if (!initialized) {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-          fetchRole(currentUser.id);
-        } else {
-          setRole(null);
-        }
-        return;
-      }
-
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+      cachedUser = currentUser;
+
       if (currentUser) {
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.setItem("jmt_cached_user", JSON.stringify(currentUser));
+          } catch (e) {
+            console.warn(e);
+          }
+        }
         fetchRole(currentUser.id);
       } else {
+        cachedRole = null;
         setRole(null);
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.removeItem("jmt_cached_user");
+            sessionStorage.removeItem("jmt_cached_role");
+          } catch (e) {
+            console.warn(e);
+          }
+        }
+      }
+
+      if (initialized) {
+        return;
       }
     });
 
@@ -133,11 +197,21 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [initialRole]);
 
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
+    cachedUser = null;
+    cachedRole = null;
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.removeItem("jmt_cached_user");
+        sessionStorage.removeItem("jmt_cached_role");
+      } catch (e) {
+        console.warn(e);
+      }
+    }
     setIsOpen(false);
     router.refresh();
     router.push("/");
