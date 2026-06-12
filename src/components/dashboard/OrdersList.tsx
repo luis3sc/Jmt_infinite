@@ -102,7 +102,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ delay: i * 0.03, duration: 0.25 }}
-                className="rounded-lg border border-border bg-card hover:bg-muted/10 hover:border-border/80 transition-all overflow-hidden"
+                className="rounded-lg border border-border bg-card hover:bg-muted/10 hover:border-primary transition-all overflow-hidden"
               >
                 {/* MAIN ROW */}
                 <Button
@@ -254,7 +254,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                             )}
                           >
                             <FileText size={13} />
-                            Nota de Pedido
+                            {order.profiles?.document_type === 'RUC' ? 'Ver factura' : 'Ver comprobante'}
                           </Link>
                         </div>
 

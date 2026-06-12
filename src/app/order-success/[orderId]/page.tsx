@@ -267,9 +267,6 @@ export default function OrderSuccessPage() {
 
   const dynamicPhotoSpecs = [
     { label: 'Resolución', val: panelDetails?.resolutionWidth && panelDetails?.resolutionHeight ? `${panelDetails.resolutionWidth}×${panelDetails.resolutionHeight}` : '1280×720', icon: ShieldCheck },
-    { label: 'Orientación', val: panelDetails?.resolutionWidth && panelDetails?.resolutionHeight && panelDetails.resolutionWidth < panelDetails.resolutionHeight ? 'Vertical 9:16' : 'Horizontal 16:9', icon: Clock },
-    { label: 'Formato', val: 'JPG / PNG', icon: CheckCircle2 },
-    { label: 'Peso Máx', val: '100MB', icon: ShieldCheck },
   ]
 
   const cropAspectRatio = panelDetails?.resolutionWidth && panelDetails?.resolutionHeight
@@ -963,12 +960,13 @@ export default function OrderSuccessPage() {
                 <p className="text-xs text-muted-foreground/70 italic mb-8">
                   ✅ Ya puedes cerrar esta pestaña con seguridad. Cuando esté listo verás tu video en la sección de pedidos.
                 </p>
-                <button
+                <Button
                   onClick={() => router.push('/dashboard/orders')}
-                  className="px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity"
+                  size="xl"
+                  className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex justify-center items-center gap-3"
                 >
                   Ver mis pedidos
-                </button>
+                </Button>
               </div>
             </motion.div>
           )}
@@ -983,8 +981,8 @@ export default function OrderSuccessPage() {
               className="flex flex-col w-full max-w-3xl mx-auto"
             >
               {/* ── LEFT: Estudio de Creación ───────────────────────── */}
-              <section className="w-full flex flex-col bg-card/40 backdrop-blur-xl border border-border/50 rounded-3xl md:rounded-[2rem] p-3 md:p-6 lg:p-8 shadow-2xl relative overflow-hidden">
-                <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/5 rounded-full blur-[80px]" />
+              <section className="w-full flex flex-col relative ">
+                <div className="absolute -top-24 -left-24 w-64 h-64 " />
 
                 {/* Header */}
                 <div className="relative z-10 space-y-1 mb-3 md:mb-4">
@@ -1093,20 +1091,20 @@ export default function OrderSuccessPage() {
                           userType={userType}
                         />
 
-                        <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
+                        <div className="pt-2 flex flex-col items-center gap-4">
                           <Button
                             disabled={!photoFile || !acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
                             size="xl"
-                            className="w-full sm:w-auto font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                            className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                           >
                             <Send size={14} className="mr-2" />
                             <span>
                               {!photoFile
-                                ? '☝️ Primero selecciona tu foto'
+                                ? 'Primero selecciona tu foto'
                                 : (!acceptedTerms || !acceptedNoLogos)
-                                  ? '👉 Marca las casillas de abajo'
-                                  : '🚀 ¡Listo! Enviar mi anuncio'}
+                                  ? 'Marca las casillas de abajo'
+                                  : 'Enviar mi anuncio'}
                             </span>
                           </Button>
                         </div>
@@ -1118,6 +1116,12 @@ export default function OrderSuccessPage() {
                         imageSrc={photoObjectUrl}
                         aspectRatio={cropAspectRatio}
                         onCropComplete={handleCropConfirmed}
+                        onCancel={() => {
+                          setPhotoStep('drop')
+                          setPhotoFile(null)
+                          if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl)
+                          setPhotoObjectUrl(null)
+                        }}
                       />
                     )}
 
@@ -1137,12 +1141,12 @@ export default function OrderSuccessPage() {
                           userType={userType}
                         />
 
-                        <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
+                        <div className="pt-2 flex flex-col items-center gap-4">
                           <Button
                             disabled={!acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
                             size="xl"
-                            className="w-full sm:w-auto font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                            className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                           >
                             <Send size={14} className="mr-2" />
                             <span>
@@ -1154,7 +1158,7 @@ export default function OrderSuccessPage() {
                           <Button
                             variant="link"
                             onClick={() => setPhotoStep('crop')}
-                            className="text-xs font-bold text-muted-foreground hover:text-foreground py-2 px-1 h-auto"
+                            className="text-xs font-bold text-muted-foreground hover:text-foreground py-2 px-1 h-auto w-full sm:w-auto text-center"
                           >
                             ← Volver al recorte
                           </Button>
@@ -1198,20 +1202,20 @@ export default function OrderSuccessPage() {
                       userType={userType}
                     />
 
-                    <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
+                    <div className="pt-2 flex flex-col items-center gap-4">
                       <Button
                         disabled={!videoFile || !acceptedTerms || !acceptedNoLogos}
                         onClick={handleVideoUpload}
                         size="xl"
-                        className="w-full sm:w-auto font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                        className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                       >
                         <Send size={14} className="mr-2" />
                         <span>
                           {!videoFile
-                            ? '☝️ Primero selecciona tu video'
+                            ? 'selecciona tu video'
                             : (!acceptedTerms || !acceptedNoLogos)
-                              ? '👉 Marca las casillas de abajo'
-                              : '🚀 ¡Listo! Enviar mi anuncio'}
+                              ? 'Marca las casillas de abajo'
+                              : 'Enviar mi anuncio'}
                         </span>
                       </Button>
                     </div>

@@ -19,7 +19,7 @@ const BUCKET = process.env.CLOUDFLARE_BUCKET_NAME?.trim() || ''
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, fileName, fileType } = await req.json()
+    const { orderId, fileName, fileType, category = 'video' } = await req.json()
 
     if (!orderId || !fileName || !fileType) {
       return NextResponse.json(
@@ -86,7 +86,8 @@ export async function POST(req: NextRequest) {
 
     // Sanitizar el nombre de archivo para evitar caracteres extraños en R2
     const cleanFileName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-    const key = `campaign-videos/raw/${orderId}/${Date.now()}-${cleanFileName}`
+    const folder = category === 'evidence' ? 'campaign-evidence' : 'campaign-videos'
+    const key = `${folder}/raw/${orderId}/${Date.now()}-${cleanFileName}`
 
     console.log(`[presigned-url] Generating PUT URL for key: ${key}`)
 

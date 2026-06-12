@@ -60,7 +60,7 @@ export function UploadTypeSelector({ onSelect, userType }: UploadTypeSelectorPro
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="flex flex-col items-center gap-4 md:gap-6 w-full max-w-2xl mx-auto py-2 md:py-4"
+      className="flex flex-col items-center gap-4 md:gap-6 w-full"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 w-full">
         {options.map(({ type, icon: Icon, title, subtitle, description }) => (
@@ -69,7 +69,7 @@ export function UploadTypeSelector({ onSelect, userType }: UploadTypeSelectorPro
             variants={cardVariants}
             whileHover={{ y: -2 }}
             onClick={() => onSelect(type)}
-            className="group relative flex flex-col items-start gap-2.5 sm:gap-4 p-3 sm:p-5 rounded-card bg-card border border-border hover:border-primary backdrop-blur-xl text-left transition-all duration-300 shadow-md hover:shadow-xl overflow-hidden"
+            className="group relative flex flex-col items-start gap-2.5 sm:gap-4 p-3 sm:p-5 rounded-card bg-card border border-border hover:border-primary text-left transition-all duration-300 "
           >
             {/* Glow effect */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-primary/3 rounded-card" />

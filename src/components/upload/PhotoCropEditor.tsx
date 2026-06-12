@@ -12,12 +12,14 @@ interface PhotoCropEditorProps {
   /** Aspect ratio del panel: ej. 16/9 o 9/16. Por defecto 16/9 */
   aspectRatio?: number
   onCropComplete: (croppedArea: Area) => void
+  onCancel?: () => void
 }
 
 export function PhotoCropEditor({
   imageSrc,
   aspectRatio = 16 / 9,
   onCropComplete,
+  onCancel,
 }: PhotoCropEditorProps) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -91,20 +93,33 @@ export function PhotoCropEditor({
         />
       </div>
 
-      {/* Confirm button */}
-      <Button
-        onClick={handleConfirm}
-        disabled={confirmed}
-        className={cn(
-          "w-full font-semibold text-xs uppercase tracking-wider transition-all",
-          confirmed
-            ? 'bg-green-500/20 border border-green-500/30 text-green-400'
-            : 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20'
+      {/* Buttons */}
+      <div className="flex gap-3 pt-2">
+        {onCancel && (
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            disabled={confirmed}
+            className="flex-1 font-semibold text-xs uppercase tracking-wider text-foreground border-border hover:bg-muted"
+          >
+            Cancelar
+          </Button>
         )}
-      >
-        <Check size={16} />
-        {confirmed ? 'Confirmado' : 'Confirmar'}
-      </Button>
+        <Button
+          onClick={handleConfirm}
+          disabled={confirmed}
+          className={cn(
+            "font-semibold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5",
+            onCancel ? "flex-1" : "w-full",
+            confirmed
+              ? 'bg-green-500/20 border border-green-500/30 text-green-400'
+              : 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20'
+          )}
+        >
+          <Check size={16} />
+          {confirmed ? 'Confirmado' : 'Confirmar'}
+        </Button>
+      </div>
     </div>
   )
 }

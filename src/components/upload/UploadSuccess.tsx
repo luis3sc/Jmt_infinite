@@ -188,7 +188,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                   onClick={handleFinish}
                   isLoading={loadingBtn}
                   size="xl"
-                  className="w-full sm:w-auto font-black uppercase tracking-widest shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                  className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex justify-center items-center gap-3 disabled:opacity-50"
                 >
                   Listo, ir a Mis Pedidos
                 </Button>
@@ -197,7 +197,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                     variant="secondary"
                     size="xl"
                     onClick={() => window.open(videoUrl, '_blank')}
-                    className="w-full sm:w-auto font-black uppercase tracking-widest gap-2"
+                    className="w-full font-black text-sm flex justify-center items-center gap-3"
                   >
                     <ExternalLink size={14} />
                     <span>Ver mi diseño</span>

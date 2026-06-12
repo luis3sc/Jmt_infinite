@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, CheckCircle2, XCircle, UploadCloud, Clock, Building2, Calendar } from 'lucide-react'
+import { Search, CheckCircle2, XCircle, UploadCloud, Clock, Building2, Calendar, Download, FileText, Send, Eye } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
@@ -11,16 +11,20 @@ const STATUS: Record<string, { label: string; color: string; dot: string }> = {
   PENDING_UPLOAD:     { label: 'Sin video',     color: 'text-muted-foreground',                 dot: 'bg-muted-foreground/30'   },
   VIDEO_SENT:         { label: 'Por revisar',   color: 'text-amber-600 dark:text-amber-400',   dot: 'bg-amber-500'             },
   PENDING_VALIDATION: { label: 'En validación', color: 'text-blue-600 dark:text-blue-400',     dot: 'bg-blue-500'              },
-  CONFIRMED:          { label: 'Aprobado',      color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500'           },
+  APPROVED:           { label: 'Aprobado',      color: 'text-blue-600 dark:text-blue-400',       dot: 'bg-blue-500'              },
+  SENT_TO_PROVIDER:   { label: 'Enviado Prov.', color: 'text-purple-600 dark:text-purple-400',   dot: 'bg-purple-500'            },
+  CONFIRMED:          { label: 'Completado',    color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500'           },
   REJECTED:           { label: 'Rechazado',     color: 'text-red-600 dark:text-red-400',         dot: 'bg-red-500'               },
 }
 
 const FILTERS = [
-  { value: 'ALL',            label: 'Todos'       },
-  { value: 'VIDEO_SENT',     label: 'Por revisar' },
-  { value: 'PENDING_UPLOAD', label: 'Sin video'   },
-  { value: 'CONFIRMED',      label: 'Aprobados'   },
-  { value: 'REJECTED',       label: 'Rechazados'  },
+  { value: 'ALL',              label: 'Todos'         },
+  { value: 'VIDEO_SENT',       label: 'Por revisar'   },
+  { value: 'PENDING_UPLOAD',   label: 'Sin video'     },
+  { value: 'APPROVED',         label: 'Aprobados'     },
+  { value: 'SENT_TO_PROVIDER', label: 'Enviados Prov.'},
+  { value: 'CONFIRMED',        label: 'Completados'   },
+  { value: 'REJECTED',         label: 'Rechazados'    },
 ]
 
 export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) {
@@ -29,14 +33,39 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
   const [search, setSearch]   = useState('')
   const [selected, setSelected] = useState<Order | null>(null)
   const [toast, setToast]     = useState<{ msg: string; ok: boolean } | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok })
     setTimeout(() => setToast(null), 3500)
   }
 
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Lima',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date())
+  const yyyy = parts.find(p => p.type === 'year')?.value
+  const mm = parts.find(p => p.type === 'month')?.value
+  const dd = parts.find(p => p.type === 'day')?.value
+  const todayStr = `${yyyy}-${mm}-${dd}`
+
   const filtered = orders.filter(o => {
-    const matchFilter = filter === 'ALL' || o.status === filter
+    // Client-side timezone-safe date filter
+    if (o.bookings && o.bookings.length > 0) {
+      const isExpired = !o.bookings.some(b => b.end_date >= todayStr)
+      if (isExpired) return false
+    }
+
+    let matchFilter = false
+    if (filter === 'ALL') {
+      matchFilter = true
+    } else if (filter === 'VIDEO_SENT') {
+      matchFilter = o.status === 'VIDEO_SENT' || o.status === 'PENDING_VALIDATION'
+    } else {
+      matchFilter = o.status === filter
+    }
     const q = search.toLowerCase()
     const matchSearch = !q ||
       o.id.toLowerCase().includes(q) ||
@@ -52,9 +81,9 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
       body: JSON.stringify({ orderId, action: 'APPROVE' }),
     })
     if (!res.ok) { showToast('Error al aprobar.', false); return }
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'CONFIRMED' } : o))
-    setSelected(prev => prev?.id === orderId ? { ...prev, status: 'CONFIRMED' } : prev)
-    showToast('✓ Video aprobado. Campaña activa.', true)
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'APPROVED' } : o))
+    setSelected(prev => prev?.id === orderId ? { ...prev, status: 'APPROVED' } : prev)
+    showToast('✓ Video aprobado.', true)
   }
 
   const handleReject = async (orderId: string, reason: string) => {
@@ -67,6 +96,67 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'REJECTED', rejection_reason: reason } : o))
     setSelected(prev => prev?.id === orderId ? { ...prev, status: 'REJECTED', rejection_reason: reason } : prev)
     showToast('Video rechazado.', true)
+  }
+
+  const handleMarkSent = async (orderId: string) => {
+    const res = await fetch('/api/gestor/review-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, action: 'MARK_SENT' }),
+    })
+    if (!res.ok) { showToast('Error al marcar como enviado.', false); return }
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'SENT_TO_PROVIDER' } : o))
+    setSelected(prev => prev?.id === orderId ? { ...prev, status: 'SENT_TO_PROVIDER' } : prev)
+    showToast('✓ Campaña marcada como enviada al proveedor.', true)
+  }
+
+  const handleUploadEvidence = async (orderId: string, evidenceUrls: string[]) => {
+    const res = await fetch('/api/gestor/review-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, action: 'UPLOAD_EVIDENCE', evidenceUrls }),
+    })
+    if (!res.ok) { showToast('Error al subir evidencia.', false); return }
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'CONFIRMED', evidence_urls: evidenceUrls } : o))
+    setSelected(prev => prev?.id === orderId ? { ...prev, status: 'CONFIRMED', evidence_urls: evidenceUrls } : prev)
+    showToast('✓ Evidencia guardada y campaña completada.', true)
+  }
+
+  const handleDownloadVideo = async (videoUrl: string, orderId: string) => {
+    if (!videoUrl) return
+    try {
+      setDownloadingId(orderId)
+      const fileName = `jmt-campaña-${orderId.slice(0, 8)}.mp4`
+      const downloadUrl = `/api/download?url=${encodeURIComponent(videoUrl)}&filename=${encodeURIComponent(fileName)}`
+      
+      const response = await fetch(downloadUrl)
+      if (!response.ok) throw new Error('Network response was not ok')
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.style.display = 'none'
+      a.href = url
+      a.download = fileName
+      
+      document.body.appendChild(a)
+      a.click()
+      
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }, 100)
+      showToast('✓ Descarga iniciada.', true)
+    } catch (err) {
+      console.error('Error downloading video:', err)
+      const link = document.createElement('a')
+      link.href = videoUrl
+      link.target = '_blank'
+      link.download = `jmt-video-${orderId.slice(0, 8)}.mp4`
+      link.click()
+    } finally {
+      setDownloadingId(null)
+    }
   }
 
   return (
@@ -128,11 +218,10 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
           {/* Header */}
           <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 bg-muted/30 border-b border-border text-[10px] font-black text-muted-foreground uppercase tracking-widest">
             <div className="col-span-1">#</div>
-            <div className="col-span-4">Cliente</div>
+            <div className="col-span-5">Cliente</div>
             <div className="col-span-2">Fecha</div>
-            <div className="col-span-2">Total</div>
             <div className="col-span-2">Estado</div>
-            <div className="col-span-1 text-right">Ver</div>
+            <div className="col-span-2 text-right">Acciones</div>
           </div>
 
           {filtered.map((order, i) => {
@@ -140,17 +229,16 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
             const isPending = order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION'
 
             return (
-              <Button
+              <div
                 key={order.id}
-                variant="ghost"
                 onClick={() => setSelected(order)}
-                className={`w-full text-left grid grid-cols-2 md:grid-cols-12 gap-4 px-5 py-4 border-b border-border last:border-b-0 rounded-none h-auto transition-all ${isPending ? 'bg-amber-500/5 hover:bg-amber-500/10 dark:bg-amber-500/10 dark:hover:bg-amber-500/20' : 'hover:bg-muted/40'} group`}
+                className={`w-full text-left grid grid-cols-2 md:grid-cols-12 gap-4 px-5 py-4 border-b border-border last:border-b-0 rounded-none h-auto transition-all cursor-pointer ${isPending ? 'bg-amber-500/5 hover:bg-amber-500/10 dark:bg-amber-500/10 dark:hover:bg-amber-500/20' : 'hover:bg-muted/40'} group`}
               >
                 <div className="col-span-1 hidden md:flex items-center">
                   <span className="font-mono text-[10px] text-muted-foreground/60">{i + 1}</span>
                 </div>
 
-                <div className="col-span-2 md:col-span-4 flex flex-col justify-center gap-0.5">
+                <div className="col-span-2 md:col-span-5 flex flex-col justify-center gap-0.5">
                   <p className="text-sm font-bold text-foreground truncate">
                     {order.profile?.full_name || order.profile?.email || 'Sin nombre'}
                   </p>
@@ -162,13 +250,41 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
                   <p className="text-[10px] font-mono text-muted-foreground/50">#{order.id.slice(0, 8).toUpperCase()}</p>
                 </div>
 
-                <div className="hidden md:flex md:col-span-2 items-center gap-1.5 text-xs text-muted-foreground">
-                  <Calendar size={11} className="text-primary/40" />
-                  {new Date(order.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: '2-digit' })}
-                </div>
-
-                <div className="hidden md:flex md:col-span-2 items-center text-sm font-black text-foreground">
-                  S/ {Number(order.total_amount).toLocaleString('es-PE', { minimumFractionDigits: 0 })}
+                <div className="hidden md:flex md:col-span-2 flex-col justify-center gap-0.5 text-xs text-muted-foreground">
+                  {(() => {
+                    if (!order.bookings || order.bookings.length === 0) {
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <Calendar size={11} className="text-primary/40" />
+                          <span>{new Date(order.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })}</span>
+                        </div>
+                      )
+                    }
+                    const starts = order.bookings.map(b => b.start_date).filter(Boolean).sort()
+                    const ends = order.bookings.map(b => b.end_date).filter(Boolean).sort()
+                    if (starts.length === 0 || ends.length === 0) {
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <Calendar size={11} className="text-primary/40" />
+                          <span>{new Date(order.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })}</span>
+                        </div>
+                      )
+                    }
+                    const fmtDate = (dStr: string) => {
+                      const d = new Date(dStr + 'T00:00:00')
+                      return d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).toUpperCase().replace('.', '')
+                    }
+                    return (
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider">Vigencia</span>
+                        </div>
+                        <div className="font-semibold text-foreground text-[10px] whitespace-nowrap">
+                          {fmtDate(starts[0])} - {fmtDate(ends[ends.length - 1])}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
 
                 <div className="col-span-1 md:col-span-2 flex items-center gap-2">
@@ -176,18 +292,83 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
                   <span className={`text-[10px] font-black uppercase tracking-wide ${st.color}`}>{st.label}</span>
                 </div>
 
-                <div className="col-span-1 flex items-center justify-end">
-                  {order.status === 'PENDING_UPLOAD' ? (
-                    <UploadCloud size={14} className="text-muted-foreground/60" />
-                  ) : isPending ? (
-                    <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">Revisar</span>
-                  ) : order.status === 'CONFIRMED' ? (
-                    <CheckCircle2 size={14} className="text-emerald-500" />
-                  ) : (
-                    <XCircle size={14} className="text-red-500" />
+                <div className="col-span-1 md:col-span-2 flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
+                  {order.status === 'PENDING_UPLOAD' && (
+                    <UploadCloud size={14} className="text-muted-foreground/60 mr-2" />
+                  )}
+                  {isPending && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setSelected(order)}
+                      className="text-[9px] font-black uppercase tracking-widest h-7 px-3 rounded-lg shadow-sm shadow-primary/20"
+                    >
+                      Revisar
+                    </Button>
+                  )}
+                  {order.status === 'APPROVED' && (
+                    <div className="flex items-center gap-1">
+                      {order.video_url && (
+                        <Button
+                          size="icon-xs"
+                          variant="outline"
+                          title="Descargar Video"
+                          onClick={() => handleDownloadVideo(order.video_url!, order.id)}
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground flex items-center justify-center border border-border bg-card rounded-md"
+                        >
+                          {downloadingId === order.id ? (
+                            <span className="w-3 h-3 rounded-full border border-muted-foreground/40 border-t-muted-foreground animate-spin" />
+                          ) : (
+                            <Download size={12} />
+                          )}
+                        </Button>
+                      )}
+                      <Button
+                        size="icon-xs"
+                        variant="outline"
+                        title={order.profile?.document_type === 'RUC' ? 'Ver factura' : 'Ver comprobante'}
+                        onClick={() => window.open(`/dashboard/orders/${order.id}/nota`, '_blank')}
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground flex items-center justify-center border border-border bg-card rounded-md"
+                      >
+                        <FileText size={12} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => handleMarkSent(order.id)}
+                        className="text-[9px] font-black uppercase tracking-widest h-7 px-3 rounded-lg shadow-sm flex items-center gap-1"
+                      >
+                        <Send size={10} /> Enviar
+                      </Button>
+                    </div>
+                  )}
+                  {order.status === 'SENT_TO_PROVIDER' && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setSelected(order)}
+                      className="text-[9px] font-black uppercase tracking-widest h-7 px-3 bg-upload hover:bg-upload-hover text-white rounded-lg shadow-sm flex items-center gap-1 border-transparent"
+                    >
+                      <UploadCloud size={11} /> Evidencia
+                    </Button>
+                  )}
+                  {order.status === 'CONFIRMED' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelected(order)}
+                      className="text-[9px] font-black uppercase tracking-widest h-7 px-3 rounded-lg flex items-center gap-1"
+                    >
+                      <Eye size={11} /> Ver
+                    </Button>
+                  )}
+                  {order.status === 'REJECTED' && (
+                    <span className="text-[9px] font-black text-red-600 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-lg">
+                      Rechazado
+                    </span>
                   )}
                 </div>
-              </Button>
+              </div>
             )
           })}
         </div>
@@ -202,6 +383,8 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
             onClose={() => setSelected(null)}
             onApprove={handleApprove}
             onReject={handleReject}
+            onMarkSent={handleMarkSent}
+            onUploadEvidence={handleUploadEvidence}
           />
         )}
       </AnimatePresence>

@@ -1,7 +1,10 @@
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Video, Clock, CheckCircle2, XCircle, AlertCircle, UploadCloud } from 'lucide-react'
+import { ArrowLeft, Video, Clock, CheckCircle2, XCircle, AlertCircle, UploadCloud, Send, Award } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import AuthButton from '@/components/layout/AuthButton'
 import { GestorReviewList } from '@/components/gestor/GestorReviewList'
@@ -34,6 +37,7 @@ export default async function GestorPage() {
       video_url,
       total_amount,
       rejection_reason,
+      evidence_urls,
       created_at,
       user_id,
       bookings (
@@ -54,6 +58,7 @@ export default async function GestorPage() {
           resolution_width,
           resolution_height,
           traffic_view,
+          slot_duration_seconds,
           structures (
             code,
             address,
@@ -66,7 +71,7 @@ export default async function GestorPage() {
         )
       )
     `)
-    .in('status', ['PENDING_UPLOAD', 'VIDEO_SENT', 'PENDING_VALIDATION', 'CONFIRMED', 'REJECTED'])
+    .in('status', ['PENDING_UPLOAD', 'VIDEO_SENT', 'PENDING_VALIDATION', 'APPROVED', 'SENT_TO_PROVIDER', 'CONFIRMED', 'REJECTED'])
     .order('created_at', { ascending: false })
 
   // Fetch profiles with contact info for all unique user_ids
@@ -74,9 +79,9 @@ export default async function GestorPage() {
   const profilesResult = userIds.length > 0
     ? await supabase
       .from('profiles')
-      .select('id, full_name, email, company_name, phone')
+      .select('id, full_name, email, company_name, phone, document_type, receipt_type')
       .in('id', userIds)
-    : { data: [] as { id: string; full_name: string | null; email: string | null; company_name: string | null; phone: string | null }[] }
+    : { data: [] as { id: string; full_name: string | null; email: string | null; company_name: string | null; phone: string | null; document_type: string | null; receipt_type: string | null }[] }
   const profilesData = profilesResult.data
 
   const profileMap = Object.fromEntries((profilesData ?? []).map(p => [p.id, p]))
@@ -113,17 +118,33 @@ export default async function GestorPage() {
       video_url: o.video_url,
       total_amount: o.total_amount,
       rejection_reason: o.rejection_reason,
+      evidence_urls: o.evidence_urls,
       created_at: o.created_at,
       user_id: o.user_id,
       profile,
       bookings: transformedBookings
     };
+  }).filter(order => {
+    if (!order.bookings || order.bookings.length === 0) return true
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Lima',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date())
+    const yyyy = parts.find(p => p.type === 'year')?.value
+    const mm = parts.find(p => p.type === 'month')?.value
+    const dd = parts.find(p => p.type === 'day')?.value
+    const todayStr = `${yyyy}-${mm}-${dd}`
+    return order.bookings.some(b => b.end_date >= todayStr)
   });
 
   // Stats
   const pendingUpload = ordersWithProfiles.filter(o => o.status === 'PENDING_UPLOAD').length
   const pendingReview = ordersWithProfiles.filter(o => o.status === 'VIDEO_SENT' || o.status === 'PENDING_VALIDATION').length
-  const approved = ordersWithProfiles.filter(o => o.status === 'CONFIRMED').length
+  const approved = ordersWithProfiles.filter(o => o.status === 'APPROVED').length
+  const sentToProvider = ordersWithProfiles.filter(o => o.status === 'SENT_TO_PROVIDER').length
+  const completed = ordersWithProfiles.filter(o => o.status === 'CONFIRMED').length
   const rejected = ordersWithProfiles.filter(o => o.status === 'REJECTED').length
 
   return (
@@ -160,44 +181,64 @@ export default async function GestorPage() {
         </header>
 
         {/* Stats */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <div className="p-5 rounded-xl bg-card border border-border shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-500 shrink-0">
-              <UploadCloud size={20} />
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
+          <div className="p-4 rounded-xl bg-card border border-border shadow-sm flex items-center gap-3">
+            <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-500 shrink-0">
+              <UploadCloud size={18} />
             </div>
             <div>
-              <p className="text-2xl font-black text-foreground">{pendingUpload}</p>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sin Video</p>
+              <p className="text-xl font-black text-foreground leading-none">{pendingUpload}</p>
+              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">Sin Video</p>
             </div>
           </div>
 
-          <div className="p-5 rounded-xl bg-card border border-border shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-600 shrink-0">
-              <Clock size={20} />
+          <div className="p-4 rounded-xl bg-card border border-border shadow-sm flex items-center gap-3">
+            <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-600 shrink-0">
+              <Clock size={18} />
             </div>
             <div>
-              <p className="text-2xl font-black text-foreground">{pendingReview}</p>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Por Revisar</p>
+              <p className="text-xl font-black text-foreground leading-none">{pendingReview}</p>
+              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">Por Revisar</p>
             </div>
           </div>
 
-          <div className="p-5 rounded-xl bg-card border border-border shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-600 shrink-0">
-              <CheckCircle2 size={20} />
+          <div className="p-4 rounded-xl bg-card border border-border shadow-sm flex items-center gap-3">
+            <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-600 shrink-0">
+              <CheckCircle2 size={18} />
             </div>
             <div>
-              <p className="text-2xl font-black text-foreground">{approved}</p>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Aprobados</p>
+              <p className="text-xl font-black text-foreground leading-none">{approved}</p>
+              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">Aprobados</p>
             </div>
           </div>
 
-          <div className="p-5 rounded-xl bg-card border border-border shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 shrink-0">
-              <XCircle size={20} />
+          <div className="p-4 rounded-xl bg-card border border-border shadow-sm flex items-center gap-3">
+            <div className="p-2 bg-purple-50 border border-purple-200 rounded-lg text-purple-600 shrink-0">
+              <Send size={18} />
             </div>
             <div>
-              <p className="text-2xl font-black text-foreground">{rejected}</p>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Rechazados</p>
+              <p className="text-xl font-black text-foreground leading-none">{sentToProvider}</p>
+              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">Enviado Prov.</p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-card border border-border shadow-sm flex items-center gap-3">
+            <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-600 shrink-0">
+              <Award size={18} />
+            </div>
+            <div>
+              <p className="text-xl font-black text-foreground leading-none">{completed}</p>
+              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">Completados</p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-card border border-border shadow-sm flex items-center gap-3">
+            <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-red-600 shrink-0">
+              <XCircle size={18} />
+            </div>
+            <div>
+              <p className="text-xl font-black text-foreground leading-none">{rejected}</p>
+              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">Rechazados</p>
             </div>
           </div>
         </section>

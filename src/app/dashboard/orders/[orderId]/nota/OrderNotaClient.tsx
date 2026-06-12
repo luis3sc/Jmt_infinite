@@ -16,6 +16,7 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [generating, setGenerating] = useState(false)
   const [scale, setScale] = useState(1)
+  const [docHeight, setDocHeight] = useState(743)
 
   useEffect(() => {
     const handleResize = () => {
@@ -23,10 +24,11 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
       const parentWidth = containerRef.current.clientWidth
       // Subtracting padding (48px for p-6, 32px for p-4)
       const availableWidth = parentWidth - 48
-      if (availableWidth < 1050) {
-        setScale(Math.max(0.25, availableWidth / 1050))
-      } else {
-        setScale(1)
+      const newScale = availableWidth < 1050 ? Math.max(0.25, availableWidth / 1050) : 1
+      setScale(newScale)
+
+      if (documentRef.current) {
+        setDocHeight(documentRef.current.clientHeight || 743)
       }
     }
 
@@ -35,8 +37,17 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
     // Run after a short delay to ensure correct parent width measurements
     const timer = setTimeout(handleResize, 100)
 
+    // Observe changes to document size to update container height dynamically
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize()
+    })
+    if (documentRef.current) {
+      resizeObserver.observe(documentRef.current)
+    }
+
     return () => {
       window.removeEventListener('resize', handleResize)
+      resizeObserver.disconnect()
       clearTimeout(timer)
     }
   }, [])
@@ -109,21 +120,21 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
 
       const imgData = canvas.toDataURL('image/jpeg', 0.98)
 
-      // A4 Landscape: 297mm ancho x 210mm alto
+      const imgWidth = 297
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      const finalPageHeight = Math.max(210, imgHeight)
+
+      // A4 Landscape: 297mm ancho x (mínimo 210mm alto, o dinámico si es más largo)
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: 'a4',
+        format: [imgWidth, finalPageHeight],
       })
-
-      const imgWidth = 297
-      const pageHeight = 210
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
 
       // Centrar verticalmente en la hoja si es menor que el alto de página
       let yOffset = 0
-      if (imgHeight < pageHeight) {
-        yOffset = (pageHeight - imgHeight) / 2
+      if (imgHeight < finalPageHeight) {
+        yOffset = (finalPageHeight - imgHeight) / 2
       }
 
       pdf.addImage(imgData, 'JPEG', 0, yOffset, imgWidth, imgHeight, undefined, 'FAST')
@@ -198,14 +209,14 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
         <div
           style={{
             width: `${1050 * scale}px`,
-            height: `${743 * scale}px`,
+            height: `${docHeight * scale}px`,
             position: 'relative',
           }}
           className="print:w-auto print:h-auto"
         >
           <div
             ref={documentRef}
-            className="w-[1050px] min-w-[1050px] aspect-[1.414/1] bg-white text-black p-8 border border-slate-200 shadow-lg rounded-sm print:shadow-none print:border-none print:p-4 print:mx-auto absolute left-0 top-0 origin-top-left print:relative print:transform-none"
+            className="w-[1050px] min-w-[1050px] min-h-[743px] bg-white text-black p-8 border border-slate-200 shadow-lg rounded-sm print:shadow-none print:border-none print:p-4 print:mx-auto absolute left-0 top-0 origin-top-left print:relative print:transform-none"
             style={{
               transform: `scale(${scale})`,
               contentVisibility: 'auto',
@@ -384,7 +395,7 @@ export default function OrderNotaClient({ order }: OrderNotaClientProps) {
                 <div className="col-span-1 text-right pr-3">Total</div>
               </div>
 
-              <div className="divide-y divide-slate-200 overflow-y-auto max-h-[220px]">
+              <div className="divide-y divide-slate-200">
                 {order.bookings?.map((b: any, idx: number) => {
                   const p = b.panels
                   const panelCode = p?.panel_code || 'CODE'
