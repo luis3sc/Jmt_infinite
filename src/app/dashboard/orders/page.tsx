@@ -1,12 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ShoppingBag, ArrowLeft, AlertCircle } from 'lucide-react'
+import { ShoppingBag } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import AuthButton from '@/components/layout/AuthButton'
 import { OrdersList } from '@/components/dashboard/OrdersList'
-import { BackButton } from '@/components/ui/BackButton'
-import { DashboardNav } from '@/components/dashboard/DashboardNav'
 import { Container } from '@/components/ui/Container'
 import { Alert } from '@/components/ui/Alert'
 import { buttonVariants, buttonSizes } from '@/components/ui/Button'
@@ -67,9 +65,6 @@ export default async function OrdersPage() {
 
    <Container maxW="6xl" className="pt-20 md:pt-24 flex-1 flex flex-col">
 
-    {/* Back */}
-    <BackButton href="/dashboard" label="Volver" variant="small" className="mb-10" />
-
     {/* Header */}
     <header className="mb-10 border-b border-border pb-8">
      <div className="flex items-end justify-between gap-6">
@@ -86,8 +81,6 @@ export default async function OrdersPage() {
       )}
      </div>
     </header>
-
-    <DashboardNav />
 
     {error ? (
      <Alert variant="destructive" title="Error de Conexión" className="mb-8">

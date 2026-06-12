@@ -147,7 +147,7 @@ const Dialog = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-0 md:p-6">
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-0 md:p-6">
           {/* Backdrop with backdrop-blur */}
           <motion.div
             initial={{ opacity: 0 }}

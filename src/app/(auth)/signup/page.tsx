@@ -19,10 +19,18 @@ export default function SignupPage() {
  async function handleSubmit(formData: FormData) {
   setLoading(true)
   setError(null)
-  const result = await signup(formData)
-  if (result?.error) {
-   setError(result.error)
-   setLoading(false)
+  try {
+    const result = await signup(formData)
+    if (result?.error) {
+     setError(result.error)
+     setLoading(false)
+    } else if (result?.success && result?.redirectUrl) {
+     // Perform a full window redirect to force a clean instantiation of the client-side Supabase client with new cookies
+     window.location.href = result.redirectUrl
+    }
+  } catch (error) {
+    console.error("Signup error:", error)
+    setLoading(false)
   }
  }
 

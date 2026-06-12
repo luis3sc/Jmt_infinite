@@ -23,11 +23,13 @@ export type CartItem = {
 interface CartState {
   items: CartItem[];
   campaignId: string | null;
+  isCartOpen: boolean;
   addItem: (item: CartItem) => void;
   updateItem: (panelId: string, updates: Partial<CartItem>) => void;
   removeItem: (panelId: string) => void;
   clearCart: () => void;
   setCampaignId: (id: string | null) => void;
+  setIsCartOpen: (open: boolean) => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
 }
@@ -37,6 +39,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       campaignId: null,
+      isCartOpen: false,
       addItem: (item) => set((state) => {
         // Prevent adding duplicate panels
         if (state.items.some(i => i.panelId === item.panelId)) {
@@ -54,11 +57,16 @@ export const useCartStore = create<CartState>()(
       })),
       clearCart: () => set({ items: [], campaignId: null }),
       setCampaignId: (id) => set({ campaignId: id }),
+      setIsCartOpen: (open) => set({ isCartOpen: open }),
       getTotalItems: () => get().items.length,
       getTotalPrice: () => get().items.reduce((total, item) => total + item.totalPrice, 0),
     }),
     {
       name: 'jmt-cart-storage',
+      partialize: (state) => ({
+        items: state.items,
+        campaignId: state.campaignId,
+      }),
     }
   )
 );

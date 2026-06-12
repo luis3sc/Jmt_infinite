@@ -27,11 +27,10 @@ export async function login(formData: FormData) {
 
   revalidatePath('/', 'layout')
 
-  if (profile?.role === 'gestor' || profile?.role === 'admin') {
-    redirect('/gestor')
-  }
+  const isGestor = profile?.role === 'gestor' || profile?.role === 'admin'
+  const redirectUrl = isGestor ? '/gestor' : '/map'
 
-  redirect('/dashboard')
+  return { success: true, redirectUrl }
 }
 
 export async function signup(formData: FormData) {
@@ -66,7 +65,7 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  return { success: true, redirectUrl: '/map' }
 }
 
 export async function logout(formData?: FormData) {

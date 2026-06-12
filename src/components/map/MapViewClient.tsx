@@ -311,48 +311,15 @@ export function MapViewClient() {
   const cartTotal = useCartStore((state) => state.items.reduce((total, item) => total + item.totalPrice, 0));
 
   const [showToast, setShowToast] = useState({ show: false, message: "" });
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const isCartOpen = useCartStore((state) => state.isCartOpen);
+  const setIsCartOpen = useCartStore((state) => state.setIsCartOpen);
 
   const triggerToast = useCallback((message: string) => {
     setShowToast({ show: true, message });
     setTimeout(() => setShowToast({ show: false, message: "" }), 3000);
   }, []);
 
-  // Hook de Cotización
-  const {
-    isCampaignLoading,
-    currentUser,
-    isQuoteDialogOpen,
-    setIsQuoteDialogOpen,
-    quoteCampaignName,
-    setQuoteCampaignName,
-    quoteClientName,
-    setQuoteClientName,
-    quoteClientEmail,
-    setQuoteClientEmail,
-    quoteClientPhone,
-    setQuoteClientPhone,
-    quoteClientDocType,
-    setQuoteClientDocType,
-    quoteClientDocNumber,
-    setQuoteClientDocNumber,
-    showLinkBanner,
-    setShowLinkBanner,
-    isLinkingCampaign,
-    quoteId,
-    isSavingQuote,
-    quoteSuccess,
-    setQuoteSuccess,
-    quoteRecoveryUrl,
-    copiedLink,
-    setCopiedLink,
-    quoteDocRef,
-    handleSaveAndDownloadQuote,
-    handleLinkCampaignToUser,
-  } = useQuoteFlow({
-    onOpenCart: useCallback(() => setIsCartOpen(true), []),
-    onTriggerToast: triggerToast,
-  });
+
   const [structures, setStructures] = useState<Structure[]>([]);
   const [allStructures, setAllStructures] = useState<Structure[]>([]);
   const [selectedStructure, setSelectedStructure] = useState<Structure | null>(null);
@@ -429,6 +396,21 @@ export function MapViewClient() {
     allStructures,
     activeDistrict,
   });
+
+  const hasActiveFilters =
+    activeFilters.audience !== null ||
+    activeFilters.mediaType !== "" ||
+    activeFilters.minPrice !== null ||
+    activeFilters.maxPrice !== null ||
+    activeFilters.poi !== null;
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  useEffect(() => {
+    if (isSearchOpen && searchQuery.length < 2) {
+      setSuggestions(getTopRecommendations());
+    }
+  }, [isSearchOpen, searchQuery, getTopRecommendations, setSuggestions]);
 
 
   const PAGE_SIZE = 20;
@@ -643,32 +625,46 @@ export function MapViewClient() {
     }, 1000);
   }, [searchParams, dbLoaded, fetchStructuresInBounds]);
 
-  const executeSearch = async () => {
+  const executeSearch = async (
+    overrideSearchQuery?: any,
+    overrideDistrict?: string | null,
+    overrideLocation?: { lng: number, lat: number } | null
+  ) => {
     // 1. Update active states
     setActiveStartDate(startDate);
     setActiveEndDate(endDate);
 
+    // Safeguard against React MouseEvent or other objects passed implicitly via onClick
+    const isStringQuery = typeof overrideSearchQuery === "string";
+    const queryToUse = isStringQuery ? overrideSearchQuery : searchQuery;
+    const districtToUse = overrideDistrict !== undefined ? overrideDistrict : pendingDistrict;
+    const locationToUse = overrideLocation !== undefined ? overrideLocation : pendingLocation;
+
+    if (isStringQuery) setSearchQuery(overrideSearchQuery);
+    if (overrideDistrict !== undefined) setPendingDistrict(overrideDistrict);
+    if (overrideLocation !== undefined) setPendingLocation(overrideLocation);
+
     // 2. Prepare URL params
     const params = new URLSearchParams(searchParams?.toString());
-    params.set("location", searchQuery);
+    params.set("location", queryToUse);
     params.set("from", startDate);
     params.set("to", endDate);
 
     // 3. Handle location update
-    const cleanSearch = searchQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const cleanSearch = queryToUse.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     const matched = LIMA_CALLAO_DISTRICTS.find(d =>
       d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanSearch ||
       d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanSearch
     );
 
-    const activeDist = pendingDistrict || (matched ? matched.key : null);
+    const activeDist = overrideDistrict !== undefined ? overrideDistrict : (districtToUse || (matched ? matched.key : null));
 
     if (activeDist) {
       params.set("district", activeDist);
       params.delete("lat");
       params.delete("lng");
 
-      const displayName = matched ? matched.display : (LIMA_CALLAO_DISTRICTS.find(d => d.key === activeDist)?.display || searchQuery);
+      const displayName = matched ? matched.display : (LIMA_CALLAO_DISTRICTS.find(d => d.key === activeDist)?.display || queryToUse);
       params.set("location", displayName);
       setSearchQuery(displayName);
 
@@ -687,20 +683,21 @@ export function MapViewClient() {
 
     params.delete("district");
 
-    if (pendingLocation) {
+    if (locationToUse) {
       // Si seleccionaron una sugerencia del buscador, usamos esas coordenadas exactas
-      params.set("lat", pendingLocation.lat.toString());
-      params.set("lng", pendingLocation.lng.toString());
+      params.set("lat", locationToUse.lat.toString());
+      params.set("lng", locationToUse.lng.toString());
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
 
       setViewState(prev => ({
         ...prev,
-        longitude: pendingLocation.lng,
-        latitude: pendingLocation.lat,
+        longitude: locationToUse.lng,
+        latitude: locationToUse.lat,
         zoom: 14,
         transitionDuration: 1000
       }));
       setPendingLocation(null);
+      setPendingDistrict(null);
 
       // Cargar paneles en la nueva ubicación
       setTimeout(() => {
@@ -708,7 +705,7 @@ export function MapViewClient() {
           fetchStructuresInBounds(mapRef.current.getMap().getBounds());
         }
       }, 1100);
-    } else if (searchQuery.length >= 3) {
+    } else if (queryToUse.length >= 3) {
       const matchedStructure = dbStructures.find(s => {
         const addressClean = (s.address || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         const districtClean = (s.district || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -758,6 +755,27 @@ export function MapViewClient() {
       }
     }
   };
+
+  const handleSelectSuggestionAndSearch = useCallback(
+    (lng: number, lat: number, placeName: string, suggestion?: any) => {
+      setShowSuggestions(false);
+      
+      let query = placeName;
+      let dist: string | null = null;
+      let coords: { lng: number; lat: number } | null = null;
+
+      if (suggestion?.isDistrict) {
+        query = suggestion.display;
+        dist = suggestion.districtKey;
+      } else {
+        coords = { lng, lat };
+      }
+
+      executeSearch(query, dist, coords);
+    },
+    [executeSearch, setShowSuggestions]
+  );
+
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -882,43 +900,7 @@ export function MapViewClient() {
 
       />
 
-      {/* GUEST CAMPAIGN LINKING BANNER */}
-      {showLinkBanner && (
-        <div className="w-full bg-primary/10 border-b border-primary/20 px-4 py-2.5 flex items-center justify-between gap-4 z-40 animate-in slide-in-from-top duration-300">
-          <div className="flex items-center gap-2 text-xs md:text-sm font-semibold text-foreground">
-            <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shrink-0" />
-            <span>Estás viendo una cotización de invitado. ¿Deseas guardarla en tu cuenta para verla en tu panel?</span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowLinkBanner(false)}
-              className="text-[10px] uppercase tracking-widest font-black py-1 px-2.5 h-auto"
-            >
-              Descartar
-            </Button>
-            <Button
-              size="sm"
-              disabled={isLinkingCampaign}
-              onClick={handleLinkCampaignToUser}
-              className="text-[10px] uppercase tracking-widest font-black flex items-center gap-1.5 py-1 px-3.5 h-auto"
-            >
-              {isLinkingCampaign ? (
-                <>
-                  <Loader2 size={12} className="animate-spin" />
-                  <span>Guardando...</span>
-                </>
-              ) : (
-                <>
-                  <Check size={12} />
-                  <span>Guardar en mi Dashboard</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
+
 
       {/* MAIN CONTENT AREA */}
       <div className="flex flex-1 w-full flex-col md:flex-row overflow-hidden relative">
@@ -1198,115 +1180,145 @@ export function MapViewClient() {
 
       </div> {/* CLOSE MAIN CONTENT AREA */}
 
-      {/* MOBILE BOTTOM NAVBAR (Hidden when modal is open) */}
+      {/* MOBILE FLOATING CONTROL BAR (Only visible on map page when no detail modal is selected) */}
       {!selectedStructure && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
-          {/* Search floating above navbar */}
-          <MobileSearchBox
-            searchQuery={searchQuery}
-            suggestions={suggestions}
-            showSuggestions={showSuggestions}
-            setShowSuggestions={setShowSuggestions}
-            onLocationSearch={handleLocationSearch}
-            onSelectSuggestion={handleSelectSuggestion}
-            onClear={() => {
-              handleLocationSearch("");
-              setShowSuggestions(false);
-              setPendingLocation(null);
-            }}
-            onSearch={executeSearch}
-            getTopRecommendations={getTopRecommendations}
-            setSuggestions={setSuggestions}
-          />
-
-          {/* Bottom Nav Icons */}
-          <div className="h-[calc(4rem+env(safe-area-inset-bottom))] bg-card/95 backdrop-blur border-t border-border flex items-center justify-around px-2 pointer-events-auto pb-[env(safe-area-inset-bottom)]">
+        <div className="md:hidden fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-4 right-4 z-[100] flex items-center gap-2 pointer-events-none animate-in fade-in slide-in-from-bottom-5 duration-300">
+          
+          {/* Segmented Control: Mapa / Lista */}
+          <div className="flex items-center bg-card/95 backdrop-blur-md border border-border shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl p-1 shrink-0 pointer-events-auto h-14 w-[96px]">
             <button
               onClick={() => setActiveTab("map")}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors cursor-pointer
-        ${activeTab === "map" ? "text-primary font-black" : "text-muted-foreground hover:text-foreground"}`}
+              className={cn(
+                "flex-1 h-full rounded-xl transition-all cursor-pointer flex items-center justify-center",
+                activeTab === "map"
+                  ? "bg-muted text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
-              <MapIcon size={20} />
-              <span className="text-[10px] font-medium">Mapa</span>
+              <MapIcon size={18} />
             </button>
-
             <button
               onClick={() => setActiveTab("list")}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors cursor-pointer
-        ${activeTab === "list" ? "text-primary font-black" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              <List size={20} />
-              <span className="text-[10px] font-medium">Tarjetas</span>
-            </button>
-
-            <button
-              onClick={() => setIsFilterOpen(true)}
-              className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-colors cursor-pointer ${isFilterOpen ? 'text-primary font-black' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              <Filter size={20} />
-              <span className="text-[10px] font-medium">Filtros</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setIsCartOpen(true);
-                setSelectedStructure(null);
-              }}
-              className="flex flex-col items-center justify-center w-16 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors relative cursor-pointer"
-            >
-              <ShoppingCart size={20} />
-              <span className="text-[10px] font-medium">Campaña</span>
-              {cartItemCount > 0 && (
-                <span className="absolute top-1 right-3 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white">
-                  {cartItemCount}
-                </span>
+              className={cn(
+                "flex-1 h-full rounded-xl transition-all cursor-pointer flex items-center justify-center",
+                activeTab === "list"
+                  ? "bg-muted text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               )}
+            >
+              <List size={18} />
             </button>
-
-            {/* Mobile Profile / Auth Button */}
-            <AuthButton mode="mobile" />
           </div>
+
+          {/* Search Button (Donde anunciar) */}
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="flex-1 flex items-center gap-2 px-4 h-14 text-sm font-bold text-muted-foreground bg-card/95 backdrop-blur-md border border-border shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl hover:bg-muted/30 transition-all text-left truncate pointer-events-auto cursor-pointer"
+          >
+            <Search size={18} className="text-muted-foreground shrink-0" strokeWidth={2.5} />
+            <span className="truncate flex-1">
+              {searchQuery || "¿Dónde anunciar?"}
+            </span>
+          </button>
+
+          {/* Filters Button */}
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className={cn(
+              "flex items-center justify-center w-14 h-14 rounded-2xl transition-all pointer-events-auto shadow-[0_8px_30px_rgb(0,0,0,0.12)] cursor-pointer shrink-0",
+              hasActiveFilters || isFilterOpen
+                ? "bg-primary border border-primary"
+                : "bg-card/95 backdrop-blur-md border border-border hover:bg-muted/30"
+            )}
+          >
+            <Filter size={20} className={cn((hasActiveFilters || isFilterOpen) ? "text-white" : "text-muted-foreground")} />
+          </button>
         </div>
       )}
 
-      {/* CART MODAL */}
-      {/* CART MODAL */}
-      <MapCartSidebar
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        onQuoteClick={() => {
-          setQuoteSuccess(false);
-          setIsQuoteDialogOpen(true);
-        }}
-      />
-
-      {/* TOAST NOTIFICATION */}
+      {/* MOBILE SEARCH DIALOG / OVERLAY */}
       <AnimatePresence>
-        {showToast.show && (
+        {isSearchOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed bottom-24 md:bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-foreground text-background px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-border min-w-[300px]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="md:hidden fixed inset-0 bg-background/95 backdrop-blur-md z-[300] flex flex-col p-4 pt-[calc(1rem+env(safe-area-inset-top))] animate-in fade-in duration-200"
           >
-            <div className="bg-emerald-600 p-1 rounded-full">
-              <CheckCircle2 size={18} className="text-white" />
+            {/* Header / Input Row */}
+            <div className="flex items-center gap-3 w-full mb-6">
+              <div className="relative flex-1 bg-card border border-border rounded-2xl flex items-center pr-3">
+                <Search size={18} className="text-muted-foreground ml-4 shrink-0" />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="¿Dónde quieres anunciarte?"
+                  value={searchQuery}
+                  onChange={(e) => handleLocationSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      executeSearch();
+                      setIsSearchOpen(false);
+                    }
+                  }}
+                  className="flex-1 pl-3 pr-2 py-3.5 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground font-semibold"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      handleLocationSearch("");
+                      setPendingLocation(null);
+                    }}
+                    className="p-1 bg-muted hover:bg-muted/80 rounded-full transition-all text-muted-foreground"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsSearchOpen(false);
+                  setShowSuggestions(false);
+                }}
+                className="text-xs font-black uppercase tracking-wider text-muted-foreground hover:text-foreground px-2"
+              >
+                Cancelar
+              </Button>
             </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm leading-tight">{showToast.message}</p>
+
+            {/* Suggestions list */}
+            <div className="flex-1 overflow-y-auto space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-2 mb-2">Recomendados / Sugeridos</p>
+              {suggestions.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  Escribe al menos 2 caracteres para ver sugerencias.
+                </div>
+              ) : (
+                suggestions.map((s: any, idx: number) => (
+                  <div
+                    key={s.id || s.districtKey || `mobile-sug-modal-${idx}`}
+                    onClick={() => {
+                      handleSelectSuggestionAndSearch(
+                        s.center ? s.center[0] : 0,
+                        s.center ? s.center[1] : 0,
+                        s.place_name,
+                        s
+                      );
+                      setIsSearchOpen(false);
+                    }}
+                    className="flex items-center gap-4 p-3 hover:bg-primary/[0.08] active:bg-primary/[0.08] rounded-xl cursor-pointer transition-all border border-border/10 hover:border-primary/20 bg-card"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <MapPin size={16} className="text-muted-foreground" />
+                    </div>
+                    <span className="text-xs font-bold text-foreground truncate">
+                      {s.place_name}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setIsCartOpen(true);
-                setSelectedStructure(null);
-                setShowToast({ show: false, message: "" });
-              }}
-              className="bg-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/20 hover:text-white border-white/10"
-            >
-              Ver Campaña
-            </Button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1355,46 +1367,6 @@ export function MapViewClient() {
      background: rgba(15, 23, 42, 0.2);
     }
    `}</style>
-
-      {/* FULLSCREEN CAMPAIGN LOADER OVERLAY */}
-      {isCampaignLoading && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-[500] flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
-          <Loader2 className="w-10 h-10 text-primary animate-spin" />
-          <p className="text-sm font-bold text-foreground uppercase tracking-widest animate-pulse">Cargando cotización...</p>
-        </div>
-      )}
-
-      {/* DIALOGO DE COTIZACIÓN */}
-      <QuoteDialog
-        isOpen={isQuoteDialogOpen}
-        onClose={() => setIsQuoteDialogOpen(false)}
-        onSubmit={handleSaveAndDownloadQuote}
-        isSavingQuote={isSavingQuote}
-        quoteCampaignName={quoteCampaignName}
-        setQuoteCampaignName={setQuoteCampaignName}
-        quoteClientName={quoteClientName}
-        setQuoteClientName={setQuoteClientName}
-        quoteSuccess={quoteSuccess}
-        setQuoteSuccess={setQuoteSuccess}
-        quoteRecoveryUrl={quoteRecoveryUrl}
-        copiedLink={copiedLink}
-        setCopiedLink={setCopiedLink}
-      />
-
-      {/* COMPONENTE OFF-SCREEN PARA CAPTURA PDF */}
-      <QuotePDFDocument
-        campaignName={quoteCampaignName || `Campaña JMT - ${format(new Date(), 'MMM yyyy')}`}
-        clientName={quoteClientName || "Cliente"}
-        clientEmail={quoteClientEmail || currentUser?.email || ""}
-        clientPhone={quoteClientPhone || ""}
-        clientDocType={quoteClientDocType || "DNI/RUC"}
-        clientDocNumber={quoteClientDocNumber || ""}
-        items={cartItems}
-        totalAmount={cartTotal}
-        recoveryUrl={quoteRecoveryUrl}
-        quoteId={quoteId || "TEMP"}
-        documentRef={quoteDocRef}
-      />
     </div>
   );
 }

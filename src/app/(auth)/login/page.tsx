@@ -26,10 +26,13 @@ export default function LoginPage() {
     if (result?.error) {
      setError(result.error)
      setLoading(false)
+    } else if (result?.success && result?.redirectUrl) {
+     // Perform a full window redirect to force a clean instantiation of the client-side Supabase client with new cookies
+     window.location.href = result.redirectUrl
     }
   } catch (error) {
-    // If it's a redirect error, we don't want to reset loading state
-    console.error("Login redirecting or error:", error)
+    console.error("Login error:", error)
+    setLoading(false)
   }
  }
 

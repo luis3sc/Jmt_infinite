@@ -48,6 +48,11 @@ export default function MapCartSidebar({
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
+  const handleExploreUbicaciones = () => {
+    onClose();
+    router.push("/map");
+  };
+
   const today = new Date().toISOString().split("T")[0];
   const defaultEnd = (() => {
     const tomorrow = new Date();
@@ -192,7 +197,7 @@ export default function MapCartSidebar({
                 </p>
               </div>
               <Button
-                onClick={onClose}
+                onClick={handleExploreUbicaciones}
                 size="xl"
                 className="font-black text-xs uppercase tracking-[0.2em] shadow-[0_15px_30px_-10px_hsl(var(--primary)/0.3)]"
               >
@@ -365,7 +370,7 @@ export default function MapCartSidebar({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col rounded-card border border-dashed border-primary/40 bg-gradient-to-br from-primary/5 to-transparent p-fluid-md shadow-sm hover:shadow-md transition-all justify-between items-center text-center gap-fluid-sm min-h-[220px] overflow-hidden group hover:border-primary cursor-pointer"
-                onClick={onClose}
+                onClick={handleExploreUbicaciones}
               >
                 <div className="relative mt-2">
                   <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 transition-transform animate-pulse" />
@@ -419,6 +424,7 @@ export default function MapCartSidebar({
                 size="xl"
                 onClick={() => {
                   setIsCheckingOut(true);
+                  onClose();
                   router.push("/checkout");
                   setTimeout(() => setIsCheckingOut(false), 1000);
                 }}
@@ -565,6 +571,7 @@ export default function MapCartSidebar({
               size="xl"
               onClick={() => {
                 setIsCheckingOut(true);
+                onClose();
                 router.push("/checkout");
                 setTimeout(() => setIsCheckingOut(false), 1000);
               }}

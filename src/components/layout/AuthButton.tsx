@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { User, LogOut, LayoutDashboard, ChevronDown, ShoppingBag, Clapperboard } from "lucide-react";
+import { User, LogOut, LayoutDashboard, ChevronDown, ShoppingBag, Clapperboard, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,36 +25,114 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
 
   useEffect(() => {
     const supabase = createClient();
+    let isMounted = true;
+    let initialized = false;
 
     const fetchRole = async (userId: string) => {
       // Only fetch role from DB if it wasn't provided by the server
       if (initialRole !== undefined) return;
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
-      setRole(profile?.role ?? null);
+
+      // Check sessionStorage cache first
+      if (typeof window !== "undefined") {
+        try {
+          const cachedRole = sessionStorage.getItem(`user_role_${userId}`);
+          if (cachedRole !== null) {
+            if (isMounted) {
+              setRole(cachedRole || null);
+            }
+            return;
+          }
+        } catch (e) {
+          console.warn("sessionStorage read failed", e);
+        }
+      }
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .single();
+        
+        const resolvedRole = profile?.role ?? "";
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.setItem(`user_role_${userId}`, resolvedRole);
+          } catch (e) {
+            console.warn("sessionStorage write failed", e);
+          }
+        }
+
+        if (isMounted) {
+          setRole(resolvedRole || null);
+        }
+      } catch (err) {
+        console.warn("Error fetching user role for auth button:", err);
+      }
     };
 
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) await fetchRole(currentUser.id);
-      setIsLoading(false);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (isMounted) {
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
+          if (currentUser) {
+            let cachedRole = null;
+            if (typeof window !== "undefined") {
+              try {
+                cachedRole = sessionStorage.getItem(`user_role_${currentUser.id}`);
+              } catch (e) {
+                console.warn("sessionStorage read failed", e);
+              }
+            }
+            if (cachedRole !== null) {
+              setRole(cachedRole || null);
+            } else {
+              // Fetch role in background to avoid blocking isLoading
+              fetchRole(currentUser.id);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Error initializing auth button:", err);
+      } finally {
+        if (isMounted) {
+          initialized = true;
+          setIsLoading(false);
+        }
+      }
     };
 
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+
+      if (!initialized) {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          fetchRole(currentUser.id);
+        } else {
+          setRole(null);
+        }
+        return;
+      }
+
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      if (!currentUser) setRole(null);
-      setIsLoading(false);
+      if (currentUser) {
+        fetchRole(currentUser.id);
+      } else {
+        setRole(null);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -143,6 +221,17 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                 ) : (
                   <>
                     <Link
+                      href="/dashboard"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-input transition-all group cursor-pointer"
+                    >
+                      <div className="p-2 bg-muted rounded-button-sm group-hover:bg-muted/80 group-hover:text-foreground transition-colors">
+                        <User size={18} />
+                      </div>
+                      Mi Perfil
+                    </Link>
+
+                    <Link
                       href="/dashboard/orders"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-input transition-all group cursor-pointer"
@@ -154,14 +243,14 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                     </Link>
 
                     <Link
-                      href="/dashboard"
+                      href="/dashboard/quotes"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center gap-3 px-3.5 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-muted rounded-input transition-all group cursor-pointer"
                     >
                       <div className="p-2 bg-muted rounded-button-sm group-hover:bg-muted/80 group-hover:text-foreground transition-colors">
-                        <LayoutDashboard size={18} />
+                        <FileText size={18} />
                       </div>
-                      Panel de Control
+                      Mis Cotizaciones
                     </Link>
                   </>
                 )}

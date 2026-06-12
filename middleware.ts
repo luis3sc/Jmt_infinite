@@ -111,7 +111,16 @@ export async function middleware(request: NextRequest) {
   // Prevent authenticated users from visiting login/signup
   if (user && (pathname === '/login' || pathname === '/signup')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    
+    // Fetch user profile to get role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    const role = profile?.role || 'user'
+    
+    url.pathname = role === 'gestor' || role === 'admin' ? '/gestor' : '/map'
     return NextResponse.redirect(url)
   }
 

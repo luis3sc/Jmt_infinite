@@ -220,7 +220,7 @@ export default function TopBarSearch({
 
       {/* Search Button */}
       <Button
-        onClick={onSearch}
+        onClick={() => onSearch()}
         size="icon-lg"
         className="flex items-center justify-center cursor-pointer shrink-0 ml-1"
       >

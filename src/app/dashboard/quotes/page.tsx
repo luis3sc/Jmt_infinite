@@ -5,8 +5,6 @@ import { FileText, AlertCircle } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import AuthButton from '@/components/layout/AuthButton'
 import { QuotesList } from '@/components/dashboard/QuotesList'
-import { BackButton } from '@/components/ui/BackButton'
-import { DashboardNav } from '@/components/dashboard/DashboardNav'
 
 export default async function QuotesPage() {
  const supabase = createClient()
@@ -41,9 +39,6 @@ export default async function QuotesPage() {
 
    <div className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 pt-20 md:pt-24">
 
-    {/* Back */}
-    <BackButton href="/dashboard" label="Volver" variant="small" className="mb-10" />
-
     {/* Header */}
     <header className="mb-10 border-b border-border pb-8">
      <div className="flex items-end justify-between gap-6">
@@ -54,14 +49,12 @@ export default async function QuotesPage() {
        </h1>
       </div>
       {quotes && quotes.length > 0 && (
-       <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest hidden md:block">
+       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest hidden md:block">
         {quotes.length} {quotes.length === 1 ? 'cotización' : 'cotizaciones'}
        </p>
       )}
      </div>
     </header>
-
-    <DashboardNav />
 
     {error ? (
      <div className="p-10 rounded-lg bg-red-50 border border-red-200 text-center">
