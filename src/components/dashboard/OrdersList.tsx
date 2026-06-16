@@ -5,10 +5,11 @@ import Link from 'next/link'
 import {
   Search, Upload, AlertCircle, CheckCircle2,
   Clock, XCircle, Info, ExternalLink, FileText,
-  MapPin, ChevronDown, ChevronUp, Calendar
+  MapPin, ChevronDown, ChevronUp, Calendar, Eye, X
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { OrderTrackingStepper, type OrderStatus } from '@/components/ui/OrderTrackingStepper'
+import { Dialog } from '@/components/ui/Dialog'
 
 interface OrdersListProps {
   initialOrders: any[]
@@ -38,6 +39,8 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('ALL')
   const [expanded, setExpanded] = useState<string[]>([])
+  const [selectedEvidenceOrder, setSelectedEvidenceOrder] = useState<any | null>(null)
+  const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null)
 
   const toggle = (id: string) =>
     setExpanded(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -187,18 +190,23 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
 
                         {/* Bookings table */}
                         <div>
-                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Detalle de pantallas</p>
-                          <div className="space-y-1.5">
-                            {order.bookings?.map((b: any) => (
-                              <div key={b.id} className="grid grid-cols-3 gap-3 py-2.5 px-3 rounded-lg bg-card border border-border text-xs">
-                                <div className="flex items-center gap-2">
-                                  <MapPin size={11} className="text-muted-foreground shrink-0" />
-                                  <span className="font-bold text-foreground">{b.panels?.panel_code}</span>
+                          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3"></p>
+                          <div className="space-y-2">
+                            {order.bookings?.map((b: any) => {
+                              const bookingEvidences = order.evidence_urls?.filter((url: string) => url.includes(`booking_${b.id}`)) || []
+                              return (
+                                <div key={b.id} className="rounded-lg bg-card border border-border overflow-hidden">
+                                  <div className="grid grid-cols-3 gap-3 py-2.5 px-3 text-xs">
+                                    <div className="flex items-center gap-2">
+                                      <MapPin size={11} className="text-muted-foreground shrink-0" />
+                                      <span className="font-bold text-foreground">{b.panels?.panel_code}</span>
+                                    </div>
+                                    <p className="text-muted-foreground truncate font-medium">{b.panels?.structures?.district}</p>
+                                    <p className="text-right font-black text-foreground">S/ {b.amount?.toLocaleString()}</p>
+                                  </div>
                                 </div>
-                                <p className="text-muted-foreground truncate font-medium">{b.panels?.structures?.district}</p>
-                                <p className="text-right font-black text-foreground">S/ {b.amount?.toLocaleString()}</p>
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         </div>
 
@@ -230,18 +238,32 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                               Corregir Foto o Video
                             </Link>
                           )}
-                          {(order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
+                          {order.evidence_urls && order.evidence_urls.length > 0 ? (
                             <Link
-                              href={`/order-success/${order.id}`}
+                              href={`/dashboard/orders/${order.id}/resumen`}
                               className={cn(
                                 buttonVariants.default,
                                 buttonSizes.lg,
                                 "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
                               )}
                             >
-                              <ExternalLink size={13} />
-                              Ver mi Anuncio
+                              <Eye size={13} />
+                              Ver Resumen de Campaña
                             </Link>
+                          ) : (
+                            (order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
+                              <Link
+                                href={`/order-success/${order.id}`}
+                                className={cn(
+                                  buttonVariants.default,
+                                  buttonSizes.lg,
+                                  "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                )}
+                              >
+                                <ExternalLink size={13} />
+                                Ver mi Anuncio
+                              </Link>
+                            )
                           )}
                           <Link
                             href={`/dashboard/orders/${order.id}/nota`}
@@ -280,6 +302,106 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
           )}
         </AnimatePresence>
       </div>
+
+      {/* EVIDENCE PREVIEW DIALOG */}
+      <Dialog
+        isOpen={!!selectedEvidenceOrder}
+        onClose={() => {
+          setSelectedEvidenceOrder(null);
+          setActivePreviewUrl(null);
+        }}
+        title="Evidencia de Instalación"
+        description={`Imágenes de verificación para el pedido #${selectedEvidenceOrder?.id.slice(0, 8).toUpperCase()}`}
+        className="max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+        variant="default"
+      >
+        <div className="p-6 space-y-6">
+          <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+            {selectedEvidenceOrder?.bookings?.map((b: any, idx: number) => {
+              const bookingEvidences = selectedEvidenceOrder.evidence_urls?.filter((url: string) => url.includes(`booking_${b.id}`)) || [];
+              return (
+                <div key={b.id} className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <MapPin size={14} className="text-primary" />
+                      <span className="font-mono text-sm font-bold text-foreground">
+                        {b.panels?.panel_code || b.panel_id.slice(0, 8)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded font-medium">
+                        Panel {idx + 1}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground font-semibold">
+                      {b.panels?.structures?.district || '—'}
+                    </span>
+                  </div>
+
+                  {bookingEvidences.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {bookingEvidences.map((url: string, imgIdx: number) => (
+                        <div
+                          key={imgIdx}
+                          onClick={() => setActivePreviewUrl(url)}
+                          className="relative aspect-video rounded-lg overflow-hidden border border-border bg-muted hover:border-primary transition-all cursor-pointer group"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt={`Evidencia Panel ${b.panels?.panel_code || b.panel_id.slice(0, 8)} - ${imgIdx + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Eye size={16} className="text-white" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-muted-foreground/60 italic p-2 bg-muted/40 rounded-lg">
+                      Sin imágenes de evidencia para este panel.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-end pt-4 border-t border-border/40">
+            <Button
+              onClick={() => {
+                setSelectedEvidenceOrder(null);
+                setActivePreviewUrl(null);
+              }}
+              className="font-bold text-xs uppercase tracking-wider px-5 py-2.5"
+            >
+              Cerrar
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* FULLSCREEN LIGHTBOX PREVIEW */}
+      <AnimatePresence>
+        {activePreviewUrl && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 backdrop-blur-md">
+            <button
+              onClick={() => setActivePreviewUrl(null)}
+              className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all z-[310] cursor-pointer"
+              aria-label="Cerrar vista completa"
+            >
+              <X size={20} />
+            </button>
+            <div className="relative max-w-[95vw] max-h-[90vh] p-4 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={activePreviewUrl}
+                alt="Evidencia Fullscreen"
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
+              />
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
