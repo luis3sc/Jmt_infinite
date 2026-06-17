@@ -299,7 +299,7 @@ export default function OrderSuccessPage() {
         const { data } = await supabase
           .from('orders')
           .select(`
-            id, status, video_url, user_id, 
+            id, status, video_url, user_id, rejection_reason,
             profiles(user_type),
             bookings(
               id,
@@ -729,7 +729,8 @@ export default function OrderSuccessPage() {
         return {
           ...prev,
           status: 'VIDEO_SENT',
-          video_url: serverVideoUrl || prev.video_url
+          video_url: serverVideoUrl || prev.video_url,
+          rejection_reason: null
         }
       })
 
@@ -865,7 +866,8 @@ export default function OrderSuccessPage() {
         return {
           ...prev,
           status: 'VIDEO_SENT',
-          video_url: serverVideoUrl || prev.video_url
+          video_url: serverVideoUrl || prev.video_url,
+          rejection_reason: null
         }
       })
 
@@ -1051,8 +1053,22 @@ export default function OrderSuccessPage() {
                   )}
                 </div>
 
-                {/* ── SELECTOR TIPO (solo si order.status === PENDING_UPLOAD) ── */}
-                {order?.status === 'PENDING_UPLOAD' && contentType === 'idle' && (
+                {order?.status === 'REJECTED' && order.rejection_reason && contentType === 'idle' && (
+                  <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 text-xs sm:text-sm font-semibold max-w-2xl mb-6 flex items-start gap-3 shadow-sm relative z-10 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <span className="shrink-0 text-base">⚠️</span>
+                    <div>
+                      <p className="font-extrabold uppercase tracking-wide text-[10px] opacity-90 mb-1">
+                        Contenido observado por el gestor:
+                      </p>
+                      <p className="leading-relaxed font-medium">
+                        {order.rejection_reason}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── SELECTOR TIPO (si order.status === PENDING_UPLOAD o REJECTED) ── */}
+                {(order?.status === 'PENDING_UPLOAD' || order?.status === 'REJECTED') && contentType === 'idle' && (
                   <div className="relative z-10">
                     <UploadTypeSelector onSelect={setContentType} userType={userType} />
                   </div>

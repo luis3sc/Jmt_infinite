@@ -128,7 +128,7 @@ async function processMediaBackground(
     // 1. Update order status to PROCESSING
     await adminSupabase
       .from('orders')
-      .update({ status: 'PROCESSING_VIDEO' })
+      .update({ status: 'PROCESSING_VIDEO', rejection_reason: null })
       .eq('id', orderId)
 
     // 2. Create local temp directory
@@ -228,7 +228,7 @@ async function processMediaBackground(
       console.log(`[upload-video-async] All pieces completed. Setting order status to VIDEO_SENT.`)
       await adminSupabase
         .from('orders')
-        .update({ status: 'VIDEO_SENT', video_url: primaryVideoUrl })
+        .update({ status: 'VIDEO_SENT', video_url: primaryVideoUrl, rejection_reason: null })
         .eq('id', orderId)
     }
 
@@ -350,7 +350,7 @@ export async function POST(req: NextRequest) {
         console.log(`[upload-video] Actualizando pedido ${orderId} con status VIDEO_SENT y video: ${primaryVideoUrl}`)
         const { error: orderErr } = await adminSupabase
           .from('orders')
-          .update({ status: 'VIDEO_SENT', video_url: primaryVideoUrl })
+          .update({ status: 'VIDEO_SENT', video_url: primaryVideoUrl, rejection_reason: null })
           .eq('id', orderId)
 
         if (orderErr) throw orderErr

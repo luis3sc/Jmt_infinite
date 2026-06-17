@@ -6,23 +6,23 @@
   --font-sans: var(--font-roboto), Roboto, sans-serif;
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-  
+
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
-  
+
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-  
+
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
-  
+
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
   --color-upload: hsl(var(--upload));
   --color-upload-hover: hsl(var(--upload-hover));
-  
+
   --radius-sm: calc(var(--radius) * 0.25);
   --radius-md: calc(var(--radius) * 0.5);
   --radius-lg: calc(var(--radius) * 0.75);
@@ -78,6 +78,7 @@
     0% {
       background-position: 200% 0;
     }
+
     100% {
       background-position: -200% 0;
     }
@@ -96,14 +97,20 @@
     --muted-foreground: 0 0% 45%;
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 115.2 39.1% 49.6%;
+    --ring: 223 38% 17%;
     --radius: 1rem;
-    --brand-dark: 224 50% 11%;      /* #0e162b */
-    --brand-blue: 223 38% 17%;      /* #1a233a */
-    --card-gradient-from: 217 62% 27%; /* #1a3a6e */
-    --card-gradient-to: 217 65% 15%;   /* #0d1f3c */
-    --upload: 262.1 83.3% 57.8%;      /* #8b5cf6 */
-    --upload-hover: 262.1 83.3% 47.8%;/* darker violet */
+    --brand-dark: 224 50% 11%;
+    /* #0e162b */
+    --brand-blue: 223 38% 17%;
+    /* #1a233a */
+    --card-gradient-from: 217 62% 27%;
+    /* #1a3a6e */
+    --card-gradient-to: 217 65% 15%;
+    /* #0d1f3c */
+    --upload: 262.1 83.3% 57.8%;
+    /* #8b5cf6 */
+    --upload-hover: 262.1 83.3% 47.8%;
+    /* darker violet */
   }
 }
 
@@ -112,6 +119,7 @@
     border-color: hsl(var(--border));
     -webkit-tap-highlight-color: transparent;
   }
+
   body {
     font-family: var(--font-sans);
     background-color: hsl(var(--background));
@@ -121,7 +129,11 @@
     overscroll-behavior-y: none;
   }
 
-  button, a, input, select, textarea {
+  button,
+  a,
+  input,
+  select,
+  textarea {
     touch-action: manipulation;
   }
 
@@ -175,7 +187,8 @@
   width: 100% !important;
   background-color: hsl(var(--card)) !important;
   border: 1px solid hsl(var(--border)) !important;
-  border-radius: 0.75rem !important; /* matches other inputs better */
+  border-radius: 0.75rem !important;
+  /* matches other inputs better */
   transition: all 0.2s ease !important;
   display: flex !important;
   align-items: center !important;
@@ -193,8 +206,10 @@
   border: none !important;
   color: hsl(var(--foreground)) !important;
   font-size: 0.875rem !important;
-  padding: 0.75rem 1rem 0.75rem 0 !important; /* Reduced left padding because flag is there */
-  height: 48px !important; /* matches py-3 roughly */
+  padding: 0.75rem 1rem 0.75rem 0 !important;
+  /* Reduced left padding because flag is there */
+  height: 48px !important;
+  /* matches py-3 roughly */
   outline: none !important;
   font-family: inherit !important;
 }

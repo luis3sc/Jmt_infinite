@@ -160,7 +160,7 @@ export default async function GestorPage() {
         <header className="mb-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Panel de Gestión</p>
+
               <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-foreground leading-none">
                 Revisión de <span className="text-primary">Videos</span>
               </h1>

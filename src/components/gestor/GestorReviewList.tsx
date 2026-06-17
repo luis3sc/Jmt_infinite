@@ -130,7 +130,10 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
       const downloadUrl = `/api/download?url=${encodeURIComponent(videoUrl)}&filename=${encodeURIComponent(fileName)}`
       
       const response = await fetch(downloadUrl)
-      if (!response.ok) throw new Error('Network response was not ok')
+      if (!response.ok) {
+        showToast('El archivo de video no se encuentra disponible (404) o no se pudo descargar.', false)
+        return
+      }
       
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
@@ -149,11 +152,7 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
       showToast('✓ Descarga iniciada.', true)
     } catch (err) {
       console.error('Error downloading video:', err)
-      const link = document.createElement('a')
-      link.href = videoUrl
-      link.target = '_blank'
-      link.download = `jmt-video-${orderId.slice(0, 8)}.mp4`
-      link.click()
+      showToast('Error de red al intentar descargar el video.', false)
     } finally {
       setDownloadingId(null)
     }

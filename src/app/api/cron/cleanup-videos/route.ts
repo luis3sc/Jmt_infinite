@@ -89,9 +89,15 @@ export async function GET(req: NextRequest) {
       const videoUrl = order.video_url
       if (!videoUrl) continue
 
-      // Extraer filename de la URL (ej. https://.../campaign-videos/xyz.mp4 -> xyz.mp4)
-      const filename = videoUrl.split('/').pop()
-      const key = `campaign-videos/${filename}`
+      let key = ''
+      try {
+        const parsedUrl = new URL(videoUrl)
+        key = parsedUrl.pathname.replace(/^\//, '')
+      } catch (e) {
+        // Fallback en caso de que la URL no sea un formato estándar absoluto
+        const filename = videoUrl.split('/').pop()
+        key = `campaign-videos/${filename}`
+      }
 
       if (dryRun) {
         results.push({ orderId: order.id, action: 'Would delete', key })

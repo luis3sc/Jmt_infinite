@@ -49,7 +49,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
   const [rejectOpen, setRejectOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [loading, setLoading] = useState<'approve' | 'reject' | 'download' | 'mark_sent' | 'upload_evidence' | null>(null)
-  
+
   // Dynamic video metadata analyzer
   const [videoMeta, setVideoMeta] = useState<{ width: number; height: number; duration: number } | null>(null)
   const [videoError, setVideoError] = useState<string | null>(null)
@@ -104,13 +104,13 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
     try {
       const publicUrls: string[] = []
       const publicBase = process.env.NEXT_PUBLIC_R2_PUBLIC_URL?.replace(/\/$/, '') || 'https://pub-5718acf26ed541c08ba6bc9fe7255402.r2.dev'
-      
+
       for (const booking of order.bookings) {
         const filesForBooking = evidenceFiles[booking.id] || []
         for (const file of filesForBooking) {
           // Prefix filename with booking ID to match later
           const prefixedName = `booking_${booking.id}_${file.name}`
-          
+
           const res = await fetch('/api/upload-video/presigned-url', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -130,13 +130,13 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
             headers: { 'Content-Type': file.type }
           })
           if (!uploadRes.ok) throw new Error('Error al subir a R2')
-          
+
           publicUrls.push(`${publicBase}/${key}`)
         }
       }
 
       await onUploadEvidence(order.id, publicUrls)
-      
+
       // Revoke urls
       Object.values(evidencePreviews).forEach(previews => {
         previews.forEach(url => URL.revokeObjectURL(url))
@@ -171,32 +171,31 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
       setLoading('download')
       const fileName = `jmt-campaña-${order.id.slice(0, 8)}.mp4`
       const downloadUrl = `/api/download?url=${encodeURIComponent(order.video_url)}&filename=${encodeURIComponent(fileName)}`
-      
+
       const response = await fetch(downloadUrl)
-      if (!response.ok) throw new Error('Network response was not ok')
-      
+      if (!response.ok) {
+        alert('El archivo de video no se encuentra disponible (404) o no se pudo descargar.')
+        return
+      }
+
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.style.display = 'none'
       a.href = url
       a.download = fileName
-      
+
       document.body.appendChild(a)
       a.click()
-      
+
       setTimeout(() => {
         window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
       }, 100)
-      
+
     } catch (err) {
       console.error('Error downloading video:', err)
-      const link = document.createElement('a')
-      link.href = order.video_url
-      link.target = '_blank'
-      link.download = `jmt-video-${order.id.slice(0, 8)}.mp4`
-      link.click()
+      alert('Error de red al intentar descargar el video.')
     } finally {
       setLoading(null)
     }
@@ -254,7 +253,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
                   <h3 className="text-xl font-black uppercase tracking-tight">Video Aprobado</h3>
                   <p className="text-sm text-muted-foreground">Descarga los archivos necesarios o marca la orden como enviada al proveedor.</p>
                 </div>
-                
+
                 <div className="space-y-3">
                   <Button
                     variant="outline"
@@ -263,7 +262,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
                     disabled={loading === 'download'}
                     className="w-full flex items-center justify-center gap-2 font-black uppercase tracking-widest text-[11px]"
                   >
-                    {loading === 'download' ? <Spin /> : <Download size={18} />} 
+                    {loading === 'download' && <Spin />}
                     Descargar Video
                   </Button>
                   <Button
@@ -272,10 +271,9 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
                     onClick={() => window.open(`/dashboard/orders/${order.id}/nota`, '_blank')}
                     className="w-full flex items-center justify-center gap-2 font-black uppercase tracking-widest text-[11px]"
                   >
-                    <FileText size={18} />
                     {order.profile?.document_type === 'RUC' ? 'Ver factura' : 'Ver comprobante'}
                   </Button>
-                  
+
                   <div className="pt-4 border-t border-border mt-4">
                     <Button
                       variant="default"
@@ -284,7 +282,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
                       disabled={!!loading}
                       className="w-full flex items-center justify-center gap-2 font-black uppercase tracking-widest text-[11px]"
                     >
-                      {loading === 'mark_sent' ? <Spin /> : <Send size={18} />}
+                      {loading === 'mark_sent' && <Spin />}
                       Marcar enviado a proveedor
                     </Button>
                   </div>
@@ -295,7 +293,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0 bg-background">
               {/* MAIN SCROLL AREA (Left side on desktop, Full scroll area on mobile) */}
               <div className="flex-1 flex flex-col border-r border-border min-h-0 overflow-y-auto custom-scrollbar">
-                
+
                 {/* MOBILE ONLY: Header and Instructions */}
                 <div className="lg:hidden p-6 pb-0 flex flex-col justify-center space-y-4">
                   <div className="text-center space-y-2">
@@ -335,7 +333,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
                                 {b.panels?.panel_code || b.panel_id.slice(0, 8)}
                               </h4>
                             </div>
-                            
+
                             {hasFiles ? (
                               <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
                                 ✓ Foto cargada ({files.length})
@@ -404,7 +402,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
                         )
                       })()}
                     </div>
-                    
+
                     <Button
                       variant="default"
                       size="lg"
@@ -412,7 +410,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
                       disabled={!!loading || !order.bookings.every(b => (evidenceFiles[b.id]?.length ?? 0) > 0)}
                       className="w-full font-black uppercase tracking-widest text-[10px] sm:text-[11px] flex items-center justify-center gap-2 shadow-lg h-auto px-4 sm:px-8 py-3.5 sm:py-4 animate-in fade-in duration-200"
                     >
-                      {loading === 'upload_evidence' ? <Spin /> : <UploadCloud size={16} />}
+                      {loading === 'upload_evidence' && <Spin />}
                       Guardar Evidencias
                     </Button>
                   </div>
@@ -422,228 +420,226 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
           ) : (
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
 
-            {/* LEFT — Video / Screen preview */}
-            <div className="lg:w-[55%] flex flex-col bg-muted/30 border-r border-border shrink-0">
-              {order.video_url ? (
-                <>
-                  <div className="flex-1 flex items-center justify-center p-4 min-h-0">
-                    <video
-                      controls
-                      onLoadedMetadata={(e) => {
-                        const vid = e.currentTarget
-                        setVideoMeta({
-                          width: vid.videoWidth,
-                          height: vid.videoHeight,
-                          duration: Math.round(vid.duration)
-                        })
-                        setVideoError(null)
-                      }}
-                      onError={() => {
-                        setVideoError('Error al cargar video (404 / no encontrado en R2)')
-                      }}
-                      className="max-w-full max-h-full rounded-xl border border-border bg-black object-contain shadow-sm"
-                      src={order.video_url}
-                    >Tu navegador no soporta video.</video>
+              {/* LEFT — Video / Screen preview */}
+              <div className="lg:w-[55%] flex flex-col bg-muted/30 border-r border-border shrink-0">
+                {order.video_url ? (
+                  <>
+                    <div className="flex-1 flex items-center justify-center p-4 min-h-0">
+                      <video
+                        controls
+                        onLoadedMetadata={(e) => {
+                          const vid = e.currentTarget
+                          setVideoMeta({
+                            width: vid.videoWidth,
+                            height: vid.videoHeight,
+                            duration: Math.round(vid.duration)
+                          })
+                          setVideoError(null)
+                        }}
+                        onError={() => {
+                          setVideoError('Error al cargar video (404 / no encontrado en R2)')
+                        }}
+                        className="max-w-full max-h-full rounded-xl border border-border bg-black object-contain shadow-sm"
+                        src={order.video_url}
+                      >Tu navegador no soporta video.</video>
+                    </div>
+                    {/* Video actions */}
+                    {!isPending && (
+                      <div className="flex items-center gap-3 px-5 py-4 border-t border-border shrink-0 bg-card">
+                        <Button
+                          variant="outline"
+                          onClick={handleDownload}
+                          disabled={loading === 'download'}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto shadow-sm"
+                        >
+                          {loading === 'download' && <Spin />}
+                          Descargar Video
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => window.open(`/dashboard/orders/${order.id}/nota`, '_blank')}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto shadow-sm"
+                        >
+                          {order.profile?.document_type === 'RUC' ? 'Ver factura' : 'Ver comprobante'}
+                        </Button>
+                        <Button
+                          onClick={handleShare}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto shadow-[0_4px_12px_-2px_rgba(37,99,235,0.25)] ml-auto"
+                        >
+                          Compartir
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-8">
+                    <UploadCloud size={40} className="text-muted-foreground" strokeWidth={1} />
+                    <p className="text-sm font-bold text-muted-foreground">Sin video todavía</p>
+                    <p className="text-xs text-muted-foreground/80">El cliente aún no ha subido su material de campaña.</p>
                   </div>
-                  {/* Video actions */}
-                  {!isPending && (
-                    <div className="flex items-center gap-3 px-5 py-4 border-t border-border shrink-0 bg-card">
-                      <Button
-                        variant="outline"
-                        onClick={handleDownload}
-                        disabled={loading === 'download'}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto shadow-sm"
-                      >
-                        {loading === 'download' ? <Spin /> : <Download size={13} />} 
-                        Descargar Video
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => window.open(`/dashboard/orders/${order.id}/nota`, '_blank')}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto shadow-sm"
-                      >
-                        <FileText size={13} />
-                        {order.profile?.document_type === 'RUC' ? 'Ver factura' : 'Ver comprobante'}
-                      </Button>
-                      <Button
-                        onClick={handleShare}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto shadow-[0_4px_12px_-2px_rgba(37,99,235,0.25)] ml-auto"
-                      >
-                        <Share2 size={13} /> Compartir
-                      </Button>
+                )}
+              </div>
+
+              {/* RIGHT — Scrollable details & Action board */}
+              <div className="lg:w-[45%] flex flex-col bg-background min-h-0">
+                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+
+                  {/* Rejected reason */}
+                  {isRejected && order.rejection_reason && (
+                    <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 space-y-1">
+                      <p className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest">Motivo de rechazo</p>
+                      <p className="text-sm text-foreground font-medium">{order.rejection_reason}</p>
                     </div>
                   )}
-                </>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-8">
-                  <UploadCloud size={40} className="text-muted-foreground" strokeWidth={1} />
-                  <p className="text-sm font-bold text-muted-foreground">Sin video todavía</p>
-                  <p className="text-xs text-muted-foreground/80">El cliente aún no ha subido su material de campaña.</p>
+
+                  {/* Client contact details */}
+                  <section>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Datos del cliente</p>
+                    <div className="rounded-xl bg-muted/30 border border-border divide-y divide-border/60">
+                      <Row icon={<User size={13} />} label="Nombre" value={order.profile?.full_name || '—'} />
+                      {order.profile?.company_name && <Row icon={<Building2 size={13} />} label="Empresa" value={order.profile.company_name} />}
+                      <Row
+                        icon={<Mail size={13} />} label="Correo"
+                        value={<a href={`mailto:${order.profile?.email}`} className="text-primary hover:underline">{order.profile?.email || '—'}</a>}
+                      />
+                      <Row
+                        icon={<Phone size={13} />} label="Teléfono"
+                        value={order.profile?.phone
+                          ? <a href={`tel:${order.profile.phone}`} className="text-primary hover:underline">{order.profile.phone}</a>
+                          : <span className="text-muted-foreground">Sin teléfono</span>
+                        }
+                      />
+                    </div>
+                  </section>
+
+                  {/* Bookings / Panel details */}
+                  {order.bookings?.map((b, i) => (
+                    <section key={b.id}>
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Monitor size={11} className="text-primary" /> Pantalla {order.bookings.length > 1 ? i + 1 : ''}
+                      </p>
+                      <div className="rounded-xl bg-muted/30 border border-border divide-y divide-border/60">
+                        <Row icon={<span className="text-[10px] font-mono">#</span>} label="Código panel" value={b.panels?.panel_code || b.panel_id.slice(0, 8)} />
+                        <Row icon={<Calendar size={13} />} label="Período"
+                          value={`${fmt(b.start_date)} → ${fmt(b.end_date)}`}
+                        />
+                      </div>
+
+                      {/* Structure location */}
+                      {b.panels?.structures && (
+                        <div className="mt-2 rounded-xl bg-muted/30 border border-border divide-y divide-border/60">
+                          {b.panels.structures.latitude && (
+                            <Row
+                              icon={<MapPin size={13} />} label="Coordenadas"
+                              value={
+                                <a
+                                  href={`https://maps.google.com/?q=${b.panels.structures.latitude},${b.panels.structures.longitude}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="text-primary hover:underline text-xs"
+                                >
+                                  {b.panels.structures.latitude.toFixed(5)}, {b.panels.structures.longitude?.toFixed(5)}
+                                </a>
+                              }
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center mt-2 px-1 pb-2 border-b border-border/50">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Monto</span>
+                        <span className="text-sm font-black text-primary">S/ {Number(b.amount).toLocaleString('es-PE')}</span>
+                      </div>
+
+                      {/* Panel-specific Evidence Display */}
+                      {isConfirmed && (
+                        <div className="mt-3 space-y-2">
+                          <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Foto de Evidencia</p>
+                          {(() => {
+                            const bookingEvidences = order.evidence_urls?.filter(url => url.includes(`booking_${b.id}`)) || []
+                            if (bookingEvidences.length > 0) {
+                              return (
+                                <div className="grid grid-cols-2 gap-2">
+                                  {bookingEvidences.map((url, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="relative aspect-video rounded-lg overflow-hidden border border-border bg-muted hover:border-primary transition-all group"
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={url} alt={`Evidencia Panel ${b.panels?.panel_code || b.panel_id.slice(0, 8)} - ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300" />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <ExternalLink size={14} className="text-white" />
+                                      </div>
+                                    </a>
+                                  ))}
+                                </div>
+                              )
+                            }
+                            return (
+                              <div className="text-[10px] text-muted-foreground/60 italic">Sin imágenes de evidencia para este panel.</div>
+                            )
+                          })()}
+                        </div>
+                      )}
+                    </section>
+                  ))}
+
+                  {/* Total */}
+                  <div className="flex items-center justify-between py-4 border-t border-border mt-auto">
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total orden</span>
+                    <span className="text-2xl font-black text-foreground">S/ {Number(order.total_amount).toLocaleString('es-PE', { minimumFractionDigits: 0 })}</span>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* RIGHT — Scrollable details & Action board */}
-            <div className="lg:w-[45%] flex flex-col bg-background min-h-0">
-              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-
-                {/* Rejected reason */}
-                {isRejected && order.rejection_reason && (
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 space-y-1">
-                    <p className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest">Motivo de rechazo</p>
-                    <p className="text-sm text-foreground font-medium">{order.rejection_reason}</p>
+                {/* ── STATIC ACTION BAR (DIFERENCIADA POR ESTADO) ── */}
+                {isPending && order.video_url && (
+                  <div className="px-4 sm:px-5 py-4 sm:py-5 border-t border-border bg-card shrink-0 flex flex-row gap-3 sm:gap-4 sticky bottom-0 z-10">
+                    <Button
+                      onClick={handleApprove}
+                      disabled={!!loading}
+                      variant="default"
+                      size="lg"
+                      className="flex-grow sm:flex-1 font-black uppercase tracking-widest text-[11px] shadow-lg flex items-center justify-center gap-2"
+                    >
+                      <span>Aprobar Video</span>
+                    </Button>
+                    <Button
+                      onClick={() => setRejectOpen(true)}
+                      disabled={!!loading}
+                      variant="destructive"
+                      size="lg"
+                      className=" sm:px-fluid-lg  font-black uppercase tracking-widest text-[11px] shadow-sm flex items-center justify-center gap-2 shrink-0"
+                    >
+                      <span className="sm:inline">Rechazar</span>
+                    </Button>
                   </div>
                 )}
 
-                {/* Client contact details */}
-                <section>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">Datos del cliente</p>
-                  <div className="rounded-xl bg-muted/30 border border-border divide-y divide-border/60">
-                    <Row icon={<User size={13} />} label="Nombre" value={order.profile?.full_name || '—'} />
-                    {order.profile?.company_name && <Row icon={<Building2 size={13} />} label="Empresa" value={order.profile.company_name} />}
-                    <Row
-                      icon={<Mail size={13} />} label="Correo"
-                      value={<a href={`mailto:${order.profile?.email}`} className="text-primary hover:underline">{order.profile?.email || '—'}</a>}
-                    />
-                    <Row
-                      icon={<Phone size={13} />} label="Teléfono"
-                      value={order.profile?.phone
-                        ? <a href={`tel:${order.profile.phone}`} className="text-primary hover:underline">{order.profile.phone}</a>
-                        : <span className="text-muted-foreground">Sin teléfono</span>
-                      }
-                    />
-                  </div>
-                </section>
-
-                {/* Bookings / Panel details */}
-                {order.bookings?.map((b, i) => (
-                  <section key={b.id}>
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <Monitor size={11} className="text-primary" /> Pantalla {order.bookings.length > 1 ? i + 1 : ''}
+                {isConfirmed && (
+                  <div className="px-5 py-4 border-t border-border bg-muted/30 shrink-0 text-center">
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
+                      <CheckCircle2 size={14} /> Campaña completada y activa
                     </p>
-                    <div className="rounded-xl bg-muted/30 border border-border divide-y divide-border/60">
-                      <Row icon={<span className="text-[10px] font-mono">#</span>} label="Código panel" value={b.panels?.panel_code || b.panel_id.slice(0, 8)} />
-                      <Row icon={<Calendar size={13} />} label="Período"
-                        value={`${fmt(b.start_date)} → ${fmt(b.end_date)}`}
-                      />
-                    </div>
+                  </div>
+                )}
 
-                    {/* Structure location */}
-                    {b.panels?.structures && (
-                      <div className="mt-2 rounded-xl bg-muted/30 border border-border divide-y divide-border/60">
-                        {b.panels.structures.latitude && (
-                          <Row
-                            icon={<MapPin size={13} />} label="Coordenadas"
-                            value={
-                              <a
-                                href={`https://maps.google.com/?q=${b.panels.structures.latitude},${b.panels.structures.longitude}`}
-                                target="_blank" rel="noopener noreferrer"
-                                className="text-primary hover:underline text-xs"
-                              >
-                                {b.panels.structures.latitude.toFixed(5)}, {b.panels.structures.longitude?.toFixed(5)}
-                              </a>
-                            }
-                          />
-                        )}
-                      </div>
-                    )}
+                {isRejected && (
+                  <div className="px-5 py-4 border-t border-border bg-muted/30 shrink-0 text-center">
+                    <p className="text-xs text-red-600 dark:text-red-400 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
+                      <XCircle size={14} /> Esperando que el cliente re-suba el material
+                    </p>
+                  </div>
+                )}
 
-                    <div className="flex justify-between items-center mt-2 px-1 pb-2 border-b border-border/50">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Monto</span>
-                      <span className="text-sm font-black text-primary">S/ {Number(b.amount).toLocaleString('es-PE')}</span>
-                    </div>
-
-                    {/* Panel-specific Evidence Display */}
-                    {isConfirmed && (
-                      <div className="mt-3 space-y-2">
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Foto de Evidencia</p>
-                        {(() => {
-                          const bookingEvidences = order.evidence_urls?.filter(url => url.includes(`booking_${b.id}`)) || []
-                          if (bookingEvidences.length > 0) {
-                            return (
-                              <div className="grid grid-cols-2 gap-2">
-                                {bookingEvidences.map((url, idx) => (
-                                  <a
-                                    key={idx}
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="relative aspect-video rounded-lg overflow-hidden border border-border bg-muted hover:border-primary transition-all group"
-                                  >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={url} alt={`Evidencia Panel ${b.panels?.panel_code || b.panel_id.slice(0, 8)} - ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300" />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                      <ExternalLink size={14} className="text-white" />
-                                    </div>
-                                  </a>
-                                ))}
-                              </div>
-                            )
-                          }
-                          return (
-                            <div className="text-[10px] text-muted-foreground/60 italic">Sin imágenes de evidencia para este panel.</div>
-                          )
-                        })()}
-                      </div>
-                    )}
-                  </section>
-                ))}
-
-                {/* Total */}
-                <div className="flex items-center justify-between py-4 border-t border-border mt-auto">
-                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total orden</span>
-                  <span className="text-2xl font-black text-foreground">S/ {Number(order.total_amount).toLocaleString('es-PE', { minimumFractionDigits: 0 })}</span>
-                </div>
+                {order.status === 'PENDING_UPLOAD' && (
+                  <div className="px-5 py-4 border-t border-border bg-muted/30 shrink-0 text-center">
+                    <p className="text-xs text-muted-foreground">Campaña pendiente de material del cliente.</p>
+                  </div>
+                )}
               </div>
-
-              {/* ── STATIC ACTION BAR (DIFERENCIADA POR ESTADO) ── */}
-              {isPending && order.video_url && (
-                <div className="px-4 sm:px-5 py-4 sm:py-5 border-t border-border bg-card shrink-0 flex flex-col sm:flex-row gap-3 sm:gap-4 sticky bottom-0 z-10">
-                  <Button
-                    onClick={handleApprove}
-                    disabled={!!loading}
-                    variant="default"
-                    size="lg"
-                    className="flex-1 font-black uppercase tracking-widest text-[11px] shadow-lg flex items-center justify-center gap-2"
-                  >
-                    {loading === 'approve' ? <Spin /> : <CheckCircle2 size={16} />}
-                    Aprobar Video
-                  </Button>
-                  <Button
-                    onClick={() => setRejectOpen(true)}
-                    disabled={!!loading}
-                    variant="destructive"
-                    size="lg"
-                    className="flex-1 font-black uppercase tracking-widest text-[11px] shadow-sm flex items-center justify-center gap-2"
-                  >
-                    <XCircle size={16} /> Rechazar
-                  </Button>
-                </div>
-              )}
-
-              {isConfirmed && (
-                <div className="px-5 py-4 border-t border-border bg-muted/30 shrink-0 text-center">
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
-                    <CheckCircle2 size={14} /> Campaña completada y activa
-                  </p>
-                </div>
-              )}
-
-              {isRejected && (
-                <div className="px-5 py-4 border-t border-border bg-muted/30 shrink-0 text-center">
-                  <p className="text-xs text-red-600 dark:text-red-400 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
-                    <XCircle size={14} /> Esperando que el cliente re-suba el material
-                  </p>
-                </div>
-              )}
-
-              {order.status === 'PENDING_UPLOAD' && (
-                <div className="px-5 py-4 border-t border-border bg-muted/30 shrink-0 text-center">
-                  <p className="text-xs text-muted-foreground">Campaña pendiente de material del cliente.</p>
-                </div>
-              )}
             </div>
-          </div>
           )}
         </div>
       </motion.div>
@@ -685,7 +681,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
                 variant="destructive"
                 className="flex-1 py-3 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {loading === 'reject' ? <Spin /> : <XCircle size={14} />} Confirmar
+                {loading === 'reject' && <Spin />} Confirmar
               </Button>
             </div>
           </motion.div>
@@ -739,9 +735,8 @@ function PanelUploadZone({ bookingId, files, previews, onFilesChange }: PanelUpl
     <div className="space-y-3">
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer transition-all hover:bg-muted/30 ${
-          isDragActive ? 'border-primary bg-primary/5' : ''
-        }`}
+        className={`border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer transition-all hover:bg-muted/30 ${isDragActive ? 'border-primary bg-primary/5' : ''
+          }`}
       >
         <input {...getInputProps()} />
         <UploadCloud className="mx-auto text-muted-foreground/60 mb-2" size={24} />
