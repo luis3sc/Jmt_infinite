@@ -43,6 +43,7 @@
     "dist",
     "scratch",
     ".gemini",
-    ".antigravity"
+    ".antigravity",
+    "map-worker"
   ]
 }
