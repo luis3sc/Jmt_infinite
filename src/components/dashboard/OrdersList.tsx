@@ -148,10 +148,19 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
       <div className="space-y-2">
         <AnimatePresence mode="popLayout">
           {filtered.length > 0 ? filtered.map((order, i) => {
-            const status = STATUS_CONFIG[order.status] ?? { label: order.status, color: 'text-muted-foreground', dot: 'bg-muted-foreground/40' }
             const isExpanded = expanded.includes(order.id)
 
             const firstBooking = order.bookings?.[0]
+            const endDateObj = firstBooking?.end_date ? new Date(firstBooking.end_date) : null
+            if (endDateObj) {
+              endDateObj.setHours(23, 59, 59, 999)
+            }
+            const isExpired = !['CONFIRMED', 'CANCELLED'].includes(order.status) && endDateObj !== null && endDateObj < new Date()
+
+            const status = isExpired
+              ? { label: 'Vencido (No se activó)', color: 'text-red-500 font-bold', dot: 'bg-red-500' }
+              : (STATUS_CONFIG[order.status] ?? { label: order.status, color: 'text-muted-foreground', dot: 'bg-muted-foreground/40' })
+
             const startDate = firstBooking?.start_date ? new Date(firstBooking.start_date).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : 'N/A'
             const endDate = firstBooking?.end_date ? new Date(firstBooking.end_date).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : 'N/A'
             const durationText = `${startDate} - ${endDate}`
@@ -258,62 +267,71 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
 
                     {/* MOBILE CTAs */}
                     <div className="flex flex-col gap-2 md:hidden cta-button w-full mt-2">
-                      {order.status === 'PENDING_UPLOAD' && (
-                        <Link
-                          href={`/order-success/${order.id}`}
-                          className={cn(
-                            buttonVariants.default,
-                            buttonSizes.lg,
-                            "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-                          )}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Upload size={13} />
-                          Subir Contenido
-                        </Link>
-                      )}
-                      {order.status === 'REJECTED' && (
-                        <Link
-                          href={`/order-success/${order.id}`}
-                          className={cn(
-                            buttonVariants.default,
-                            buttonSizes.lg,
-                            "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-                          )}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <AlertCircle size={13} />
-                          Corregir Foto o Video
-                        </Link>
-                      )}
-                      {order.evidence_urls && order.evidence_urls.length > 0 ? (
-                        <Link
-                          href={`/dashboard/orders/${order.id}/resumen`}
-                          className={cn(
-                            buttonVariants.default,
-                            buttonSizes.lg,
-                            "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-                          )}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Eye size={13} />
-                          Ver Reporte
-                        </Link>
+                      {isExpired ? (
+                        <div className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-500/10 border border-red-500/20 text-red-500">
+                          <XCircle size={13} />
+                          Campaña Vencida
+                        </div>
                       ) : (
-                        (order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
-                          <Link
-                            href={`/order-success/${order.id}`}
-                            className={cn(
-                              buttonVariants.default,
-                              buttonSizes.lg,
-                              "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-                            )}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <ExternalLink size={13} />
-                            Ver mi Anuncio
-                          </Link>
-                        )
+                        <>
+                          {order.status === 'PENDING_UPLOAD' && (
+                            <Link
+                              href={`/order-success/${order.id}`}
+                              className={cn(
+                                buttonVariants.default,
+                                buttonSizes.lg,
+                                "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Upload size={13} />
+                              Subir Contenido
+                            </Link>
+                          )}
+                          {order.status === 'REJECTED' && (
+                            <Link
+                              href={`/order-success/${order.id}`}
+                              className={cn(
+                                buttonVariants.default,
+                                buttonSizes.lg,
+                                "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <AlertCircle size={13} />
+                              Corregir Foto o Video
+                            </Link>
+                          )}
+                          {order.evidence_urls && order.evidence_urls.length > 0 ? (
+                            <Link
+                              href={`/dashboard/orders/${order.id}/resumen`}
+                              className={cn(
+                                buttonVariants.default,
+                                buttonSizes.lg,
+                                "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Eye size={13} />
+                              Ver Reporte
+                            </Link>
+                          ) : (
+                            (order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
+                              <Link
+                                href={`/order-success/${order.id}`}
+                                className={cn(
+                                  buttonVariants.default,
+                                  buttonSizes.lg,
+                                  "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                )}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink size={13} />
+                                Ver mi Anuncio
+                              </Link>
+                            )
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -331,17 +349,28 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                     >
                       <div className="px-4 py-5 space-y-4">
 
-                        {/* Order Tracking Stepper */}
-                        {order.status !== 'CONFIRMED' && (
-                          <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-3">
-                              Seguimiento de tu anuncio
+                        {/* Order Tracking Stepper or Expired Alert */}
+                        {isExpired ? (
+                          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 space-y-1">
+                            <p className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                              <AlertCircle size={14} /> Campaña Caducada
                             </p>
-                            <OrderTrackingStepper
-                              status={order.status as OrderStatus}
-                              layout="auto"
-                            />
+                            <p className="text-xs text-red-500/80">
+                              Esta campaña ha vencido porque no llegó a completarse y activarse dentro de las fechas programadas.
+                            </p>
                           </div>
+                        ) : (
+                          order.status !== 'CONFIRMED' && (
+                            <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                              <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-3">
+                                Seguimiento de tu anuncio
+                              </p>
+                              <OrderTrackingStepper
+                                status={order.status as OrderStatus}
+                                layout="auto"
+                              />
+                            </div>
+                          )
                         )}
 
                         {/* Bookings table */}
@@ -368,58 +397,67 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
 
                         {/* Actions row (HIDDEN ON MOBILE, shown in main row instead) */}
                         <div className="hidden md:flex flex-col sm:flex-row gap-2 pt-1 w-full">
-                          {order.status === 'PENDING_UPLOAD' && (
-                            <Link
-                              href={`/order-success/${order.id}`}
-                              className={cn(
-                                buttonVariants.default,
-                                buttonSizes.lg,
-                                "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-                              )}
-                            >
-                              <Upload size={13} />
-                              Subir Contenido
-                            </Link>
-                          )}
-                          {order.status === 'REJECTED' && (
-                            <Link
-                              href={`/order-success/${order.id}`}
-                              className={cn(
-                                buttonVariants.default,
-                                buttonSizes.lg,
-                                "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-                              )}
-                            >
-                              <AlertCircle size={13} />
-                              Corregir Foto o Video
-                            </Link>
-                          )}
-                          {order.evidence_urls && order.evidence_urls.length > 0 ? (
-                            <Link
-                              href={`/dashboard/orders/${order.id}/resumen`}
-                              className={cn(
-                                buttonVariants.default,
-                                buttonSizes.lg,
-                                "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-                              )}
-                            >
-                              <Eye size={13} />
-                              Ver Reporte
-                            </Link>
+                          {isExpired ? (
+                            <div className="flex-grow sm:flex-grow-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-red-500/10 border border-red-500/20 text-red-500">
+                              <XCircle size={13} />
+                              Campaña Vencida
+                            </div>
                           ) : (
-                            (order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
-                              <Link
-                                href={`/order-success/${order.id}`}
-                                className={cn(
-                                  buttonVariants.default,
-                                  buttonSizes.lg,
-                                  "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
-                                )}
-                              >
-                                <ExternalLink size={13} />
-                                Ver mi Anuncio
-                              </Link>
-                            )
+                            <>
+                              {order.status === 'PENDING_UPLOAD' && (
+                                <Link
+                                  href={`/order-success/${order.id}`}
+                                  className={cn(
+                                    buttonVariants.default,
+                                    buttonSizes.lg,
+                                    "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                  )}
+                                >
+                                  <Upload size={13} />
+                                  Subir Contenido
+                                </Link>
+                              )}
+                              {order.status === 'REJECTED' && (
+                                <Link
+                                  href={`/order-success/${order.id}`}
+                                  className={cn(
+                                    buttonVariants.default,
+                                    buttonSizes.lg,
+                                    "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                  )}
+                                >
+                                  <AlertCircle size={13} />
+                                  Corregir Foto o Video
+                                </Link>
+                              )}
+                              {order.evidence_urls && order.evidence_urls.length > 0 ? (
+                                <Link
+                                  href={`/dashboard/orders/${order.id}/resumen`}
+                                  className={cn(
+                                    buttonVariants.default,
+                                    buttonSizes.lg,
+                                    "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                  )}
+                                >
+                                  <Eye size={13} />
+                                  Ver Reporte
+                                </Link>
+                              ) : (
+                                (order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
+                                  <Link
+                                    href={`/order-success/${order.id}`}
+                                    className={cn(
+                                      buttonVariants.default,
+                                      buttonSizes.lg,
+                                      "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                    )}
+                                  >
+                                    <ExternalLink size={13} />
+                                    Ver mi Anuncio
+                                  </Link>
+                                )
+                              )}
+                            </>
                           )}
                           <Link
                             href={`/dashboard/orders/${order.id}/nota`}

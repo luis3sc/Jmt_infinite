@@ -83,7 +83,8 @@ export default function CheckoutPage() {
           if (profile.document_type) setDocType(profile.document_type)
           if (profile.receipt_type) setReceiptType(profile.receipt_type as 'boleta' | 'factura')
           if (profile.user_type) setUserType(profile.user_type as any)
-          // NO pre-llenar DNI y teléfono por solicitud del usuario
+          if (profile.document_number) setDocNumber(profile.document_number)
+          if (profile.phone) setPhone(profile.phone)
         } else {
           // El perfil no existe en DB (puede haberse eliminado manualmente de 'profiles')
           setProfileExists(false)

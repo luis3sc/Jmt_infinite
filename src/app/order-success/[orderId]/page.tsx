@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { CheckCircle2, Send, Rocket, ShieldCheck, Clock, ArrowLeft, ChevronLeft } from 'lucide-react'
+import { CheckCircle2, Send, Rocket, ShieldCheck, Clock, ArrowLeft, ChevronLeft, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Area } from 'react-easy-crop'
 
@@ -69,12 +69,137 @@ function Spec({ label, val, icon: Icon }: { label: string; val: string; icon: ty
   )
 }
 
+interface ScrollToAcceptModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onAccept: () => void
+  title: string
+  children: React.ReactNode
+}
+
+function ScrollToAcceptModal({
+  isOpen,
+  onClose,
+  onAccept,
+  title,
+  children,
+}: ScrollToAcceptModalProps) {
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // Reset scroll detection state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setHasScrolledToBottom(false)
+      // Check if content fits without scrolling
+      setTimeout(() => {
+        if (contentRef.current) {
+          const { clientHeight, scrollHeight } = contentRef.current
+          // If the scrollable content is shorter than the viewport, they read it immediately
+          if (scrollHeight <= clientHeight + 10) {
+            setHasScrolledToBottom(true)
+          }
+        }
+      }, 100)
+    }
+  }, [isOpen])
+
+  const handleScroll = () => {
+    if (!contentRef.current) return
+    const { scrollTop, clientHeight, scrollHeight } = contentRef.current
+    if (scrollTop + clientHeight >= scrollHeight - 15) {
+      setHasScrolledToBottom(true)
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200]"
+          />
+
+          {/* Modal Container */}
+          <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="pointer-events-auto w-full max-w-lg bg-card border border-border rounded-dialog flex flex-col max-h-[80vh] overflow-hidden shadow-2xl"
+            >
+              {/* Header */}
+              <div className="p-5 border-b border-border flex justify-between items-center bg-muted/20">
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <ShieldCheck className="text-primary w-5 h-5 shrink-0" />
+                  {title}
+                </h3>
+                <button
+                  onClick={onClose}
+                  className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Scrollable Content */}
+              <div
+                ref={contentRef}
+                onScroll={handleScroll}
+                className="p-5 overflow-y-auto flex-1 custom-scrollbar text-sm text-muted-foreground space-y-4 leading-relaxed max-h-[50vh]"
+              >
+                {children}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-border bg-muted/10 flex flex-col gap-2">
+                {!hasScrolledToBottom && (
+                  <p className="text-[11px] text-center text-amber-500 font-semibold animate-pulse">
+                    ⚠️ Por favor, desplázate hasta el final para poder aceptar los términos.
+                  </p>
+                )}
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={onClose}
+                    className="flex-1 font-bold text-xs uppercase tracking-wider border-2"
+                  >
+                    Cerrar
+                  </Button>
+                  <Button
+                    disabled={!hasScrolledToBottom}
+                    onClick={() => {
+                      onAccept()
+                      onClose()
+                    }}
+                    className="flex-1 font-black text-xs uppercase tracking-wider shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Acepto y he leído
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
 interface ConsentCheckboxesProps {
   acceptedTerms: boolean
   setAcceptedTerms: (val: boolean) => void
   acceptedNoLogos: boolean
   setAcceptedNoLogos: (val: boolean) => void
   userType: string
+  onOpenTermsModal: () => void
+  onOpenLogosModal: () => void
 }
 
 function ConsentCheckboxes({
@@ -83,6 +208,8 @@ function ConsentCheckboxes({
   acceptedNoLogos,
   setAcceptedNoLogos,
   userType,
+  onOpenTermsModal,
+  onOpenLogosModal,
 }: ConsentCheckboxesProps) {
   const getLogosLabel = () => {
     switch (userType) {
@@ -110,29 +237,72 @@ function ConsentCheckboxes({
 
   return (
     <div className="py-2 my-2 space-y-4 relative group/consent">
-
+      {/* Primer Checkbox: Normas de uso */}
       <div className="grid grid-cols-[24px_1fr] items-start gap-3 relative z-10">
-        <Checkbox
-          id="terms-check"
-          checked={acceptedTerms}
-          onChange={(e) => setAcceptedTerms(e.target.checked)}
-          className="mt-0.5"
-        />
-        <label htmlFor="terms-check" className="text-xs sm:text-sm text-muted-foreground leading-snug cursor-pointer select-none font-medium">
+        <div 
+          onClick={(e) => {
+            e.preventDefault()
+            if (!acceptedTerms) {
+              onOpenTermsModal()
+            } else {
+              setAcceptedTerms(false)
+            }
+          }}
+          className="mt-0.5 cursor-pointer"
+        >
+          <Checkbox
+            id="terms-check"
+            checked={acceptedTerms}
+            onChange={() => {}}
+            className="pointer-events-none"
+          />
+        </div>
+        <div 
+          onClick={() => {
+            if (!acceptedTerms) {
+              onOpenTermsModal()
+            } else {
+              setAcceptedTerms(false)
+            }
+          }}
+          className="text-xs sm:text-sm text-muted-foreground leading-snug cursor-pointer select-none font-medium"
+        >
           Acepto las <span className="text-primary font-bold hover:underline">normas de uso y condiciones</span> de las pantallas de JMT.*
-        </label>
+        </div>
       </div>
 
+      {/* Segundo Checkbox: Logos / Autoría */}
       <div className="grid grid-cols-[24px_1fr] items-start gap-3 relative z-10">
-        <Checkbox
-          id="logos-check"
-          checked={acceptedNoLogos}
-          onChange={(e) => setAcceptedNoLogos(e.target.checked)}
-          className="mt-0.5"
-        />
-        <label htmlFor="logos-check" className="text-xs sm:text-sm text-muted-foreground leading-snug cursor-pointer select-none font-medium">
+        <div 
+          onClick={(e) => {
+            e.preventDefault()
+            if (!acceptedNoLogos) {
+              onOpenLogosModal()
+            } else {
+              setAcceptedNoLogos(false)
+            }
+          }}
+          className="mt-0.5 cursor-pointer"
+        >
+          <Checkbox
+            id="logos-check"
+            checked={acceptedNoLogos}
+            onChange={() => {}}
+            className="pointer-events-none"
+          />
+        </div>
+        <div 
+          onClick={() => {
+            if (!acceptedNoLogos) {
+              onOpenLogosModal()
+            } else {
+              setAcceptedNoLogos(false)
+            }
+          }}
+          className="text-xs sm:text-sm text-muted-foreground leading-snug cursor-pointer select-none font-medium"
+        >
           {getLogosLabel()}
-        </label>
+        </div>
       </div>
     </div>
   )
@@ -288,6 +458,10 @@ export default function OrderSuccessPage() {
   // Checkboxes de consentimiento obligatorio
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [acceptedNoLogos, setAcceptedNoLogos] = useState(false)
+
+  // Estados para modales de términos y condiciones
+  const [termsModalOpen, setTermsModalOpen] = useState(false)
+  const [logosModalOpen, setLogosModalOpen] = useState(false)
 
   const isUploadingNewRef = useRef(false)
 
@@ -888,8 +1062,120 @@ export default function OrderSuccessPage() {
       setProgress(0)
     }
   }
+  const handleCancel = () => {
+    setContentType('idle')
+    setPhotoStep('drop')
+    setPhotoFile(null)
+    setVideoFile(null)
+    setAcceptedTerms(false)
+    setAcceptedNoLogos(false)
+    if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl)
+    setPhotoObjectUrl(null)
+  }
 
 
+
+  const getLogosModalContent = () => {
+    switch (userType) {
+      case 'entrepreneur':
+        return (
+          <div className="space-y-4 text-justify text-xs md:text-sm">
+            <p className="font-semibold text-foreground">
+              Al subir material publicitario comercial para tu negocio, confirmas la legalidad del material gráfico y aceptas las siguientes condiciones de propiedad intelectual:
+            </p>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground text-emerald-600 dark:text-emerald-500">1. Autoría y Uso de Marca Propia</h4>
+              <p>
+                Garantizas que eres el titular legítimo del nombre comercial, el logotipo y todos los recursos gráficos y fotográficos adjuntos en tu anuncio, o bien cuentas con las licencias correspondientes para su difusión pública comercial.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground text-rose-600 dark:text-rose-400">2. Prohibición de Uso de Marcas de Terceros</h4>
+              <p>
+                Está estrictamente prohibido incluir logotipos, slogans o imagotipos de marcas reconocidas nacionales o internacionales (por ejemplo: Coca-Cola, Nike, Apple, etc.) a menos que seas un distribuidor oficial autorizado y cuentes con el permiso de co-marketing explícito y firmado. El uso indebido causará el rechazo automático de la campaña.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground text-rose-600 dark:text-rose-400">3. Contenido Restringido y Reclamable</h4>
+              <p>
+                No se aprobarán anuncios que promuevan la venta directa de tabaco, bebidas alcohólicas de alta graduación sin las advertencias legales correspondientes, armas de fuego, contenido políticamente sensible, discriminación, violencia explícita o lenguaje vulgar y ofensivo en la vía pública.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground">4. Calidad Visual Mínima</h4>
+              <p>
+                Con el fin de mantener un estándar de calidad premium en nuestras pantallas, los anuncios con imágenes pixeladas, marcas de agua de bancos de fotos de stock no pagadas (como Shutterstock o Freepik), textos superpuestos ilegibles o mala diagramación serán observados y rechazados por calidad visual.
+              </p>
+            </div>
+          </div>
+        )
+      case 'influencer':
+        return (
+          <div className="space-y-4 text-justify text-xs md:text-sm">
+            <p className="font-semibold text-foreground">
+              Como creador de contenido, confirmas la titularidad de tu canal/redes y aceptas las reglas para la promoción en vía pública:
+            </p>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground text-emerald-600 dark:text-emerald-500">1. Promoción de Marca Personal y Redes</h4>
+              <p>
+                Confirmas que el contenido subido (nombres, fotos, videos y logotipos de redes sociales como TikTok, Instagram, YouTube) promueve únicamente tu propia marca personal o canal directo, y no se trata de publicidad encubierta de patrocinadores comerciales no declarados ante JMT.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground text-rose-600 dark:text-rose-400">2. Derechos sobre Recursos de Terceros y Música</h4>
+              <p>
+                No está permitido el uso de fragmentos de video, videoclips, canciones o música con copyright explícito que infrinja los derechos de autor de transmisión pública. Si se detecta un uso indebido de propiedad intelectual ajena, tu anuncio será rechazado.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground text-rose-600 dark:text-rose-400">3. Normas de Conducta y Moderación Vial</h4>
+              <p>
+                Dado que nuestras pantallas se encuentran en avenidas de alto tránsito peatonal y vehicular, las imágenes y videos no deben contener lenguaje inapropiado, gestos vulgares, insinuaciones sexuales, representaciones de violencia o incitación al odio.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground">4. Legibilidad y Códigos QR</h4>
+              <p>
+                Si incluyes códigos QR para invitar a escanear tus redes, estos deben tener el tamaño y contraste suficiente para ser legibles a distancia. Se sugiere no saturar la pantalla con textos demasiado pequeños que puedan generar distracciones viales peligrosas.
+              </p>
+            </div>
+          </div>
+        )
+      case 'individual':
+      default:
+        return (
+          <div className="space-y-4 text-justify text-xs md:text-sm">
+            <p className="font-semibold text-foreground">
+              Al subir tu saludo o material de uso personal, declaras el cumplimiento de las siguientes condiciones:
+            </p>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground text-emerald-600 dark:text-emerald-500">1. Fin Estrictamente Personal</h4>
+              <p>
+                Confirmas que tu foto o video tiene una finalidad no comercial ni lucrativa (ej: felicitación de cumpleaños, saludo de aniversario, dedicatorias familiares o pedidas de mano). No se permite el uso de logotipos de empresas, enlaces de tiendas online o promociones de productos.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground text-rose-600 dark:text-rose-400">2. Derechos de Imagen de Terceros</h4>
+              <p>
+                Aseguras contar con el consentimiento expreso de todas las personas que aparecen en las imágenes o videos subidos, especialmente en el caso de menores de edad. Asumes toda responsabilidad legal si un tercero reclama el uso no autorizado de su imagen.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground text-rose-600 dark:text-rose-400">3. Prohibición de Contenidos Sensibles</h4>
+              <p>
+                No se aprobarán fotos o videos que muestren consumo de alcohol, tabaco, cigarrillos electrónicos, sustancias ilícitas, muestras de violencia, armas, lenguaje inapropiado o bromas pesadas que puedan atentar contra la moral de los transeúntes en la vía pública.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-foreground">4. Propiedad de Archivos Gráficos</h4>
+              <p>
+                Confirmas que las imágenes que subes son fotos tuyas o material adquirido lícitamente. No se admitirá el uso de imágenes protegidas por derechos de autor de terceros (como caricaturas de marcas famosas sin licencia, imágenes comerciales bajadas de internet, etc.).
+              </p>
+            </div>
+          </div>
+        )
+    }
+  }
 
   // ── Render: Loading inicial ───────────────────────────────────────────────
   if (loading) {
@@ -952,7 +1238,7 @@ export default function OrderSuccessPage() {
               exit={{ opacity: 0 }}
               className="w-full flex items-center justify-center min-h-[500px]"
             >
-              <div className="bg-card/40 backdrop-blur-2xl border border-border/50 rounded-lg p-10 md:p-16 max-w-lg w-full  flex flex-col items-center text-center">
+              <div className="p-10 md:p-16 max-w-lg w-full  flex flex-col items-center text-center">
                 <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
                   <motion.div
                     animate={{ rotate: 360 }}
@@ -1021,24 +1307,7 @@ export default function OrderSuccessPage() {
                     </>
                   ) : (
                     <div className="flex items-center gap-2 sm:gap-3">
-                      {/* Botón volver al selector de tipo */}
-                      {(contentType === 'photo' || contentType === 'video') && (
-                        <button
-                          onClick={() => {
-                            setContentType('idle')
-                            setPhotoStep('drop')
-                            setPhotoFile(null)
-                            setVideoFile(null)
-                            setAcceptedTerms(false)
-                            setAcceptedNoLogos(false)
-                            if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl)
-                            setPhotoObjectUrl(null)
-                          }}
-                          className="p-1.5 sm:p-2 rounded-xl bg-muted/50 hover:bg-muted border border-border transition-all"
-                        >
-                          <ChevronLeft size={16} />
-                        </button>
-                      )}
+
                       <div>
                         <h1 className="text-lg sm:text-2xl md:text-3xl font-bold tracking-tight leading-none">
                           {contentType === 'photo'
@@ -1110,14 +1379,16 @@ export default function OrderSuccessPage() {
                           acceptedNoLogos={acceptedNoLogos}
                           setAcceptedNoLogos={setAcceptedNoLogos}
                           userType={userType}
+                          onOpenTermsModal={() => setTermsModalOpen(true)}
+                          onOpenLogosModal={() => setLogosModalOpen(true)}
                         />
 
-                        <div className="pt-2 flex flex-col items-center gap-4">
+                        <div className="pt-2 flex flex-col md:flex-row md:justify-center items-center gap-3 w-full">
                           <Button
                             disabled={!photoFile || !acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
                             size="xl"
-                            className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                            className="w-full md:flex-1 font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                           >
                             <Send size={14} className="mr-2" />
                             <span>
@@ -1127,6 +1398,14 @@ export default function OrderSuccessPage() {
                                   ? 'Marca las casillas de abajo'
                                   : 'Enviar mi anuncio'}
                             </span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={handleCancel}
+                            size="xl"
+                            className="w-full md:flex-1 font-black text-sm border-2"
+                          >
+                            Cancelar
                           </Button>
                         </div>
                       </>
@@ -1152,6 +1431,7 @@ export default function OrderSuccessPage() {
                           previewSrc={croppedPreviewUrl ?? photoObjectUrl ?? ''}
                           selectedFrameId={selectedFrame.id}
                           onSelectFrame={setSelectedFrame}
+                          onEditCrop={() => setPhotoStep('crop')}
                         />
 
                         <ConsentCheckboxes
@@ -1160,14 +1440,16 @@ export default function OrderSuccessPage() {
                           acceptedNoLogos={acceptedNoLogos}
                           setAcceptedNoLogos={setAcceptedNoLogos}
                           userType={userType}
+                          onOpenTermsModal={() => setTermsModalOpen(true)}
+                          onOpenLogosModal={() => setLogosModalOpen(true)}
                         />
 
-                        <div className="pt-2 flex flex-col items-center gap-4">
+                        <div className="pt-2 flex flex-col md:flex-row md:justify-center items-center gap-3 w-full">
                           <Button
                             disabled={!acceptedTerms || !acceptedNoLogos}
                             onClick={handlePhotoUpload}
                             size="xl"
-                            className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                            className="w-full md:flex-1 font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                           >
                             <Send size={14} className="mr-2" />
                             <span>
@@ -1177,11 +1459,12 @@ export default function OrderSuccessPage() {
                             </span>
                           </Button>
                           <Button
-                            variant="link"
-                            onClick={() => setPhotoStep('crop')}
-                            className="text-xs font-bold text-muted-foreground hover:text-foreground py-2 px-1 h-auto w-full sm:w-auto text-center"
+                            variant="outline"
+                            onClick={handleCancel}
+                            size="xl"
+                            className="w-full md:flex-1 font-black text-sm border-2"
                           >
-                            ← Volver al recorte
+                            Cancelar
                           </Button>
                         </div>
                       </>
@@ -1221,14 +1504,16 @@ export default function OrderSuccessPage() {
                       acceptedNoLogos={acceptedNoLogos}
                       setAcceptedNoLogos={setAcceptedNoLogos}
                       userType={userType}
+                      onOpenTermsModal={() => setTermsModalOpen(true)}
+                      onOpenLogosModal={() => setLogosModalOpen(true)}
                     />
 
-                    <div className="pt-2 flex flex-col items-center gap-4">
+                    <div className="pt-2 flex flex-col md:flex-row md:justify-center items-center gap-3 w-full">
                       <Button
                         disabled={!videoFile || !acceptedTerms || !acceptedNoLogos}
                         onClick={handleVideoUpload}
                         size="xl"
-                        className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
+                        className="w-full md:flex-1 font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)]"
                       >
                         <Send size={14} className="mr-2" />
                         <span>
@@ -1239,6 +1524,14 @@ export default function OrderSuccessPage() {
                               : 'Enviar mi anuncio'}
                         </span>
                       </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleCancel}
+                        size="xl"
+                        className="w-full md:flex-1 font-black text-sm border-2"
+                      >
+                        Cancelar
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1248,6 +1541,59 @@ export default function OrderSuccessPage() {
 
         </AnimatePresence>
       </div>
+
+      {/* Modales de Consentimiento y Términos */}
+      <ScrollToAcceptModal
+        isOpen={termsModalOpen}
+        onClose={() => setTermsModalOpen(false)}
+        onAccept={() => setAcceptedTerms(true)}
+        title="Normas de uso y condiciones de JMT"
+      >
+        <div className="space-y-4 text-justify">
+          <p className="font-semibold text-foreground">
+            Bienvenido al servicio de publicación en las pantallas digitales de JMT. Antes de subir tu anuncio, debes aceptar nuestras normas de uso descritas a continuación:
+          </p>
+          <div className="space-y-2">
+            <h4 className="font-bold text-foreground">1. Horarios y Frecuencia de Transmisión</h4>
+            <p>
+              La transmisión de tu anuncio se realiza de manera rotativa e ininterrumpida dentro del horario operativo especificado para la pantalla seleccionada. El tiempo mínimo de duración de cada spot es de {panelDetails?.slotDurationSeconds || 7} segundos, reproduciéndose en un bucle dinámico junto a las otras campañas activas.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h4 className="font-bold text-foreground">2. Proceso de Moderación y Aprobación</h4>
+            <p>
+              Todo el material subido es evaluado por nuestro equipo de moderación en un plazo máximo de 24 horas. Nos reservamos el derecho de rechazar anuncios que no cumplan con los estándares técnicos (resolución, formato) o de contenido requeridos.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h4 className="font-bold text-foreground">3. Cumplimiento de Normas Técnicas</h4>
+            <p>
+              Es responsabilidad del usuario asegurarse de que las imágenes y videos cargados coincidan con las dimensiones exactas de la pantalla contratada (Resolución recomendada: {panelDetails?.resolutionWidth || 1280}x{panelDetails?.resolutionHeight || 720} píxeles). El sistema intentará transcodificar o centrar el archivo de forma automática, pero variaciones extremas en el formato original pueden causar recortes visuales o distorsiones.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h4 className="font-bold text-foreground">4. Modificaciones y Reprogramación</h4>
+            <p>
+              Si un anuncio es observado/rechazado por nuestro equipo de calidad, se te notificará el motivo por correo y/o panel de usuario, permitiéndote volver a subir un material corregido para no perder tu reserva.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h4 className="font-bold text-foreground">5. Responsabilidad Civil y Legal</h4>
+            <p>
+              JMT opera únicamente como medio de difusión digital de terceros. El usuario anunciante asume plena responsabilidad frente a cualquier reclamación de terceros derivada del diseño, las afirmaciones de ventas, las ofertas públicas o el impacto visual del anuncio expuesto.
+            </p>
+          </div>
+        </div>
+      </ScrollToAcceptModal>
+
+      <ScrollToAcceptModal
+        isOpen={logosModalOpen}
+        onClose={() => setLogosModalOpen(false)}
+        onAccept={() => setAcceptedNoLogos(true)}
+        title="Autoría de material y reglas de rechazo"
+      >
+        {getLogosModalContent()}
+      </ScrollToAcceptModal>
     </main>
   )
 }

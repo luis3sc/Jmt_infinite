@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Crop } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 
@@ -23,9 +23,10 @@ interface FrameSelectorProps {
   previewSrc: string
   selectedFrameId: string
   onSelectFrame: (frame: Frame) => void
+  onEditCrop?: () => void
 }
 
-export function FrameSelector({ previewSrc, selectedFrameId, onSelectFrame }: FrameSelectorProps) {
+export function FrameSelector({ previewSrc, selectedFrameId, onSelectFrame, onEditCrop }: FrameSelectorProps) {
   const selectedFrame = AVAILABLE_FRAMES.find((f) => f.id === selectedFrameId) ?? AVAILABLE_FRAMES[0]
 
   return (
@@ -54,10 +55,19 @@ export function FrameSelector({ previewSrc, selectedFrameId, onSelectFrame }: Fr
             className="object-cover"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-        <div className="absolute bottom-2 right-2 text-[9px] font-bold uppercase tracking-widest bg-black/60 text-white px-2 py-0.5 rounded-full">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+        <div className="absolute bottom-2 right-2 text-[9px] font-bold uppercase tracking-widest bg-black/60 text-white px-2 py-0.5 rounded-full pointer-events-none">
           Previsualización
         </div>
+        {onEditCrop && (
+          <button
+            onClick={onEditCrop}
+            className="absolute top-2 right-2 p-2 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors z-10 backdrop-blur-sm"
+            title="Volver al recorte"
+          >
+            <Crop size={16} />
+          </button>
+        )}
       </div>
 
       {/* Carrusel de miniaturas */}

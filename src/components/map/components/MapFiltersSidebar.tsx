@@ -71,6 +71,19 @@ export default function MapFiltersSidebar({
       : { opacity: 0, y: 30, scale: 0.95, transition: { duration: 0.2 } }
   };
 
+  const priceMaxIndex = priceSteps.length > 0 ? priceSteps.length - 1 : 1;
+  const priceCurrentIndex = filters.maxPrice
+    ? priceSteps.findIndex((p) => p >= filters.maxPrice!) !== -1
+      ? priceSteps.findIndex((p) => p >= filters.maxPrice!)
+      : priceMaxIndex
+    : priceMaxIndex;
+  const pricePercentage = (priceCurrentIndex / priceMaxIndex) * 100;
+
+  const poiMin = 100;
+  const poiMax = 500;
+  const poiCurrent = filters.poi?.maxDistance || 300;
+  const poiPercentage = ((poiCurrent - poiMin) / (poiMax - poiMin)) * 100;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -156,24 +169,23 @@ export default function MapFiltersSidebar({
                         <input
                           type="range"
                           min={0}
-                          max={priceSteps.length - 1}
+                          max={priceMaxIndex}
                           step={1}
-                          value={
-                            filters.maxPrice
-                              ? priceSteps.findIndex((p) => p >= filters.maxPrice!) !== -1
-                                ? priceSteps.findIndex((p) => p >= filters.maxPrice!)
-                                : priceSteps.length - 1
-                              : priceSteps.length - 1
-                          }
+                          value={priceCurrentIndex}
                           onChange={(e) => {
                             const val = priceSteps[Number(e.target.value)];
                             setFilters({
                               ...filters,
                               minPrice: null, // we only use max price for slider
-                              maxPrice: Number(e.target.value) === priceSteps.length - 1 ? null : val,
+                              maxPrice: Number(e.target.value) === priceMaxIndex ? null : val,
                             });
                           }}
                           className="w-full accent-primary bg-muted rounded-lg h-2 cursor-pointer appearance-none"
+                          style={{
+                            backgroundImage: 'linear-gradient(hsl(var(--primary)), hsl(var(--primary)))',
+                            backgroundSize: `${pricePercentage}% 100%`,
+                            backgroundRepeat: 'no-repeat'
+                          }}
                         />
                         <div className="flex justify-between text-[10px] font-extrabold text-muted-foreground/60 px-1 mt-1">
                           {priceSteps.map((step, idx) => (
@@ -246,10 +258,10 @@ export default function MapFiltersSidebar({
                       <div className="space-y-2">
                         <input
                           type="range"
-                          min="100"
-                          max="500"
+                          min={poiMin}
+                          max={poiMax}
                           step="200"
-                          value={filters.poi.maxDistance}
+                          value={poiCurrent}
                           onChange={(e) => {
                             const val = Number(e.target.value);
                             setFilters({
@@ -261,6 +273,11 @@ export default function MapFiltersSidebar({
                             });
                           }}
                           className="w-full accent-primary bg-muted rounded-lg h-2 cursor-pointer appearance-none"
+                          style={{
+                            backgroundImage: 'linear-gradient(hsl(var(--primary)), hsl(var(--primary)))',
+                            backgroundSize: `${poiPercentage}% 100%`,
+                            backgroundRepeat: 'no-repeat'
+                          }}
                         />
                         <div className="flex justify-between text-[10px] font-extrabold text-muted-foreground/60 px-1">
                           <span>100m</span>

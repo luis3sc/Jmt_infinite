@@ -40,6 +40,8 @@ export const MapboxEngine = forwardRef<any, MapEngineProps>((props, ref) => {
       mapStyle={MAPBOX_STYLE}
       mapboxAccessToken={MAPBOX_TOKEN}
       attributionControl={false}
+      maxBounds={[[-85.0, -20.0], [-65.0, 2.0]]}
+      minZoom={5}
     >
       {filteredStructures.map((structure) => {
         const isInsideActiveDistrict = isDistrictMatch(structure.district, activeDistrict);
@@ -66,7 +68,7 @@ export const MapboxEngine = forwardRef<any, MapEngineProps>((props, ref) => {
             <div
               className={cn(
                 "flex items-center justify-center cursor-pointer transition-all duration-300 group",
-                selectedStructure?.id === structure.id ? "scale-125 z-10" : " z-0"
+                (selectedStructure?.id === structure.id || hoveredStructureId === structure.id) ? "scale-125 z-10" : " z-0"
               )}
               onMouseEnter={() => setHoveredStructureId(structure.id)}
               onMouseLeave={() => setHoveredStructureId(null)}
@@ -74,7 +76,7 @@ export const MapboxEngine = forwardRef<any, MapEngineProps>((props, ref) => {
               <div
                 className={cn(
                   "px-3 py-1.5 rounded-full shadow-md font-bold text-sm whitespace-nowrap transition-all duration-300",
-                  selectedStructure?.id === structure.id
+                  (selectedStructure?.id === structure.id || hoveredStructureId === structure.id)
                     ? "bg-primary text-white shadow-[0_0_15px_rgba(37,99,235,0.4)] border-none"
                     : isInsideActiveDistrict
                       ? "bg-brand-dark text-white border-2 border-white/40 shadow-[0_4px_12px_rgba(14,22,43,0.3)] scale-105 font-bold group-hover:bg-primary group-hover:text-white group-hover:shadow-[0_0_15px_rgba(37,99,235,0.4)] group-hover:border-none"

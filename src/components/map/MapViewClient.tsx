@@ -6,7 +6,7 @@ import UnifiedMap from "./shared/UnifiedMap";
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
-import { MapPin, X, SlidersHorizontal, List, Map as MapIcon, User, Users, Maximize, Navigation, ShoppingCart, Search, Filter, CheckCircle2, Trash2, Calendar, ChevronRight, Loader2, CreditCard, Clock, PlusCircle, FileText, Copy, Check } from "lucide-react";
+import { MapPin, X, SlidersHorizontal, List, Map as MapIcon, User, Users, Maximize, Navigation, ShoppingCart, Search, Filter, CheckCircle2, Trash2, Calendar, ChevronRight, Loader2, CreditCard, Clock, PlusCircle, Plus, FileText, Copy, Check } from "lucide-react";
 import Image from "next/image";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
@@ -759,7 +759,7 @@ export function MapViewClient() {
   const handleSelectSuggestionAndSearch = useCallback(
     (lng: number, lat: number, placeName: string, suggestion?: any) => {
       setShowSuggestions(false);
-      
+
       let query = placeName;
       let dist: string | null = null;
       let coords: { lng: number; lat: number } | null = null;
@@ -1000,7 +1000,11 @@ export function MapViewClient() {
               </div>
             ) : (
               <>
-                {structures.map((s, idx) => (
+                {structures.map((s, idx) => {
+                  const firstPanel = s.panels?.[0];
+                  const isInCart = firstPanel ? cartItems.some(item => item.panelId === firstPanel.id) : false;
+
+                  return (
                   <Card
                     key={s.id}
                     className={`cursor-pointer transition-all flex flex-col h-auto overflow-hidden group
@@ -1011,6 +1015,8 @@ export function MapViewClient() {
                       handleSelectStructure(s);
                       setActiveTab("map");
                     }}
+                    onMouseEnter={() => setHoveredStructureId(s.id)}
+                    onMouseLeave={() => setHoveredStructureId(null)}
                   >
                     <div className="w-full h-[180px] relative bg-muted shrink-0 border-b border-border/10">
                       {s.panels?.[0]?.photo_url ? (
@@ -1047,13 +1053,69 @@ export function MapViewClient() {
                             <span className="text-[10px] font-normal text-muted-foreground"> por día</span>
                           </p>
                         </div>
-                        <Button size="sm" className="px-3 py-1.5 text-xs font-bold whitespace-nowrap shadow-sm cursor-pointer group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                          Ver
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button size="sm" className="px-3 py-1.5 text-xs font-bold whitespace-nowrap shadow-sm cursor-pointer group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            Ver
+                          </Button>
+                          {firstPanel && (
+                            <Button
+                              size="sm"
+                              variant={isInCart ? "default" : "secondary"}
+                              className={cn(
+                                "px-2 py-1.5 shadow-sm transition-colors shrink-0",
+                                isInCart
+                                  ? "bg-green-600 hover:bg-green-700 text-white cursor-default pointer-events-none"
+                                  : "cursor-pointer hover:bg-primary hover:text-primary-foreground group-hover:bg-primary/20"
+                              )}
+                              disabled={isInCart}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isInCart) return;
+                                const p = firstPanel;
+                                const dailyPrice = p.daily_price || 150;
+                                let actualDays = numberOfDays || 1;
+                                let actualStart = startDate || activeStartDate;
+                                let actualEnd = endDate || activeEndDate;
+
+                                if (!actualStart || !actualEnd) {
+                                  const now = new Date();
+                                  actualStart = now.toISOString().split('T')[0];
+                                  const tomorrow = new Date();
+                                  tomorrow.setDate(tomorrow.getDate() + 1);
+                                  actualEnd = tomorrow.toISOString().split('T')[0];
+                                  actualDays = 1;
+                                }
+
+                                addCartItem({
+                                  panelId: p.id,
+                                  structureId: s.id,
+                                  panelCode: p.panel_code || s.code,
+                                  address: s.address,
+                                  district: s.district,
+                                  photoUrl: p.photo_url || "",
+                                  dailyPrice: dailyPrice,
+                                  startDate: actualStart,
+                                  endDate: actualEnd,
+                                  days: actualDays,
+                                  totalPrice: Math.round(dailyPrice * actualDays * 1.18 * 100) / 100,
+                                  format: p.format || "",
+                                  mediaType: p.media_type || "",
+                                  width: p.width || null,
+                                  height: p.height || null
+                                });
+                                triggerToast(`¡Panel ${p.panel_code || s.code} añadido a campaña!`);
+                              }}
+                              title={isInCart ? "Añadido a campaña" : "Añadir a campaña"}
+                            >
+                              {isInCart ? <Check size={16} /> : <Plus size={16} />}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Card>
-                ))}
+                  );
+                })}
 
                 {/* Infinite Scroll Trigger */}
                 {hasMore && (
@@ -1183,7 +1245,7 @@ export function MapViewClient() {
       {/* MOBILE FLOATING CONTROL BAR (Only visible on map page when no detail modal is selected) */}
       {!selectedStructure && (
         <div className="md:hidden fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-4 right-4 z-[100] flex items-center gap-2 pointer-events-none animate-in fade-in slide-in-from-bottom-5 duration-300">
-          
+
           {/* Segmented Control: Mapa / Lista */}
           <div className="flex items-center bg-card/95 backdrop-blur-md border border-border shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl p-1 shrink-0 pointer-events-auto h-14 w-[96px]">
             <button
