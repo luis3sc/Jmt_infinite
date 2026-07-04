@@ -31,7 +31,7 @@ export function QuotesList({ initialQuotes, userProfile }: QuotesListProps) {
   const [quotes, setQuotes] = useState(initialQuotes)
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<string[]>([])
-  
+
   // PDF Generation States
   const [downloadingQuote, setDownloadingQuote] = useState<any>(null)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
@@ -54,8 +54,8 @@ export function QuotesList({ initialQuotes, userProfile }: QuotesListProps) {
   }
 
   const filteredQuotes = quotes.filter(q => {
-    const matchSearch = q.campaign_name.toLowerCase().includes(search.toLowerCase()) || 
-                        q.id.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = q.campaign_name.toLowerCase().includes(search.toLowerCase()) ||
+      q.id.toLowerCase().includes(search.toLowerCase())
     return matchSearch
   })
 
@@ -430,7 +430,7 @@ export function QuotesList({ initialQuotes, userProfile }: QuotesListProps) {
       <Dialog
         isOpen={showConflictModal}
         onClose={() => setShowConflictModal(false)}
-        className="max-w-md p-6 bg-card border border-border rounded-2xl shadow-2xl relative overflow-hidden"
+        className="max-w-md p-6 bg-card border border-border rounded-2xl  relative overflow-hidden"
       >
         <div className="flex items-center gap-3 text-amber-500 mb-4 border-b border-border/50 pb-3">
           <AlertTriangle size={24} />
@@ -465,7 +465,7 @@ export function QuotesList({ initialQuotes, userProfile }: QuotesListProps) {
       <Dialog
         isOpen={showDeleteModal}
         onClose={() => !isDeleting && setShowDeleteModal(false)}
-        className="max-w-md p-6 bg-card border border-border rounded-2xl shadow-2xl relative overflow-hidden"
+        className="max-w-md p-6 bg-card border border-border rounded-2xl  relative overflow-hidden"
       >
         <div className="flex items-center gap-3 text-red-500 mb-4 border-b border-border/50 pb-3">
           <Trash2 size={22} />

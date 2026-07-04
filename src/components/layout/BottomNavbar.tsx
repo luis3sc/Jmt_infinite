@@ -39,7 +39,7 @@ export default function BottomNavbar() {
     "/gestor",
     "/unauthorized"
   ];
-  
+
   const shouldHide = excludedPrefixes.some((prefix) => pathname?.startsWith(prefix)) || pathname === "/";
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function BottomNavbar() {
           .select("role")
           .eq("id", userId)
           .single();
-        
+
         const resolvedRole = profile?.role ?? "";
         cachedRole = resolvedRole || null;
         if (typeof window !== "undefined") {
@@ -271,10 +271,10 @@ export default function BottomNavbar() {
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-semibold">Campañas</span>
+              <span className="text-[10px] font-semibold">Circuito</span>
             </button>
 
-            {/* 4. Mis Pedidos */}
+            {/* 4. Mis Campañas */}
             <Link
               href="/dashboard/orders"
               onClick={() => setIsCartOpen(false)}
@@ -286,7 +286,7 @@ export default function BottomNavbar() {
               )}
             >
               <ShoppingBag size={20} className={cn(pathname === "/dashboard/orders" && !isCartOpen && "stroke-[2.5]")} />
-              <span className="text-[10px] font-semibold">Mis pedidos</span>
+              <span className="text-[10px] font-semibold">Campañas</span>
             </Link>
 
             {/* 5. Mi Perfil */}

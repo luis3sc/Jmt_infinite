@@ -83,37 +83,37 @@ const Dialog = ({
     switch (variant) {
       case "fullscreen-mobile":
         return {
-          initial: { 
-            opacity: 0, 
-            y: "100%", 
-            scale: 1 
+          initial: {
+            opacity: 0,
+            y: "100%",
+            scale: 1
           },
-          animate: { 
-            opacity: 1, 
-            y: 0, 
+          animate: {
+            opacity: 1,
+            y: 0,
             scale: 1,
             transition: { type: "spring" as const, damping: 30, stiffness: 300 }
           },
-          exit: { 
-            opacity: 0, 
-            y: "100%", 
+          exit: {
+            opacity: 0,
+            y: "100%",
             scale: 1,
             transition: { duration: 0.25 }
           }
         };
       case "bottom-sheet":
         return {
-          initial: { 
-            y: "100%", 
-            opacity: 0.5 
+          initial: {
+            y: "100%",
+            opacity: 0.5
           },
-          animate: { 
-            y: 0, 
+          animate: {
+            y: 0,
             opacity: 1,
             transition: { type: "spring" as const, damping: 25, stiffness: 250 }
           },
-          exit: { 
-            y: "100%", 
+          exit: {
+            y: "100%",
             opacity: 0,
             transition: { duration: 0.2 }
           }
@@ -121,20 +121,20 @@ const Dialog = ({
       case "default":
       default:
         return {
-          initial: { 
-            opacity: 0, 
-            scale: 0.95, 
-            y: 10 
+          initial: {
+            opacity: 0,
+            scale: 0.95,
+            y: 10
           },
-          animate: { 
-            opacity: 1, 
-            scale: 1, 
+          animate: {
+            opacity: 1,
+            scale: 1,
             y: 0,
             transition: { type: "spring" as const, duration: 0.4, bounce: 0.15 }
           },
-          exit: { 
-            opacity: 0, 
-            scale: 0.95, 
+          exit: {
+            opacity: 0,
+            scale: 0.95,
             y: 10,
             transition: { duration: 0.2 }
           }
@@ -168,10 +168,10 @@ const Dialog = ({
             role="dialog"
             aria-modal="true"
             className={cn(
-              "relative bg-card text-card-foreground shadow-2xl flex flex-col overflow-hidden w-full",
+              "relative bg-card text-card-foreground  flex flex-col overflow-hidden w-full",
               // Layout specific styles
               variant === "default" && "max-w-lg rounded-dialog max-h-[90vh] mx-4 border border-border/50",
-              variant === "fullscreen-mobile" && "h-[100dvh] md:h-[90vh] md:max-w-[90vw] rounded-none md:rounded-dialog border-none md:border border-border/50 md:border-border mt-0 md:mt-0 shadow-2xl bg-card",
+              variant === "fullscreen-mobile" && "h-[100dvh] md:h-[90vh] md:max-w-[90vw] rounded-none md:rounded-dialog border-none md:border border-border/50 md:border-border mt-0 md:mt-0  bg-card",
               variant === "bottom-sheet" && "h-[85vh] md:h-[90vh] rounded-t-dialog md:rounded-dialog mt-auto md:mt-0 md:max-w-[90vw] border-t border-border/50 md:border",
               className
             )}
@@ -205,7 +205,7 @@ const Dialog = ({
                 )}
               </div>
             )}
-            
+
             {/* Scrollable Content Area */}
             {noScroll ? (
               children

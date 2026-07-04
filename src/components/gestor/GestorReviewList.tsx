@@ -8,31 +8,31 @@ import { Button } from "@/components/ui/Button"
 import { GestorOrderDetail, type Order } from './GestorOrderDetail'
 
 const STATUS: Record<string, { label: string; color: string; dot: string }> = {
-  PENDING_UPLOAD:     { label: 'Sin video',     color: 'text-muted-foreground',                 dot: 'bg-muted-foreground/30'   },
-  VIDEO_SENT:         { label: 'Por revisar',   color: 'text-amber-600 dark:text-amber-400',   dot: 'bg-amber-500'             },
-  PENDING_VALIDATION: { label: 'En validación', color: 'text-blue-600 dark:text-blue-400',     dot: 'bg-blue-500'              },
-  APPROVED:           { label: 'Aprobado',      color: 'text-blue-600 dark:text-blue-400',       dot: 'bg-blue-500'              },
-  SENT_TO_PROVIDER:   { label: 'Enviado Prov.', color: 'text-purple-600 dark:text-purple-400',   dot: 'bg-purple-500'            },
-  CONFIRMED:          { label: 'Completado',    color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500'           },
-  REJECTED:           { label: 'Rechazado',     color: 'text-red-600 dark:text-red-400',         dot: 'bg-red-500'               },
+  PENDING_UPLOAD: { label: 'Sin video', color: 'text-muted-foreground', dot: 'bg-muted-foreground/30' },
+  VIDEO_SENT: { label: 'Por revisar', color: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500' },
+  PENDING_VALIDATION: { label: 'En validación', color: 'text-blue-600 dark:text-blue-400', dot: 'bg-blue-500' },
+  APPROVED: { label: 'Aprobado', color: 'text-blue-600 dark:text-blue-400', dot: 'bg-blue-500' },
+  SENT_TO_PROVIDER: { label: 'Enviado Prov.', color: 'text-purple-600 dark:text-purple-400', dot: 'bg-purple-500' },
+  CONFIRMED: { label: 'Completado', color: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  REJECTED: { label: 'Rechazado', color: 'text-red-600 dark:text-red-400', dot: 'bg-red-500' },
 }
 
 const FILTERS = [
-  { value: 'ALL',              label: 'Todos'         },
-  { value: 'VIDEO_SENT',       label: 'Por revisar'   },
-  { value: 'PENDING_UPLOAD',   label: 'Sin video'     },
-  { value: 'APPROVED',         label: 'Aprobados'     },
-  { value: 'SENT_TO_PROVIDER', label: 'Enviados Prov.'},
-  { value: 'CONFIRMED',        label: 'Completados'   },
-  { value: 'REJECTED',         label: 'Rechazados'    },
+  { value: 'ALL', label: 'Todos' },
+  { value: 'VIDEO_SENT', label: 'Por revisar' },
+  { value: 'PENDING_UPLOAD', label: 'Sin video' },
+  { value: 'APPROVED', label: 'Aprobados' },
+  { value: 'SENT_TO_PROVIDER', label: 'Enviados Prov.' },
+  { value: 'CONFIRMED', label: 'Completados' },
+  { value: 'REJECTED', label: 'Rechazados' },
 ]
 
 export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) {
-  const [orders, setOrders]   = useState(initialOrders)
-  const [filter, setFilter]   = useState('VIDEO_SENT')
-  const [search, setSearch]   = useState('')
+  const [orders, setOrders] = useState(initialOrders)
+  const [filter, setFilter] = useState('VIDEO_SENT')
+  const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Order | null>(null)
-  const [toast, setToast]     = useState<{ msg: string; ok: boolean } | null>(null)
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   const showToast = (msg: string, ok: boolean) => {
@@ -128,23 +128,23 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
       setDownloadingId(orderId)
       const fileName = `jmt-campaña-${orderId.slice(0, 8)}.mp4`
       const downloadUrl = `/api/download?url=${encodeURIComponent(videoUrl)}&filename=${encodeURIComponent(fileName)}`
-      
+
       const response = await fetch(downloadUrl)
       if (!response.ok) {
         showToast('El archivo de video no se encuentra disponible (404) o no se pudo descargar.', false)
         return
       }
-      
+
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.style.display = 'none'
       a.href = url
       a.download = fileName
-      
+
       document.body.appendChild(a)
       a.click()
-      
+
       setTimeout(() => {
         window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
@@ -166,7 +166,7 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
         {toast && (
           <motion.div
             initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
-            className={`fixed top-6 right-6 z-[999] px-5 py-3 rounded-xl text-sm font-black shadow-2xl text-white ${toast.ok ? 'bg-emerald-500' : 'bg-red-500'}`}
+            className={`fixed top-6 right-6 z-[999] px-5 py-3 rounded-xl text-sm font-black  text-white ${toast.ok ? 'bg-emerald-500' : 'bg-red-500'}`}
           >
             {toast.msg}
           </motion.div>

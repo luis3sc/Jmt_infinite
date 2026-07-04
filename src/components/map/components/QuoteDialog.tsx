@@ -44,7 +44,7 @@ export default function QuoteDialog({
       isOpen={isOpen}
       onClose={onClose}
       hideCloseButton
-      className="max-w-md p-6 bg-card border border-border rounded-dialog shadow-2xl relative overflow-hidden"
+      className="max-w-md p-6 bg-card border border-border rounded-dialog  relative overflow-hidden"
     >
       {/* Modal Header */}
       <div className="flex justify-between items-center pb-4 border-b border-border/50">

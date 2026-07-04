@@ -18,6 +18,8 @@ export type OrderStatus =
   | 'PENDING_UPLOAD'
   | 'VIDEO_SENT'
   | 'PENDING_VALIDATION'
+  | 'APPROVED'
+  | 'SENT_TO_PROVIDER'
   | 'CONFIRMED'
   | 'REJECTED'
   | 'CANCELLED'
@@ -115,12 +117,12 @@ function getStepText(stepId: number, state: StepState): { label: string; sublabe
     case 4:
       if (state === 'active' || state === 'completed') {
         return {
-          label: '🎉 ¡Al aire en la calle!',
+          label: '🎉 ¡Activa!',
           sublabel: 'Tu anuncio ya se muestra en la pantalla gigante',
         }
       } else {
         return {
-          label: '¡Al aire!',
+          label: '¡Activa!',
           sublabel: 'Se mostrará en la pantalla de la avenida',
         }
       }
@@ -139,6 +141,10 @@ function getHeroStatusText(status: OrderStatus): string {
       return 'Estamos revisando que tu diseño cumpla con las medidas para que se vea excelente en la calle.'
     case 'REJECTED':
       return 'Tu anuncio tiene un detalle por corregir. No te preocupes, dale clic al botón rojo de abajo para subir otro.'
+    case 'APPROVED':
+      return '¡Tu anuncio ha sido aprobado! Ahora lo estamos programando para la pantalla.'
+    case 'SENT_TO_PROVIDER':
+      return 'Tu anuncio ya está programado en la pantalla y listo para salir.'
     case 'CONFIRMED':
       return '¡Felicidades! Tu anuncio ya se muestra en vivo en la pantalla gigante.'
     case 'CANCELLED':
@@ -153,11 +159,13 @@ function getHeroStatusText(status: OrderStatus): string {
 function resolveActiveStep(status: OrderStatus): number {
   switch (status) {
     case 'PENDING_UPLOAD': return 1   // waiting for content upload
-    case 'VIDEO_SENT':     return 2   // content received, now in review
+    case 'VIDEO_SENT': return 2   // content received, now in review
     case 'PENDING_VALIDATION': return 2
-    case 'REJECTED':       return 2   // stuck at review (rejected)
-    case 'CONFIRMED':      return 4   // live!
-    default:               return 1
+    case 'REJECTED': return 2   // stuck at review (rejected)
+    case 'APPROVED': return 3   // approved / programming
+    case 'SENT_TO_PROVIDER': return 3 // scheduled / ready
+    case 'CONFIRMED': return 4   // live!
+    default: return 1
   }
 }
 
@@ -178,9 +186,9 @@ function StepNode({ step, state }: { step: Step; state: StepState }) {
 
   const nodeStyles: Record<StepState, string> = {
     completed: 'bg-primary ring-primary/30 text-primary-foreground shadow-lg shadow-primary/25',
-    active:    'bg-background ring-primary text-primary',
-    pending:   'bg-muted ring-border/50 text-muted-foreground/70',
-    rejected:  'bg-red-500/10 ring-red-500/40 text-red-500',
+    active: 'bg-background ring-primary text-primary',
+    pending: 'bg-muted ring-border/50 text-muted-foreground/70',
+    rejected: 'bg-red-500/10 ring-red-500/40 text-red-500',
   }
 
   return (
@@ -317,7 +325,7 @@ function HorizontalStepper({
               className="flex flex-col items-center gap-1.5 w-full min-w-0 z-10"
             >
               <StepNode step={step} state={state} />
-              
+
               <p
                 className={cn(
                   'text-[10px] sm:text-xs font-bold text-center leading-tight transition-colors duration-300 px-1 select-none',
@@ -378,6 +386,8 @@ export function OrderTrackingStepper({
         status === 'PENDING_UPLOAD' && "bg-amber-500/10 border-amber-500/20 text-amber-500",
         (status === 'VIDEO_SENT' || status === 'PENDING_VALIDATION') && "bg-blue-500/10 border-blue-500/20 text-blue-400",
         status === 'REJECTED' && "bg-red-500/10 border-red-500/20 text-red-500",
+        status === 'APPROVED' && "bg-emerald-500/10 border-emerald-500/20 text-emerald-500",
+        status === 'SENT_TO_PROVIDER' && "bg-purple-500/10 border-purple-500/20 text-purple-500",
         status === 'CONFIRMED' && "bg-primary/10 border-primary/20 text-primary",
         status === 'CANCELLED' && "bg-muted border-border/50 text-muted-foreground"
       )}>

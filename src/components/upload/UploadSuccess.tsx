@@ -62,6 +62,9 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
   const statusMap: Record<string, { label: string; color: string; icon: any }> = {
     'PENDING_VALIDATION': { label: 'En Validación', color: 'text-amber-500 bg-amber-500/10', icon: ShieldCheck },
     'VIDEO_SENT': { label: 'En Revisión', color: 'text-blue-500 bg-blue-500/10', icon: Clock },
+    'APPROVED': { label: 'Aprobado', color: 'text-emerald-500 bg-emerald-500/10', icon: Check },
+    'SENT_TO_PROVIDER': { label: 'Programado', color: 'text-purple-500 bg-purple-500/10', icon: Clock },
+    'CONFIRMED': { label: 'Activa', color: 'text-emerald-500 bg-emerald-500/10', icon: Check },
     'COMPLETED': { label: 'Confirmado', color: 'text-emerald-500 bg-emerald-500/10', icon: Check },
   }
 
@@ -167,7 +170,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
 
 
               <h2 className="text-3xl md:text-5xl lg:text-4xl font-bold text-foreground mb-2 md:mb-4 tracking-tight leading-[0.95]">
-                ¡Tu anuncio <span className="text-primary font-bold">ya está listo!</span>
+                ¡Tu anuncio <span className="text-primary font-bold">enviado!</span>
               </h2>
 
 
@@ -190,7 +193,7 @@ export function UploadSuccess({ videoUrl, orderId, status }: UploadSuccessProps)
                   size="xl"
                   className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex justify-center items-center gap-3 disabled:opacity-50"
                 >
-                  Listo, ir a Mis Pedidos
+                  Listo, ir a Mis Campañas
                 </Button>
                 {videoUrl && (
                   <Button

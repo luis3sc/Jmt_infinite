@@ -19,7 +19,7 @@ export function DashboardNav() {
     },
     {
       id: 'orders',
-      label: 'Mis Pedidos',
+      label: 'Mis Campañas',
       href: '/dashboard/orders',
       icon: <ShoppingBag size={16} />,
       isActive: pathname === '/dashboard/orders' || pathname.startsWith('/dashboard/orders/')

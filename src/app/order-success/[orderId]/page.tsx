@@ -418,6 +418,11 @@ export default function OrderSuccessPage() {
             if (updatedOrder.rejection_reason) {
               alert(`Error al procesar material: ${updatedOrder.rejection_reason}`)
             }
+          } else if (updatedOrder.status === 'REJECTED') {
+            processingStartTimeRef.current = null
+            setUploadStatus('idle')
+            setContentType('idle')
+            setProgress(0)
           }
         }
       )
@@ -947,7 +952,7 @@ export default function OrderSuccessPage() {
               exit={{ opacity: 0 }}
               className="w-full flex items-center justify-center min-h-[500px]"
             >
-              <div className="bg-card/40 backdrop-blur-2xl border border-border/50 rounded-lg p-10 md:p-16 max-w-lg w-full shadow-2xl flex flex-col items-center text-center">
+              <div className="bg-card/40 backdrop-blur-2xl border border-border/50 rounded-lg p-10 md:p-16 max-w-lg w-full  flex flex-col items-center text-center">
                 <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
                   <motion.div
                     animate={{ rotate: 360 }}
@@ -967,7 +972,7 @@ export default function OrderSuccessPage() {
                   size="xl"
                   className="w-full font-black text-sm shadow-[0_10px_25px_-5px_hsl(var(--primary)/0.4)] flex justify-center items-center gap-3"
                 >
-                  Ver mis pedidos
+                  Ver mis Campañas
                 </Button>
               </div>
             </motion.div>
@@ -984,7 +989,7 @@ export default function OrderSuccessPage() {
             >
               {/* ── LEFT: Estudio de Creación ───────────────────────── */}
               <section className="w-full flex flex-col relative ">
-                <div className="absolute -top-24 -left-24 w-64 h-64 " />
+
 
                 {/* Header */}
                 <div className="relative z-10 space-y-1 mb-3 md:mb-4">

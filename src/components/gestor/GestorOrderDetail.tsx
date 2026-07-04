@@ -2,7 +2,7 @@
 
 import {
   X, CheckCircle2, XCircle, Play, Calendar, User, Building2,
-  Mail, Phone, UploadCloud, ExternalLink, Download, Share2,
+  Mail, Phone, UploadCloud, ExternalLink, Download,
   MapPin, Monitor, Ruler, AlertTriangle, Loader2, FileText, Eye, Send
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -118,17 +118,20 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
             body: JSON.stringify({
               orderId: order.id,
               fileName: prefixedName,
-              fileType: file.type,
+              fileType: file.type || 'image/jpeg',
               category: 'evidence'
             })
           })
-          if (!res.ok) throw new Error('Error al obtener URL firmada')
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}))
+            throw new Error(errData.error || `HTTP ${res.status}`)
+          }
           const { uploadUrl, key } = await res.json()
 
           const uploadRes = await fetch(uploadUrl, {
             method: 'PUT',
             body: file,
-            headers: { 'Content-Type': file.type }
+            headers: { 'Content-Type': file.type || 'image/jpeg' }
           })
           if (!uploadRes.ok) throw new Error('Error al subir a R2')
 
@@ -144,25 +147,11 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
       })
       setEvidenceFiles({})
       setEvidencePreviews({})
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      alert('Ocurrió un error al subir la evidencia.')
+      alert(`Ocurrió un error al subir la evidencia: ${err.message || err}`)
     } finally {
       setLoading(null)
-    }
-  }
-
-  const handleShare = async () => {
-    if (!order.video_url) return
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `Video campaña #${order.id.slice(0, 8)}`, url: order.video_url })
-      } catch (err) {
-        console.log('Error sharing:', err)
-      }
-    } else {
-      await navigator.clipboard.writeText(order.video_url)
-      alert('Enlace copiado al portapapeles')
     }
   }
 
@@ -221,7 +210,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
       >
         <div
           className={cn(
-            "pointer-events-auto w-full bg-background border-0 sm:border border-border rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden text-foreground",
+            "pointer-events-auto w-full bg-background border-0 sm:border border-border rounded-none sm:rounded-2xl  flex flex-col overflow-hidden text-foreground",
             isRejected
               ? "sm:max-w-[600px] h-full sm:h-auto sm:max-h-[90vh]"
               : "sm:max-w-[90vw] h-full sm:h-[90vh]"
@@ -469,12 +458,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
                           >
                             {order.profile?.document_type === 'RUC' ? 'Ver factura' : 'Ver comprobante'}
                           </Button>
-                          <Button
-                            onClick={handleShare}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest h-auto shadow-[0_4px_12px_-2px_rgba(37,99,235,0.25)] ml-auto"
-                          >
-                            Compartir
-                          </Button>
+
                         </div>
                       )}
                     </>
@@ -664,7 +648,7 @@ export function GestorOrderDetail({ order, onClose, onApprove, onReject, onMarkS
           <motion.div
             key="reject-content"
             initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[310] w-full max-w-md bg-background border border-border rounded-2xl p-8 shadow-2xl text-foreground"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[310] w-full max-w-md bg-background border border-border rounded-2xl p-8  text-foreground"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2.5 bg-red-500/10 rounded-xl text-red-500 dark:text-red-400"><AlertTriangle size={20} /></div>

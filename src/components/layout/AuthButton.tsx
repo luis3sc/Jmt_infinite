@@ -62,7 +62,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
           .select('role')
           .eq('id', userId)
           .single();
-        
+
         const resolvedRole = profile?.role ?? "";
         cachedRole = resolvedRole || null;
         if (typeof window !== "undefined") {
@@ -110,7 +110,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
           const currentUser = session?.user ?? null;
           setUser(currentUser);
           cachedUser = currentUser;
-          
+
           if (currentUser) {
             if (typeof window !== "undefined") {
               try {
@@ -231,7 +231,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
 
   if (mode === "mobile") {
     const mobileHref = !user ? "/login" : isGestor ? "/gestor" : "/dashboard/orders";
-    const mobileLabel = !user ? "Ingresar" : isGestor ? "Gestión" : "Mis Pedidos";
+    const mobileLabel = !user ? "Ingresar" : isGestor ? "Gestión" : "Mis Campañas";
     const MobileIcon = isGestor ? Clapperboard : User;
     return (
       <Link
@@ -250,7 +250,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
         <Link
           href="/map"
           className={cn(
-            "hidden md:flex items-center gap-2 px-fluid-md h-11 text-xs md:text-sm font-black rounded-button-sm md:rounded-input transition-all shadow-sm group cursor-pointer uppercase tracking-wider",
+            "hidden items-center gap-2 px-fluid-md h-11 text-xs md:text-sm font-black rounded-button-sm md:rounded-input transition-all shadow-sm group cursor-pointer uppercase tracking-wider",
             user
               ? "text-white bg-primary hover:bg-primary/90 border-none"
               : "text-primary border border-primary hover:bg-primary hover:text-white"
@@ -291,7 +291,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute right-0 mt-3 w-64 bg-card border border-border rounded-button-2xl shadow-2xl z-50 overflow-hidden"
+                  className="absolute right-0 mt-3 w-64 bg-card border border-border rounded-button-2xl  z-50 overflow-hidden"
                 >
                   <div className="px-5 py-4 border-b border-border bg-muted/40">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Bienvenido</p>
@@ -331,7 +331,7 @@ export default function AuthButton({ mode = "desktop", initialRole }: AuthButton
                           <div className="p-2 bg-muted rounded-button-sm group-hover:bg-muted/80 group-hover:text-foreground transition-colors">
                             <ShoppingBag size={18} />
                           </div>
-                          Mis Pedidos
+                          Mis Campañas
                         </Link>
 
                         <Link

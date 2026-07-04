@@ -48,7 +48,7 @@ Este documento detalla la orquestación técnica y operativa del MVP de JMT Mark
  │   │   └── map/page.tsx    # Split-View: Lista de paneles + Mapa Mapbox
  │   ├── checkout/           # Flujo transaccional (Auto-Auth Supabase + Pago Culqi)
  │   ├── success/            # Upload Bridge: Carga de video (Dropzone)
- │   └── dashboard/          # Panel del Comprador (Mis Pedidos)
+ │   └── dashboard/          # Panel del Comprador (Mis Campañas)
  ├── components/             # UI y Componentes de presentación
  │   ├── ui/                 # Componentes base de Shadcn UI
  │   ├── map/                # Componentes de Mapbox

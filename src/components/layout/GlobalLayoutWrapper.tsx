@@ -60,7 +60,7 @@ export default function GlobalLayoutWrapper({ children }: GlobalLayoutWrapperPro
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] bg-foreground text-background px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-border min-w-[300px]"
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] bg-foreground text-background px-6 py-4 rounded-2xl  flex items-center gap-3 border border-border min-w-[300px]"
           >
             <div className="bg-emerald-600 p-1 rounded-full">
               <CheckCircle2 size={18} className="text-white" />

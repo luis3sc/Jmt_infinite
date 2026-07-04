@@ -91,7 +91,7 @@ export default function MapFiltersSidebar({
               initial="initial"
               animate="animate"
               exit="exit"
-              className="pointer-events-auto w-full h-[100dvh] md:h-auto max-h-[100dvh] md:max-h-[85vh] md:max-w-[420px] bg-card border-0 md:border border-border rounded-none md:rounded-dialog shadow-2xl flex flex-col overflow-hidden"
+              className="pointer-events-auto w-full h-[100dvh] md:h-auto max-h-[100dvh] md:max-h-[85vh] md:max-w-[420px] bg-card border-0 md:border border-border rounded-none md:rounded-dialog  flex flex-col overflow-hidden"
             >
               <div className="p-fluid-md border-b border-border flex justify-between items-center bg-muted/30">
                 <div className="flex items-center gap-fluid-xs">

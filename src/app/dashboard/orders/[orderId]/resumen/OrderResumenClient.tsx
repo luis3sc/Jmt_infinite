@@ -126,7 +126,7 @@ export default function OrderResumenClient({ order }: OrderResumenClientProps) {
             className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors group"
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-            <span>Volver a mis pedidos</span>
+            <span>Volver a mis Campañas</span>
           </Link>
         </div>
 
@@ -319,7 +319,7 @@ export default function OrderResumenClient({ order }: OrderResumenClientProps) {
               <img
                 src={activePreviewUrl}
                 alt="Evidencia Fullscreen"
-                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
+                className="max-w-full max-h-[90vh] object-contain rounded-lg  animate-in zoom-in-95 duration-200"
               />
             </div>
           </div>

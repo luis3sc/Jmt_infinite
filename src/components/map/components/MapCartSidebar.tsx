@@ -184,7 +184,7 @@ export default function MapCartSidebar({
             <div className="h-full flex flex-col items-center justify-center text-center p-fluid-lg space-y-fluid-lg">
               <div className="relative">
                 <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
-                <div className="relative w-28 h-28 bg-muted rounded-full flex items-center justify-center border border-border/50 shadow-2xl">
+                <div className="relative w-28 h-28 bg-muted rounded-full flex items-center justify-center border border-border/50 ">
                   <ShoppingCart size={40} className="text-muted-foreground/30" />
                 </div>
               </div>
@@ -364,7 +364,7 @@ export default function MapCartSidebar({
                   </div>
                 </Card>
               ))}
-              
+
               {/* Promotional Card */}
               <Card
                 initial={{ opacity: 0, y: 20 }}

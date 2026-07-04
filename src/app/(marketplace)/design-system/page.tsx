@@ -89,10 +89,10 @@ const BuggyComponent = () => {
   if (crash) throw new Error("Simulated error for Design System");
   return (
     <div className="p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col items-center justify-center gap-4 w-full h-full min-h-[160px]">
-       <p className="text-sm font-medium">Componente Funcional Seguro</p>
-       <Button variant="outline" size="sm" onClick={() => setCrash(true)} className="border-red-500 text-red-500 hover:bg-red-500/10">
-         Simular Fallo
-       </Button>
+      <p className="text-sm font-medium">Componente Funcional Seguro</p>
+      <Button variant="outline" size="sm" onClick={() => setCrash(true)} className="border-red-500 text-red-500 hover:bg-red-500/10">
+        Simular Fallo
+      </Button>
     </div>
   );
 };
@@ -254,11 +254,10 @@ export default function DesignSystemPage() {
               <button
                 key={cat.id}
                 onClick={() => setActiveTab(cat.id)}
-                className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-250 cursor-pointer ${
-                  active
+                className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-250 cursor-pointer ${active
                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.03]"
                     : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/70 border border-border/40"
-                }`}
+                  }`}
               >
                 <Icon className="h-3.5 w-3.5" />
                 <span>{cat.label}</span>
@@ -300,9 +299,8 @@ export default function DesignSystemPage() {
                         <Copy className="h-4 w-4" />
                       )}
                     </button>
-                    <span className={`text-xs font-black tracking-wider uppercase px-2 py-0.5 rounded backdrop-blur-md border ${
-                      token.textClass === "text-white" ? "bg-black/25 border-white/10 text-white" : "bg-white/40 border-black/10 text-foreground"
-                    }`}>
+                    <span className={`text-xs font-black tracking-wider uppercase px-2 py-0.5 rounded backdrop-blur-md border ${token.textClass === "text-white" ? "bg-black/25 border-white/10 text-white" : "bg-white/40 border-black/10 text-foreground"
+                      }`}>
                       {token.hex}
                     </span>
                   </div>
@@ -580,7 +578,7 @@ export default function DesignSystemPage() {
                   {/* Custom animated Checkbox */}
                   <div className="space-y-3 bg-muted/30 rounded-xl p-4 border">
                     <label className="text-xs font-black text-muted-foreground uppercase tracking-wider block">Checkbox Molecule</label>
-                    
+
                     <div className="flex items-start space-x-3">
                       <Checkbox
                         id="terms-check"
@@ -862,16 +860,16 @@ export default function DesignSystemPage() {
                     <p className="text-[11px] text-muted-foreground">Componente responsivo para el seguimiento de la orden. Alterna entre layout vertical (móvil) y horizontal (desktop).</p>
                   </div>
                 </div>
-                
+
                 <div className="space-y-8 bg-muted/15 p-4 md:p-6 rounded-xl border border-border/40">
                   <div className="space-y-4">
-                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Estado: En Revisión (VIDEO_SENT)</h4>
-                     <OrderTrackingStepper status="VIDEO_SENT" />
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Estado: En Revisión (VIDEO_SENT)</h4>
+                    <OrderTrackingStepper status="VIDEO_SENT" />
                   </div>
-                  
+
                   <div className="space-y-4 pt-8 border-t border-border/40">
-                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Estado: Observado (REJECTED)</h4>
-                     <OrderTrackingStepper status="REJECTED" />
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Estado: Observado (REJECTED)</h4>
+                    <OrderTrackingStepper status="REJECTED" />
                   </div>
                 </div>
               </Card>
@@ -887,25 +885,25 @@ export default function DesignSystemPage() {
                     <p className="text-[11px] text-muted-foreground">Recuperación elegante de fallos en la interfaz sin romper la aplicación completa.</p>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <div className="space-y-3">
-                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Variante Completa (Card)</h4>
-                     <div className="p-1 h-full min-h-[220px]">
-                       <ErrorBoundary label="el componente de pago">
-                          <BuggyComponent />
-                       </ErrorBoundary>
-                     </div>
-                   </div>
-                   
-                   <div className="space-y-3">
-                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Variante Inline</h4>
-                     <div className="p-1 h-full min-h-[220px]">
-                       <ErrorBoundary inline={true} label="el mapa interactivo">
-                           <BuggyComponent />
-                       </ErrorBoundary>
-                     </div>
-                   </div>
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Variante Completa (Card)</h4>
+                    <div className="p-1 h-full min-h-[220px]">
+                      <ErrorBoundary label="el componente de pago">
+                        <BuggyComponent />
+                      </ErrorBoundary>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Variante Inline</h4>
+                    <div className="p-1 h-full min-h-[220px]">
+                      <ErrorBoundary inline={true} label="el mapa interactivo">
+                        <BuggyComponent />
+                      </ErrorBoundary>
+                    </div>
+                  </div>
                 </div>
               </Card>
             </div>
@@ -1273,7 +1271,7 @@ export default function DesignSystemPage() {
                   style={{ width: `${simulatedWidth}px` }}
                   layout
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  className="bg-background border border-border/80 rounded-2xl shadow-2xl overflow-hidden relative z-10 max-w-full"
+                  className="bg-background border border-border/80 rounded-2xl  overflow-hidden relative z-10 max-w-full"
                 >
                   {/* Simulated Device Top Bar */}
                   <div className="bg-muted/40 border-b border-border/60 px-4 py-2 flex items-center justify-between text-[10px] font-bold text-muted-foreground select-none">
@@ -1392,7 +1390,7 @@ export default function DesignSystemPage() {
                               $2,400 <span className="text-[10px] text-muted-foreground font-medium">/ mes</span>
                             </span>
                           </div>
-                          
+
                           <Button
                             style={{
                               fontSize: computeFluidPx(0.7, 0.8, 0.4, 0.6, simulatedWidth), // fluid-xs font

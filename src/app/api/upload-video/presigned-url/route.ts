@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await userSupabase.auth.getUser()
 
     if (authError || !user) {
+      console.error('[presigned-url] Auth failure:', authError || 'No user found in cookies')
       return NextResponse.json(
         { error: 'No autorizado. Debes iniciar sesión para realizar esta acción.' },
         { status: 401 }
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
 
       if (profile?.role !== 'admin' && profile?.role !== 'gestor') {
+        console.error('[presigned-url] Role check failed. User ID:', user.id, 'Required: admin/gestor, Got:', profile?.role)
         return NextResponse.json(
           { error: 'No tienes permisos para subir archivos a este pedido.' },
           { status: 403 }

@@ -94,7 +94,7 @@ Para evitar pantallas en blanco por fallos en servicios de terceros o caídas de
 │   │   │   ├── page.tsx    # Home: Búsqueda geográfica principal
 │   │   │   └── map/        # Split-View interactivo (Lista a la izq, Mapbox a la der)
 │   │   ├── checkout/       # Formulario transaccional y pagos con Culqi
-│   │   ├── dashboard/      # Panel de Control (Mis Pedidos, Notas de Pedido en PDF resposivas)
+│   │   ├── dashboard/      # Panel de Control (Mis Campañas, Notas de Pedido en PDF resposivas)
 │   │   ├── api/            # Rutas de API (URLs firmadas, integración con R2)
 │   │   └── order-success/  # Upload Bridge para recortar y subir multimedia tras compra
 │   ├── components/         # Componentes modulares de interfaz

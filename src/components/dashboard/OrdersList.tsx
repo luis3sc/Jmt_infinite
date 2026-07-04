@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import {
   Search, Upload, AlertCircle, CheckCircle2,
   Clock, XCircle, Info, ExternalLink, FileText,
-  MapPin, ChevronDown, ChevronUp, Calendar, Eye, X
+  MapPin, ChevronDown, ChevronUp, Calendar, Eye, X, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { OrderTrackingStepper, type OrderStatus } from '@/components/ui/OrderTrackingStepper'
@@ -19,35 +20,71 @@ import { Button, buttonVariants, buttonSizes } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
-  CONFIRMED: { label: '¡Al aire!', color: 'text-emerald-500', dot: 'bg-emerald-500' },
+  CONFIRMED: { label: '¡Activa!', color: 'text-emerald-500', dot: 'bg-emerald-500' },
   PENDING_UPLOAD: { label: 'Falta subir foto/video', color: 'text-amber-500', dot: 'bg-amber-500' },
   VIDEO_SENT: { label: 'Revisando diseño', color: 'text-blue-400', dot: 'bg-blue-400' },
   PENDING_VALIDATION: { label: 'Revisando diseño', color: 'text-blue-400', dot: 'bg-blue-400' },
+  APPROVED: { label: 'Aprobado', color: 'text-emerald-500', dot: 'bg-emerald-500' },
+  SENT_TO_PROVIDER: { label: 'Programado', color: 'text-purple-400', dot: 'bg-purple-400' },
   REJECTED: { label: 'Observado (Por corregir)', color: 'text-red-500', dot: 'bg-red-500' },
   CANCELLED: { label: 'Cancelado', color: 'text-muted-foreground', dot: 'bg-muted-foreground/60' },
 }
 
 const FILTERS = [
-  { value: 'ALL', label: 'Todos' },
-  { value: 'CONFIRMED', label: 'Al aire' },
+  { value: 'CONFIRMED', label: 'Activa' },
   { value: 'PENDING_UPLOAD', label: 'Falta subir' },
   { value: 'VIDEO_SENT', label: 'En revisión' },
   { value: 'REJECTED', label: 'Por corregir' },
 ]
 
 export function OrdersList({ initialOrders }: OrdersListProps) {
+  const [orders, setOrders] = useState(initialOrders)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('ALL')
+  const [filter, setFilter] = useState('CONFIRMED')
   const [expanded, setExpanded] = useState<string[]>([])
   const [selectedEvidenceOrder, setSelectedEvidenceOrder] = useState<any | null>(null)
   const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null)
 
+  useEffect(() => {
+    setOrders(initialOrders)
+  }, [initialOrders])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('orders-list-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          console.log('[realtime] Order list update:', payload.new)
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.id === payload.new.id ? { ...o, ...payload.new } : o
+            )
+          )
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
   const toggle = (id: string) =>
     setExpanded(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
-  const filtered = initialOrders.filter(o => {
+  const filtered = orders.filter(o => {
     const matchSearch = o.id.toLowerCase().includes(search.toLowerCase())
-    const matchFilter = filter === 'ALL' || o.status === filter
+    let matchFilter = o.status === filter
+    if (filter === 'VIDEO_SENT') {
+      matchFilter = ['VIDEO_SENT', 'PENDING_VALIDATION', 'APPROVED', 'SENT_TO_PROVIDER'].includes(o.status)
+    }
     return matchSearch && matchFilter
   })
 
@@ -55,35 +92,52 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
     <div className="space-y-6 pb-24">
 
       {/* TOOLBAR */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-6">
+        <div className="relative w-full">
           <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Buscar por ID..."
+            placeholder="Buscar..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-card border-border rounded-lg py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-muted/10 h-auto"
+            className="w-full bg-background border-border py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-muted/5 h-auto rounded-md"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-          {FILTERS.map(f => (
-            <Button
-              key={f.value}
-              variant={filter === f.value ? 'default' : 'outline'}
-              onClick={() => setFilter(f.value)}
-              className="px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap h-auto"
-            >
-              {f.label}
-            </Button>
-          ))}
+        {/* TABS */}
+        <div className="relative border-b border-border/50 flex items-center">
+          <div className="md:hidden text-muted-foreground/50 pr-2">
+            <ChevronLeft size={16} />
+          </div>
+          <div className="flex-1 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-hide">
+            {FILTERS.map(f => (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                className={cn(
+                  "pb-3 text-xs md:text-sm font-medium whitespace-nowrap transition-colors relative",
+                  filter === f.value ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {f.label}
+                {filter === f.value && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary"
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+          <div className="md:hidden text-muted-foreground/50 pl-2">
+            <ChevronRight size={16} />
+          </div>
         </div>
       </div>
 
       {/* TABLE HEADER — desktop only */}
       <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 border-b border-border/50">
-        <p className="col-span-3 text-[10px] font-black text-muted-foreground uppercase tracking-widest">ID Pedido</p>
+        <p className="col-span-3 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Campaña</p>
         <p className="col-span-3 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Pantallas</p>
         <p className="col-span-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Fecha</p>
         <p className="col-span-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Estado</p>
@@ -97,6 +151,11 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
             const status = STATUS_CONFIG[order.status] ?? { label: order.status, color: 'text-muted-foreground', dot: 'bg-muted-foreground/40' }
             const isExpanded = expanded.includes(order.id)
 
+            const firstBooking = order.bookings?.[0]
+            const startDate = firstBooking?.start_date ? new Date(firstBooking.start_date).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : 'N/A'
+            const endDate = firstBooking?.end_date ? new Date(firstBooking.end_date).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : 'N/A'
+            const durationText = `${startDate} - ${endDate}`
+
             return (
               <motion.div
                 key={order.id}
@@ -108,22 +167,56 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                 className="rounded-lg border border-border bg-card hover:bg-muted/10 hover:border-primary transition-all overflow-hidden"
               >
                 {/* MAIN ROW */}
-                <Button
-                  variant="ghost"
-                  onClick={() => toggle(order.id)}
-                  className="w-full text-left block h-auto p-0 hover:bg-transparent rounded-none"
+                <div
+                  className="w-full text-left block h-auto p-0 bg-transparent cursor-pointer relative"
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest('.cta-button')) return;
+                    toggle(order.id);
+                  }}
                 >
-                  <div className="grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-4 px-4 py-4 items-center">
-                    {/* ID */}
-                    <div className="md:col-span-3">
-                      <p className="text-[10px] text-muted-foreground mb-0.5 md:hidden">Pedido</p>
-                      <p className="font-mono text-xs font-bold text-foreground">
-                        #{order.id.slice(0, 8).toUpperCase()}
+                  <div className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 px-4 py-4 md:items-center">
+
+                    {/* MOBILE TOP ROW: Duration & Status */}
+                    <div className="flex justify-between items-start md:hidden mb-1">
+                      <div className="flex flex-col">
+                        <p className="text-[10px] text-muted-foreground mb-0.5">Campaña</p>
+                        <p className="text-xs font-bold text-foreground">
+                          {durationText}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.dot}`} />
+                        <span className={`text-[10px] font-black uppercase tracking-wide ${status.color}`}>
+                          {status.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* MOBILE PRICE ROW */}
+                    <div className="flex justify-between items-center md:hidden mb-2">
+                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-black text-foreground">
+                          S/ {order.total_amount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                        </span>
+                        {isExpanded
+                          ? <ChevronUp size={14} className="text-muted-foreground shrink-0" />
+                          : <ChevronDown size={14} className="text-muted-foreground shrink-0" />
+                        }
+                      </div>
+                    </div>
+
+                    {/* DESKTOP Duration */}
+                    <div className="hidden md:block md:col-span-3">
+                      <p className="text-[10px] text-muted-foreground mb-0.5 md:hidden">Campaña</p>
+                      <p className="text-xs font-bold text-foreground">
+                        {durationText}
                       </p>
                     </div>
 
-                    {/* Pantallas preview */}
-                    <div className="md:col-span-3 flex flex-wrap gap-1.5">
+                    {/* DESKTOP Pantallas preview (HIDDEN ON MOBILE) */}
+                    <div className="hidden md:flex md:col-span-3 flex-wrap gap-1.5">
                       {order.bookings?.slice(0, 2).map((b: any, idx: number) => (
                         <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-muted border border-border text-[10px] font-semibold text-muted-foreground">
                           <MapPin size={9} className="text-muted-foreground shrink-0" />
@@ -137,23 +230,23 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                       )}
                     </div>
 
-                    {/* Fecha */}
-                    <div className="md:col-span-2 hidden md:block">
+                    {/* DESKTOP Fecha (already hidden md:block) */}
+                    <div className="hidden md:block md:col-span-2">
                       <p className="text-xs text-muted-foreground font-medium">
                         {new Date(order.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: '2-digit' })}
                       </p>
                     </div>
 
-                    {/* Estado */}
-                    <div className="md:col-span-2 flex items-center gap-1.5">
+                    {/* DESKTOP Estado */}
+                    <div className="hidden md:flex md:col-span-2 items-center gap-1.5">
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.dot}`} />
                       <span className={`text-[10px] font-black uppercase tracking-wide ${status.color}`}>
                         {status.label}
                       </span>
                     </div>
 
-                    {/* Total */}
-                    <div className="md:col-span-2 text-right flex items-center justify-end gap-2">
+                    {/* DESKTOP Total */}
+                    <div className="hidden md:flex md:col-span-2 text-right items-center justify-end gap-2">
                       <span className="text-sm font-black text-foreground">
                         S/ {order.total_amount.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
                       </span>
@@ -162,8 +255,69 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                         : <ChevronDown size={14} className="text-muted-foreground shrink-0" />
                       }
                     </div>
+
+                    {/* MOBILE CTAs */}
+                    <div className="flex flex-col gap-2 md:hidden cta-button w-full mt-2">
+                      {order.status === 'PENDING_UPLOAD' && (
+                        <Link
+                          href={`/order-success/${order.id}`}
+                          className={cn(
+                            buttonVariants.default,
+                            buttonSizes.lg,
+                            "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                          )}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Upload size={13} />
+                          Subir Contenido
+                        </Link>
+                      )}
+                      {order.status === 'REJECTED' && (
+                        <Link
+                          href={`/order-success/${order.id}`}
+                          className={cn(
+                            buttonVariants.default,
+                            buttonSizes.lg,
+                            "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                          )}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <AlertCircle size={13} />
+                          Corregir Foto o Video
+                        </Link>
+                      )}
+                      {order.evidence_urls && order.evidence_urls.length > 0 ? (
+                        <Link
+                          href={`/dashboard/orders/${order.id}/resumen`}
+                          className={cn(
+                            buttonVariants.default,
+                            buttonSizes.lg,
+                            "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                          )}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Eye size={13} />
+                          Ver Reporte
+                        </Link>
+                      ) : (
+                        (order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
+                          <Link
+                            href={`/order-success/${order.id}`}
+                            className={cn(
+                              buttonVariants.default,
+                              buttonSizes.lg,
+                              "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink size={13} />
+                            Ver mi Anuncio
+                          </Link>
+                        )
+                      )}
+                    </div>
                   </div>
-                </Button>
+                </div>
 
                 {/* EXPANDED DETAIL */}
                 <AnimatePresence>
@@ -178,15 +332,17 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                       <div className="px-4 py-5 space-y-4">
 
                         {/* Order Tracking Stepper */}
-                        <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
-                          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-3">
-                            Seguimiento de tu anuncio
-                          </p>
-                          <OrderTrackingStepper
-                            status={order.status as OrderStatus}
-                            layout="auto"
-                          />
-                        </div>
+                        {order.status !== 'CONFIRMED' && (
+                          <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-3">
+                              Seguimiento de tu anuncio
+                            </p>
+                            <OrderTrackingStepper
+                              status={order.status as OrderStatus}
+                              layout="auto"
+                            />
+                          </div>
+                        )}
 
                         {/* Bookings table */}
                         <div>
@@ -210,8 +366,8 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                           </div>
                         </div>
 
-                        {/* Actions row */}
-                        <div className="flex flex-col sm:flex-row gap-2 pt-1 w-full">
+                        {/* Actions row (HIDDEN ON MOBILE, shown in main row instead) */}
+                        <div className="hidden md:flex flex-col sm:flex-row gap-2 pt-1 w-full">
                           {order.status === 'PENDING_UPLOAD' && (
                             <Link
                               href={`/order-success/${order.id}`}
@@ -248,7 +404,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                               )}
                             >
                               <Eye size={13} />
-                              Ver Resumen de Campaña
+                              Ver Reporte
                             </Link>
                           ) : (
                             (order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
@@ -312,7 +468,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
         }}
         title="Evidencia de Instalación"
         description={`Imágenes de verificación para el pedido #${selectedEvidenceOrder?.id.slice(0, 8).toUpperCase()}`}
-        className="max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+        className="max-w-2xl bg-card border border-border rounded-2xl  overflow-hidden"
         variant="default"
       >
         <div className="p-6 space-y-6">
@@ -396,7 +552,7 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
               <img
                 src={activePreviewUrl}
                 alt="Evidencia Fullscreen"
-                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
+                className="max-w-full max-h-[90vh] object-contain rounded-lg  animate-in zoom-in-95 duration-200"
               />
             </div>
           </div>
