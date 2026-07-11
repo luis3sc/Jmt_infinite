@@ -154,19 +154,12 @@ export default async function GestorPage() {
 
       <Container maxW="6xl" className="pt-20 md:pt-24 flex-1 flex flex-col">
 
-        {/* Back */}
-        <BackButton href="/map" label="Volver" variant="small" className="mb-8" />
-
-        {/* Header */}
         <header className="mb-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
               <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-foreground leading-none">
                 Revisión de Videos
               </h1>
-              <p className="text-muted-foreground mt-2 text-sm font-medium">
-                Evalúa y valida los materiales de campaña enviados por los clientes.
-              </p>
             </div>
 
             {pendingReview > 0 && (

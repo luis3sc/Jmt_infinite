@@ -40,10 +40,7 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
   const scrollTabs = (direction: 'left' | 'right') => {
     if (tabsRef.current) {
       const scrollAmount = 150
-      tabsRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      })
+      tabsRef.current.scrollLeft += direction === 'left' ? -scrollAmount : scrollAmount;
     }
   }
 
@@ -313,20 +310,22 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
         {/* TABS */}
         <div className="relative border-b border-border/50 flex items-center">
           <button
+            type="button"
             onClick={() => scrollTabs('left')}
-            className="md:hidden text-muted-foreground/50 hover:text-foreground pr-2 focus:outline-none cursor-pointer"
+            className="md:hidden text-muted-foreground/50 hover:text-primary pr-2 py-2 focus:outline-none cursor-pointer z-10"
             aria-label="Scroll left"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={20} />
           </button>
-          <div ref={tabsRef} className="flex-1 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-hide">
+          <div ref={tabsRef} className="flex-1 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-hide scroll-smooth">
             {FILTERS.map(f => (
               <button
+                type="button"
                 key={f.value}
                 onClick={() => setFilter(f.value)}
                 className={cn(
-                  "pb-3 text-xs md:text-sm font-medium whitespace-nowrap transition-colors relative",
-                  filter === f.value ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  "pb-3 text-xs md:text-sm font-medium whitespace-nowrap transition-colors relative cursor-pointer",
+                  filter === f.value ? "text-primary" : "text-muted-foreground hover:text-primary"
                 )}
               >
                 {f.label}
@@ -340,11 +339,12 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
             ))}
           </div>
           <button
+            type="button"
             onClick={() => scrollTabs('right')}
-            className="md:hidden text-muted-foreground/50 hover:text-foreground pl-2 focus:outline-none cursor-pointer"
+            className="md:hidden text-muted-foreground/50 hover:text-primary pl-2 py-2 focus:outline-none cursor-pointer z-10"
             aria-label="Scroll right"
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={20} />
           </button>
         </div>
       </div>
