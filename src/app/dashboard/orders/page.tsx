@@ -7,7 +7,8 @@ import AuthButton from '@/components/layout/AuthButton'
 import { OrdersList } from '@/components/dashboard/OrdersList'
 import { Container } from '@/components/ui/Container'
 import { Alert } from '@/components/ui/Alert'
-import { buttonVariants, buttonSizes } from '@/components/ui/Button'
+import { Plus } from 'lucide-react'
+import { buttonVariants, buttonSizes, buttonBaseStyles } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 
 export default async function OrdersPage() {
@@ -78,12 +79,14 @@ export default async function OrdersPage() {
                             <Link
                                 href="/map"
                                 className={cn(
-                                    buttonVariants.default,
-                                    buttonSizes.default,
-                                    "inline-flex items-center gap-2 uppercase font-black tracking-wider text-[11px] shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                                    "inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer", // base styles
+                                    "bg-primary text-primary-foreground shadow hover:bg-primary/90", // default variant
+                                    "h-11 rounded-button-lg px-fluid-lg", // lg size to match Ver Reporte exactly
+                                    "gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm" // custom styles identical to Ver Reporte
                                 )}
                             >
-                                + Crear Campaña
+                                <Plus size={13} />
+                                Crear Campaña
                             </Link>
                         </div>
                     </div>
@@ -103,9 +106,10 @@ export default async function OrdersPage() {
                         <Link
                             href="/map"
                             className={cn(
-                                buttonVariants.default,
-                                buttonSizes.lg,
-                                "inline-flex items-center gap-2 uppercase font-black tracking-wider text-xs shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                                "inline-flex items-center justify-center whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+                                "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+                                "h-11 rounded-button-lg px-fluid-lg",
+                                "gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20"
                             )}
                         >
                             Explorar Pantallas

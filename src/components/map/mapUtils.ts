@@ -152,3 +152,70 @@ export const getRelevanceScore = (text: string, query: string) => {
   if (normText.includes(normQuery)) return 40;
   return 0;
 };
+
+export const CITY_TO_DEPARTMENT: Record<string, { department: string; center: { lat: number; lng: number }; zoom: number }> = {
+  "lima": { department: "Lima", center: { lat: -12.046374, lng: -77.042793 }, zoom: 12 },
+  "callao": { department: "Callao", center: { lat: -12.042087, lng: -77.103960 }, zoom: 12 },
+  "arequipa": { department: "Arequipa", center: { lat: -16.401590, lng: -71.531417 }, zoom: 13 },
+  "ica": { department: "Ica", center: { lat: -14.064315, lng: -75.732300 }, zoom: 14 },
+  "cusco": { department: "Cusco", center: { lat: -13.527455, lng: -71.963588 }, zoom: 13 },
+  "piura": { department: "Piura", center: { lat: -5.185439, lng: -80.629046 }, zoom: 13 },
+  "chiclayo": { department: "Lambayeque", center: { lat: -6.769379, lng: -79.846263 }, zoom: 13 },
+  "huancayo": { department: "Junín", center: { lat: -12.062049, lng: -75.208404 }, zoom: 14 },
+  "trujillo": { department: "La Libertad", center: { lat: -8.119443, lng: -79.038919 }, zoom: 13 }
+};
+
+export interface DepartmentInfo {
+  key: string;
+  display: string;
+  center: { lat: number; lng: number };
+  zoom: number;
+  city: string;
+}
+
+export const getActiveDepartments = (structures: any[]): DepartmentInfo[] => {
+  const activeCities = new Set(
+    structures
+      .map(s => s.city?.toLowerCase().trim())
+      .filter(Boolean)
+  );
+
+  const departmentsList: DepartmentInfo[] = [];
+
+  // 1. Add known mapped departments if they are active in the dbStructures
+  Object.entries(CITY_TO_DEPARTMENT).forEach(([cityKey, info]) => {
+    if (activeCities.has(cityKey)) {
+      const exists = departmentsList.some(d => d.key.toLowerCase() === info.department.toLowerCase());
+      if (!exists) {
+        departmentsList.push({
+          key: info.department,
+          display: info.department,
+          center: info.center,
+          zoom: info.zoom,
+          city: cityKey
+        });
+      }
+    }
+  });
+
+  // 2. Dynamic fallback for any unmapped active cities
+  activeCities.forEach(city => {
+    const cityKey = city.toLowerCase();
+    if (!CITY_TO_DEPARTMENT[cityKey]) {
+      const cityStructures = structures.filter(s => s.city?.toLowerCase().trim() === cityKey);
+      if (cityStructures.length > 0) {
+        const avgLat = cityStructures.reduce((sum, s) => sum + s.latitude, 0) / cityStructures.length;
+        const avgLng = cityStructures.reduce((sum, s) => sum + s.longitude, 0) / cityStructures.length;
+        departmentsList.push({
+          key: city,
+          display: city.charAt(0).toUpperCase() + city.slice(1),
+          center: { lat: avgLat, lng: avgLng },
+          zoom: 13,
+          city: cityKey
+        });
+      }
+    }
+  });
+
+  return departmentsList;
+};

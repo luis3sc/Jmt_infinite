@@ -26,6 +26,8 @@ const buttonSizes = {
   "icon-xs": "h-8 w-8 rounded-button-sm",
 };
 
+const buttonBaseStyles = "inline-flex items-center justify-center whitespace-nowrap text-fluid-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer";
+
 export interface ButtonProps extends Omit<HTMLMotionProps<"button">, "children"> {
   variant?: keyof typeof buttonVariants;
   size?: keyof typeof buttonSizes;
@@ -40,7 +42,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          "inline-flex items-center justify-center whitespace-nowrap text-fluid-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+          buttonBaseStyles,
           buttonVariants[variant],
           buttonSizes[size],
           className
@@ -57,4 +59,4 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = "Button";
 
-export { Button, buttonVariants, buttonSizes };
+export { Button, buttonVariants, buttonSizes, buttonBaseStyles };

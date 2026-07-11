@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { LIMA_CALLAO_DISTRICTS, getRelevanceScore } from "../mapUtils";
+import { LIMA_CALLAO_DISTRICTS, getRelevanceScore, getActiveDepartments } from "../mapUtils";
 
 const supabase = createClient();
 
 interface UseMapSearchProps {
   onSelectDistrict: (districtKey: string | null) => void;
-  onSelectLocation: (loc: { lng: number; lat: number } | null) => void;
+  onSelectLocation: (loc: { lng: number; lat: number; zoom?: number } | null) => void;
 }
 
 export function useMapSearch({ onSelectDistrict, onSelectLocation }: UseMapSearchProps) {
@@ -91,7 +91,45 @@ export function useMapSearch({ onSelectDistrict, onSelectLocation }: UseMapSearc
         .replace(/[\u0300-\u036f]/g, "")
         .trim();
 
-      // 1. Filter matching districts
+      // 1. Filter matching departments
+      const activeDepts = getActiveDepartments(dbStructures);
+      const matchedDepartments = activeDepts.filter(
+        (d) =>
+          d.display
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .includes(queryClean) ||
+          d.key
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .includes(queryClean)
+      ).map((d) => ({
+        isDepartment: true,
+        place_name: `${d.display} (Departamento)`,
+        display: d.display,
+        text: d.display,
+        departmentKey: d.key,
+        center: [d.center.lng, d.center.lat] as [number, number],
+        zoom: d.zoom,
+      }));
+
+      // Sort matched departments by relevance
+      matchedDepartments.sort((a, b) => {
+        const scoreA = Math.max(
+          getRelevanceScore(a.display, queryClean),
+          getRelevanceScore(a.departmentKey, queryClean)
+        );
+        const scoreB = Math.max(
+          getRelevanceScore(b.display, queryClean),
+          getRelevanceScore(b.departmentKey, queryClean)
+        );
+        if (scoreA !== scoreB) return scoreB - scoreA;
+        return a.display.localeCompare(b.display, "es");
+      });
+
+      // 2. Filter matching districts
       const matchedDistricts = LIMA_CALLAO_DISTRICTS.filter(
         (d) =>
           d.display
@@ -108,6 +146,7 @@ export function useMapSearch({ onSelectDistrict, onSelectLocation }: UseMapSearc
         isDistrict: true,
         place_name: `${d.display} (Distrito, ${d.province})`,
         display: d.display,
+        text: d.display,
         districtKey: d.key,
         center: null,
       }));
@@ -126,7 +165,7 @@ export function useMapSearch({ onSelectDistrict, onSelectLocation }: UseMapSearc
         return a.display.localeCompare(b.display, "es");
       });
 
-      // 2. Filter matching structures
+      // 3. Filter matching structures
       const matchedStructures = dbStructures
         .filter((s) => {
           const addressClean = (s.address || "")
@@ -159,6 +198,7 @@ export function useMapSearch({ onSelectDistrict, onSelectLocation }: UseMapSearc
             s.city ? ` (${s.city})` : ""
           }`,
           display: s.address,
+          text: s.address,
           code: s.code,
           center: [s.longitude, s.latitude] as [number, number],
           id: s.id,
@@ -178,7 +218,7 @@ export function useMapSearch({ onSelectDistrict, onSelectLocation }: UseMapSearc
         return (a.display || "").localeCompare(b.display || "", "es");
       });
 
-      const allSuggestions = [...matchedDistricts, ...matchedStructures];
+      const allSuggestions = [...matchedDepartments, ...matchedDistricts, ...matchedStructures];
       setSuggestions(allSuggestions);
       setShowSuggestions(allSuggestions.length > 0);
     },
@@ -192,6 +232,10 @@ export function useMapSearch({ onSelectDistrict, onSelectLocation }: UseMapSearc
         setSearchQuery(suggestion.display);
         onSelectDistrict(suggestion.districtKey);
         onSelectLocation(null);
+      } else if (suggestion?.isDepartment) {
+        setSearchQuery(suggestion.display);
+        onSelectDistrict(null);
+        onSelectLocation({ lng, lat, zoom: suggestion.zoom });
       } else {
         setSearchQuery(placeName);
         onSelectDistrict(null);

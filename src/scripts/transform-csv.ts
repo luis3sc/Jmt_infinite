@@ -89,7 +89,7 @@ function transform() {
       // Structure fields
       ELEMENTO: code,
       DEPARTAMENTO: record.DEPARTAMENTO === '-' ? 'Lima' : record.DEPARTAMENTO,
-      DISTRITO: record.DISTRITO === '-' ? 'Lima Metropolitana' : record.DISTRITO,
+      DISTRITO: record.DISTRITO === '-' ? (record.DEPARTAMENTO === '-' || !record.DEPARTAMENTO ? 'Lima Metropolitana' : record.DEPARTAMENTO) : record.DISTRITO,
       DIRECCION_COMERCIAL: record.DIRECCION_COMERCIAL.trim(),
       REFERENCIA: record.REFERENCIA ? record.REFERENCIA.trim() : '',
       LATITUD: lat,

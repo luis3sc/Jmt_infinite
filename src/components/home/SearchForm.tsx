@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { addDays } from "date-fns";
 import { useCartStore } from "@/store/cartStore";
+import { getActiveDepartments } from "@/components/map/mapUtils";
 
 const LIMA_CALLAO_DISTRICTS = [
   // LIMA
@@ -86,6 +87,7 @@ export function SearchForm() {
   const [location, setLocation] = useState("");
   const [selectedCoords, setSelectedCoords] = useState<{ lng: number; lat: number } | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
+  const [selectedZoom, setSelectedZoom] = useState<number | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -155,6 +157,7 @@ export function SearchForm() {
     setLocation(query);
     setSelectedCoords(null);
     setSelectedDistrict(null);
+    setSelectedZoom(null);
 
     if (query.length < 2) {
       const top = getTopRecommendations();
@@ -165,7 +168,30 @@ export function SearchForm() {
 
     const queryClean = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-    // 1. Filter matching districts
+    // 1. Filter matching departments
+    const activeDepts = getActiveDepartments(dbStructures);
+    const matchedDepartments = activeDepts.filter(d =>
+      d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(queryClean) ||
+      d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(queryClean)
+    ).map(d => ({
+      isDepartment: true,
+      place_name: `${d.display} (Departamento)`,
+      display: d.display,
+      text: d.display,
+      departmentKey: d.key,
+      center: [d.center.lng, d.center.lat] as [number, number],
+      zoom: d.zoom
+    }));
+
+    // Sort matched departments by relevance
+    matchedDepartments.sort((a, b) => {
+      const scoreA = Math.max(getRelevanceScore(a.display, queryClean), getRelevanceScore(a.departmentKey, queryClean));
+      const scoreB = Math.max(getRelevanceScore(b.display, queryClean), getRelevanceScore(b.departmentKey, queryClean));
+      if (scoreA !== scoreB) return scoreB - scoreA;
+      return a.display.localeCompare(b.display, "es");
+    });
+
+    // 2. Filter matching districts
     const matchedDistricts = LIMA_CALLAO_DISTRICTS.filter(d =>
       d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(queryClean) ||
       d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(queryClean)
@@ -173,6 +199,7 @@ export function SearchForm() {
       isDistrict: true,
       place_name: `${d.display} (Distrito, ${d.province})`,
       display: d.display,
+      text: d.display,
       districtKey: d.key,
       center: null
     }));
@@ -185,7 +212,7 @@ export function SearchForm() {
       return a.display.localeCompare(b.display, "es");
     });
 
-    // 2. Filter matching structures in Supabase JMT DB
+    // 3. Filter matching structures in Supabase JMT DB
     const matchedStructures = dbStructures.filter(s => {
       const addressClean = (s.address || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const districtClean = (s.district || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -200,6 +227,7 @@ export function SearchForm() {
       isStructure: true,
       place_name: `${s.address}${s.district ? `, ${s.district}` : ""}${s.city ? ` (${s.city})` : ""}`,
       display: s.address,
+      text: s.address,
       code: s.code,
       center: [s.longitude, s.latitude],
       id: s.id
@@ -213,7 +241,7 @@ export function SearchForm() {
       return (a.display || "").localeCompare(b.display || "", "es");
     });
 
-    const allSuggestions = [...matchedDistricts, ...matchedStructures];
+    const allSuggestions = [...matchedDepartments, ...matchedDistricts, ...matchedStructures];
     setSuggestions(allSuggestions);
     setShowSuggestions(allSuggestions.length > 0);
   };
@@ -229,9 +257,25 @@ export function SearchForm() {
       d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanLocation
     );
 
+    // Check if typed text matches a department directly
+    const activeDepts = getActiveDepartments(dbStructures);
+    const matchedDept = activeDepts.find(d =>
+      d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanLocation ||
+      d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanLocation
+    );
+
     const activeDistrict = selectedDistrict || (matched ? matched.key : null);
-    let activeLocation = matched ? matched.display : location;
+    let activeLocation = matched ? matched.display : (matchedDept ? matchedDept.display : location);
     let activeCoords = selectedCoords;
+    let activeZoom = selectedZoom;
+
+    if (matchedDept && !activeCoords) {
+      activeCoords = {
+        lat: matchedDept.center.lat,
+        lng: matchedDept.center.lng
+      };
+      activeZoom = matchedDept.zoom;
+    }
 
     if (!activeDistrict && !activeCoords && cleanLocation.length >= 3) {
       const matchedStructure = dbStructures.find(s => {
@@ -261,6 +305,9 @@ export function SearchForm() {
     } else if (activeCoords) {
       query.append("lat", activeCoords.lat.toString());
       query.append("lng", activeCoords.lng.toString());
+      if (activeZoom) {
+        query.append("zoom", activeZoom.toString());
+      }
     }
     if (dateFrom) query.append("from", dateFrom);
     if (dateTo) query.append("to", dateTo);
@@ -336,9 +383,19 @@ export function SearchForm() {
                         setLocation(suggestion.display);
                         setSelectedDistrict(suggestion.districtKey);
                         setSelectedCoords(null);
+                        setSelectedZoom(null);
+                      } else if (suggestion.isDepartment) {
+                        setLocation(suggestion.display);
+                        setSelectedDistrict(null);
+                        setSelectedCoords({
+                          lng: suggestion.center[0],
+                          lat: suggestion.center[1]
+                        });
+                        setSelectedZoom(suggestion.zoom);
                       } else {
                         setLocation(suggestion.place_name);
                         setSelectedDistrict(null);
+                        setSelectedZoom(null);
                         if (suggestion.center) {
                           setSelectedCoords({
                             lng: suggestion.center[0],

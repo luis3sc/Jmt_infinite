@@ -26,7 +26,7 @@ import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import QuotePDFDocument from "./QuotePDFDocument";
 import QuoteDialog from "./components/QuoteDialog";
-import { LIMA_CALLAO_DISTRICTS, DISTRICT_COORDINATES, isDistrictMatch, getRelevanceScore } from "./mapUtils";
+import { LIMA_CALLAO_DISTRICTS, DISTRICT_COORDINATES, isDistrictMatch, getRelevanceScore, getActiveDepartments } from "./mapUtils";
 import { useMapSearch } from "./hooks/useMapSearch";
 import { useMapFilters } from "./hooks/useMapFilters";
 import { useQuoteFlow } from "./hooks/useQuoteFlow";
@@ -87,12 +87,13 @@ export function MapViewClient() {
   const activeDistrict = searchParams?.get("district") || null;
   const [pendingDistrict, setPendingDistrict] = useState<string | null>(null);
   const [districtsGeoJSON, setDistrictsGeoJSON] = useState<any>(null);
+  const [departmentsGeoJSON, setDepartmentsGeoJSON] = useState<any>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isInitialFitDone, setIsInitialFitDone] = useState(!activeDistrict);
 
   const isInitialLoadRef = useRef(true);
 
-  // Load districts GeoJSON on mount
+  // Load districts and departments GeoJSON on mount
   useEffect(() => {
     fetch("/data/lima_callao_distritos_simple.geojson")
       .then((res) => res.json())
@@ -101,6 +102,15 @@ export function MapViewClient() {
       })
       .catch((err) => {
         console.error("Error loading districts GeoJSON:", err);
+      });
+
+    fetch("/data/peru_departamental_simple.geojson")
+      .then((res) => res.json())
+      .then((data) => {
+        setDepartmentsGeoJSON(data);
+      })
+      .catch((err) => {
+        console.error("Error loading departments GeoJSON:", err);
       });
   }, []);
 
@@ -117,7 +127,7 @@ export function MapViewClient() {
   const districtCoords = activeDistrict ? DISTRICT_COORDINATES[activeDistrict] : null;
   const initialLat = Number(searchParams?.get("lat")) || (districtCoords ? districtCoords.lat : -12.0464);
   const initialLng = Number(searchParams?.get("lng")) || (districtCoords ? districtCoords.lng : -77.0428);
-  const initialZoom = districtCoords ? districtCoords.zoom : 13;
+  const initialZoom = Number(searchParams?.get("zoom")) || (districtCoords ? districtCoords.zoom : 13);
 
   const fromParam = searchParams?.get("from");
   const toParam = searchParams?.get("to");
@@ -142,32 +152,69 @@ export function MapViewClient() {
   // Staged states for active search (only update when "Buscar" is clicked)
   const [activeStartDate, setActiveStartDate] = useState(initialStart);
   const [activeEndDate, setActiveEndDate] = useState(initialEnd);
-  const [pendingLocation, setPendingLocation] = useState<{ lng: number, lat: number } | null>(null);
+  const [pendingLocation, setPendingLocation] = useState<{ lng: number, lat: number, zoom?: number } | null>(null);
   const [startDate, setStartDate] = useState(initialStart);
   const [endDate, setEndDate] = useState(initialEnd);
 
   // Match the active district from the URL against the GeoJSON features
   const selectedDistrictFeature = useMemo(() => {
-    if (!activeDistrict || !districtsGeoJSON) return null;
+    // 1. Check active district in districts GeoJSON (Lima/Callao)
+    if (activeDistrict && districtsGeoJSON) {
+      const searchName = activeDistrict.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-    const searchName = activeDistrict.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      const matchedFeature = districtsGeoJSON.features.find((feature: any) => {
+        const distName = feature.properties?.distrito || "";
+        const distName2 = feature.properties?.distrito2 || "";
 
-    return districtsGeoJSON.features.find((feature: any) => {
-      const distName = feature.properties?.distrito || "";
-      const distName2 = feature.properties?.distrito2 || "";
+        const norm1 = distName.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        const norm2 = distName2.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-      const norm1 = distName.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-      const norm2 = distName2.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        // Support manual mapping overrides
+        if (searchName === "SURCO" && (norm1 === "SANTIAGO DE SURCO" || norm2 === "SANTIAGO DE SURCO")) return true;
+        if (searchName === "LURIGANCHO" && (norm1 === "LURIGANCHO" || norm2 === "LURIGANCHO-CHOSICA")) return true;
+        if (searchName === "MI PERU" && (norm1 === "MI PERU" || norm2 === "MI PERU")) return true;
+        if (searchName === "BRENA" && (norm1 === "BRENA" || norm2 === "BRENA")) return true;
 
-      // Support manual mapping overrides
-      if (searchName === "SURCO" && (norm1 === "SANTIAGO DE SURCO" || norm2 === "SANTIAGO DE SURCO")) return true;
-      if (searchName === "LURIGANCHO" && (norm1 === "LURIGANCHO" || norm2 === "LURIGANCHO-CHOSICA")) return true;
-      if (searchName === "MI PERU" && (norm1 === "MI PERU" || norm2 === "MI PERU")) return true;
-      if (searchName === "BRENA" && (norm1 === "BRENA" || norm2 === "BRENA")) return true;
+        return norm1 === searchName || norm2 === searchName;
+      });
 
-      return norm1 === searchName || norm2 === searchName;
-    });
-  }, [activeDistrict, districtsGeoJSON]);
+      if (matchedFeature) return matchedFeature;
+    }
+
+    // 2. Check locationQuery in departments GeoJSON
+    const locationQuery = searchParams?.get("location");
+    if (locationQuery && departmentsGeoJSON) {
+      const cleanLoc = locationQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      
+      let searchDeptName = cleanLoc;
+      if (cleanLoc.endsWith(" (departamento)")) {
+        searchDeptName = cleanLoc.replace(" (departamento)", "").trim();
+      } else if (cleanLoc.endsWith(" departamento")) {
+        searchDeptName = cleanLoc.replace(" departamento", "").trim();
+      } else if (cleanLoc.startsWith("departamento de ")) {
+        searchDeptName = cleanLoc.replace("departamento de ", "").trim();
+      } else if (cleanLoc.startsWith("departamento ")) {
+        searchDeptName = cleanLoc.replace("departamento ", "").trim();
+      }
+
+      // Check if it's one of our known departments
+      const depts = ["lima", "callao", "arequipa", "ica", "cusco", "piura", "lambayeque", "junin", "la libertad"];
+      const isDept = depts.some(d => d === searchDeptName);
+
+      if (isDept) {
+        const normSearch = searchDeptName.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+        const matchedFeature = departmentsGeoJSON.features.find((feature: any) => {
+          const deptName = (feature.properties?.NOMBDEP || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+          return deptName === normSearch;
+        });
+
+        if (matchedFeature) return matchedFeature;
+      }
+    }
+
+    return null;
+  }, [activeDistrict, districtsGeoJSON, departmentsGeoJSON, searchParams]);
 
   // Helper to fit map bounds to the active district in a robust way, preventing mobile race conditions
   const fitDistrictBounds = useCallback((mapInstance: any, isInitial: boolean) => {
@@ -542,15 +589,17 @@ export function MapViewClient() {
     if (hasCoords) {
       const lat = Number(latParam);
       const lng = Number(lngParam);
+      const zoomParam = searchParams?.get("zoom");
+      const zoom = zoomParam ? Number(zoomParam) : 14;
       setViewState(prev => {
-        if (prev.longitude === lng && prev.latitude === lat) {
+        if (prev.longitude === lng && prev.latitude === lat && prev.zoom === zoom) {
           return prev;
         }
         return {
           ...prev,
           longitude: lng,
           latitude: lat,
-          zoom: 14,
+          zoom: zoom,
           transitionDuration: 1000
         };
       });
@@ -580,6 +629,35 @@ export function MapViewClient() {
     if (locationQuery && dbLoaded) {
       // No coords in URL, but we have locationQuery and dbStructures is loaded: resolve locally
       const cleanLocation = locationQuery.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+      const activeDepts = getActiveDepartments(dbStructures);
+      const matchedDept = activeDepts.find(d =>
+        d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanLocation ||
+        d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanLocation
+      );
+
+      if (matchedDept) {
+        setViewState(prev => {
+          if (prev.longitude === matchedDept.center.lng && prev.latitude === matchedDept.center.lat && prev.zoom === matchedDept.zoom) {
+            return prev;
+          }
+          return {
+            ...prev,
+            longitude: matchedDept.center.lng,
+            latitude: matchedDept.center.lat,
+            zoom: matchedDept.zoom,
+            transitionDuration: 1000
+          };
+        });
+
+        setTimeout(() => {
+          if (mapRef.current) {
+            const bounds = mapRef.current.getMap().getBounds();
+            if (bounds) fetchStructuresInBounds(bounds);
+          }
+        }, 1200);
+        return;
+      }
 
       const matchedStructure = dbStructures.find(s => {
         const addressClean = (s.address || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -630,7 +708,7 @@ export function MapViewClient() {
   const executeSearch = async (
     overrideSearchQuery?: any,
     overrideDistrict?: string | null,
-    overrideLocation?: { lng: number, lat: number } | null
+    overrideLocation?: { lng: number, lat: number, zoom?: number } | null
   ) => {
     // 1. Update active states
     setActiveStartDate(startDate);
@@ -665,6 +743,7 @@ export function MapViewClient() {
       params.set("district", activeDist);
       params.delete("lat");
       params.delete("lng");
+      params.delete("zoom");
 
       const displayName = matched ? matched.display : (LIMA_CALLAO_DISTRICTS.find(d => d.key === activeDist)?.display || queryToUse);
       params.set("location", displayName);
@@ -689,13 +768,18 @@ export function MapViewClient() {
       // Si seleccionaron una sugerencia del buscador, usamos esas coordenadas exactas
       params.set("lat", locationToUse.lat.toString());
       params.set("lng", locationToUse.lng.toString());
+      if (locationToUse.zoom) {
+        params.set("zoom", locationToUse.zoom.toString());
+      } else {
+        params.delete("zoom");
+      }
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
 
       setViewState(prev => ({
         ...prev,
         longitude: locationToUse.lng,
         latitude: locationToUse.lat,
-        zoom: 14,
+        zoom: locationToUse.zoom || 14,
         transitionDuration: 1000
       }));
       setPendingLocation(null);
@@ -708,33 +792,26 @@ export function MapViewClient() {
         }
       }, 1100);
     } else if (queryToUse.length >= 3) {
-      const matchedStructure = dbStructures.find(s => {
-        const addressClean = (s.address || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const districtClean = (s.district || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const cityClean = (s.city || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const codeClean = (s.code || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const activeDepts = getActiveDepartments(dbStructures);
+      const matchedDept = activeDepts.find(d =>
+        d.display.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanSearch ||
+        d.key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === cleanSearch
+      );
 
-        return addressClean.includes(cleanSearch) ||
-          districtClean.includes(cleanSearch) ||
-          cityClean.includes(cleanSearch) ||
-          codeClean.includes(cleanSearch);
-      });
-
-      if (matchedStructure) {
-        params.set("lat", matchedStructure.latitude.toString());
-        params.set("lng", matchedStructure.longitude.toString());
-
-        const displayName = `${matchedStructure.address}${matchedStructure.district ? `, ${matchedStructure.district}` : ""}`;
-        params.set("location", displayName);
-        setSearchQuery(displayName);
+      if (matchedDept) {
+        params.set("lat", matchedDept.center.lat.toString());
+        params.set("lng", matchedDept.center.lng.toString());
+        params.set("zoom", matchedDept.zoom.toString());
+        params.set("location", matchedDept.display);
+        setSearchQuery(matchedDept.display);
 
         router.replace(`${pathname}?${params.toString()}`, { scroll: false });
 
         setViewState(prev => ({
           ...prev,
-          longitude: matchedStructure.longitude,
-          latitude: matchedStructure.latitude,
-          zoom: 15,
+          longitude: matchedDept.center.lng,
+          latitude: matchedDept.center.lat,
+          zoom: matchedDept.zoom,
           transitionDuration: 1000
         }));
 
@@ -744,7 +821,45 @@ export function MapViewClient() {
           }
         }, 1100);
       } else {
-        triggerToast("No se encontraron paneles en esa ubicación en nuestra base de datos.");
+        const matchedStructure = dbStructures.find(s => {
+          const addressClean = (s.address || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const districtClean = (s.district || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const cityClean = (s.city || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const codeClean = (s.code || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+          return addressClean.includes(cleanSearch) ||
+            districtClean.includes(cleanSearch) ||
+            cityClean.includes(cleanSearch) ||
+            codeClean.includes(cleanSearch);
+        });
+
+        if (matchedStructure) {
+          params.set("lat", matchedStructure.latitude.toString());
+          params.set("lng", matchedStructure.longitude.toString());
+          params.delete("zoom");
+
+          const displayName = `${matchedStructure.address}${matchedStructure.district ? `, ${matchedStructure.district}` : ""}`;
+          params.set("location", displayName);
+          setSearchQuery(displayName);
+
+          router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+
+          setViewState(prev => ({
+            ...prev,
+            longitude: matchedStructure.longitude,
+            latitude: matchedStructure.latitude,
+            zoom: 15,
+            transitionDuration: 1000
+          }));
+
+          setTimeout(() => {
+            if (mapRef.current) {
+              fetchStructuresInBounds(mapRef.current.getMap().getBounds());
+            }
+          }, 1100);
+        } else {
+          triggerToast("No se encontraron paneles en esa ubicación en nuestra base de datos.");
+        }
       }
     } else {
       // Si no hay cambio de ubicación pero pudieron cambiar las fechas
@@ -764,11 +879,14 @@ export function MapViewClient() {
 
       let query = placeName;
       let dist: string | null = null;
-      let coords: { lng: number; lat: number } | null = null;
+      let coords: { lng: number; lat: number, zoom?: number } | null = null;
 
       if (suggestion?.isDistrict) {
         query = suggestion.display;
         dist = suggestion.districtKey;
+      } else if (suggestion?.isDepartment) {
+        query = suggestion.display;
+        coords = { lng, lat, zoom: suggestion.zoom };
       } else {
         coords = { lng, lat };
       }
