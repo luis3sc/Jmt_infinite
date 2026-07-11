@@ -89,7 +89,8 @@ export async function POST(req: NextRequest) {
     // Sanitizar el nombre de archivo para evitar caracteres extraños en R2
     const cleanFileName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')
     const folder = category === 'evidence' ? 'campaign-evidence' : 'campaign-videos'
-    const key = `${folder}/raw/${orderId}/${Date.now()}-${cleanFileName}`
+    const subfolder = cleanFileName.startsWith('processed-') ? 'processed' : 'raw'
+    const key = `${folder}/${subfolder}/${orderId}/${Date.now()}-${cleanFileName}`
 
     console.log(`[presigned-url] Generating PUT URL for key: ${key}`)
 

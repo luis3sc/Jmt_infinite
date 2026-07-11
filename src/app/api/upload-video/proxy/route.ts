@@ -88,7 +88,8 @@ export async function POST(req: NextRequest) {
 
     // Sanitizar el nombre de archivo para evitar caracteres extraños en R2
     const cleanFileName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-    const key = `campaign-videos/raw/${orderId}/${Date.now()}-${cleanFileName}`
+    const subfolder = cleanFileName.startsWith('processed-') ? 'processed' : 'raw'
+    const key = `campaign-videos/${subfolder}/${orderId}/${Date.now()}-${cleanFileName}`
 
     console.log(`[upload-video-proxy] Proxying upload for orderId=${orderId}, key=${key}`)
 

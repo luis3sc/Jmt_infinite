@@ -83,7 +83,8 @@ export function useMapFilters({ allStructures, activeDistrict }: UseMapFiltersPr
         try {
           const { data: panels, error: panelError } = await supabase
             .from("panels")
-            .select("media_type, daily_price, audience");
+            .select("media_type, daily_price, audience")
+            .eq("status", "available");
           if (panelError) throw panelError;
 
           const allValidPrices = panels?.map((p) => p.daily_price).filter(Boolean) as number[] || [];

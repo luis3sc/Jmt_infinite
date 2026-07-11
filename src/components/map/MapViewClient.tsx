@@ -466,8 +466,8 @@ export function MapViewClient() {
     setIsLoading(true);
 
     try {
-      const isPanelFiltering = activeFilters.audience || activeFilters.mediaType || activeFilters.minPrice || activeFilters.maxPrice;
-      const relation = isPanelFiltering ? "panels!inner" : "panels";
+      // Always use inner join because we only want to show structures with available panels
+      const relation = "panels!inner";
 
       let data: any = null;
       let error: any = null;
@@ -498,6 +498,8 @@ export function MapViewClient() {
         if (activeFilters.maxPrice) {
           query = query.lte("panels.daily_price", activeFilters.maxPrice / 1.18);
         }
+
+        query = query.eq("panels.status", "available");
 
         const result = await query;
         error = result.error;
