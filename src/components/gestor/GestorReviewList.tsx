@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Search, CheckCircle2, XCircle, UploadCloud, Clock, Building2, Calendar, Download, FileText, Send, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from "@/components/ui/Input"
@@ -35,6 +35,17 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
   const [selected, setSelected] = useState<Order | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const tabsRef = useRef<HTMLDivElement>(null)
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsRef.current) {
+      const scrollAmount = 150
+      tabsRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      })
+    }
+  }
 
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok })
@@ -301,10 +312,14 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
 
         {/* TABS */}
         <div className="relative border-b border-border/50 flex items-center">
-          <div className="md:hidden text-muted-foreground/50 pr-2">
+          <button
+            onClick={() => scrollTabs('left')}
+            className="md:hidden text-muted-foreground/50 hover:text-foreground pr-2 focus:outline-none cursor-pointer"
+            aria-label="Scroll left"
+          >
             <ChevronLeft size={16} />
-          </div>
-          <div className="flex-1 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-hide">
+          </button>
+          <div ref={tabsRef} className="flex-1 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-hide">
             {FILTERS.map(f => (
               <button
                 key={f.value}
@@ -324,9 +339,13 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
               </button>
             ))}
           </div>
-          <div className="md:hidden text-muted-foreground/50 pl-2">
+          <button
+            onClick={() => scrollTabs('right')}
+            className="md:hidden text-muted-foreground/50 hover:text-foreground pl-2 focus:outline-none cursor-pointer"
+            aria-label="Scroll right"
+          >
             <ChevronRight size={16} />
-          </div>
+          </button>
         </div>
       </div>
 

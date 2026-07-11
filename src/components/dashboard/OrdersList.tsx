@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import {
@@ -44,6 +44,17 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
   const [expanded, setExpanded] = useState<string[]>([])
   const [selectedEvidenceOrder, setSelectedEvidenceOrder] = useState<any | null>(null)
   const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null)
+  const tabsRef = useRef<HTMLDivElement>(null)
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsRef.current) {
+      const scrollAmount = 150
+      tabsRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      })
+    }
+  }
 
   useEffect(() => {
     setOrders(initialOrders)
@@ -106,10 +117,14 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
 
         {/* TABS */}
         <div className="relative border-b border-border/50 flex items-center">
-          <div className="md:hidden text-muted-foreground/50 pr-2">
+          <button
+            onClick={() => scrollTabs('left')}
+            className="md:hidden text-muted-foreground/50 hover:text-foreground pr-2 focus:outline-none cursor-pointer"
+            aria-label="Scroll left"
+          >
             <ChevronLeft size={16} />
-          </div>
-          <div className="flex-1 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-hide">
+          </button>
+          <div ref={tabsRef} className="flex-1 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-hide">
             {FILTERS.map(f => (
               <button
                 key={f.value}
@@ -129,9 +144,13 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
               </button>
             ))}
           </div>
-          <div className="md:hidden text-muted-foreground/50 pl-2">
+          <button
+            onClick={() => scrollTabs('right')}
+            className="md:hidden text-muted-foreground/50 hover:text-foreground pl-2 focus:outline-none cursor-pointer"
+            aria-label="Scroll right"
+          >
             <ChevronRight size={16} />
-          </div>
+          </button>
         </div>
       </div>
 
