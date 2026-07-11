@@ -74,6 +74,18 @@ export default async function OrdersPage() {
                                 Mis Campañas
                             </h1>
                         </div>
+                        <div className="hidden md:block">
+                            <Link
+                                href="/map"
+                                className={cn(
+                                    buttonVariants.default,
+                                    "h-10 px-6",
+                                    "inline-flex items-center gap-2 uppercase font-black tracking-wider text-xs shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                                )}
+                            >
+                                + Crear Campaña
+                            </Link>
+                        </div>
                     </div>
                 </header>
 
