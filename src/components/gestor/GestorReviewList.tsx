@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, CheckCircle2, XCircle, UploadCloud, Clock, Building2, Calendar, Download, FileText, Send, Eye } from 'lucide-react'
+import { Search, CheckCircle2, XCircle, UploadCloud, Clock, Building2, Calendar, Download, FileText, Send, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
+import { cn } from "@/lib/utils"
 import { GestorOrderDetail, type Order } from './GestorOrderDetail'
 
 const STATUS: Record<string, { label: string; color: string; dot: string }> = {
@@ -157,9 +158,121 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
       setDownloadingId(null)
     }
   }
+  const actionButtons = (order: Order, isMobile: boolean = false) => {
+    const isPending = order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION'
+    const buttonClass = isMobile
+      ? "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm py-2.5 rounded-xl h-auto"
+      : "text-[9px] font-black uppercase tracking-widest h-7 px-3 rounded-lg shadow-sm"
+
+    return (
+      <>
+        {order.status === 'PENDING_UPLOAD' && (
+          <div className={cn("flex items-center gap-1.5 justify-center", isMobile ? "w-full py-2.5 border border-dashed border-border rounded-xl" : "")}>
+            <UploadCloud size={14} className="text-muted-foreground/60" />
+            <span className="text-[10px] text-muted-foreground/80 font-bold uppercase tracking-wider">Sin Video</span>
+          </div>
+        )}
+        {isPending && (
+          <Button
+            variant="default"
+            size={isMobile ? "lg" : "sm"}
+            onClick={() => setSelected(order)}
+            className={cn(buttonClass, !isMobile && "shadow-primary/20")}
+          >
+            Revisar
+          </Button>
+        )}
+        {order.status === 'APPROVED' && (
+          <div className={cn("flex items-center gap-1.5", isMobile ? "w-full flex-col sm:flex-row" : "")}>
+            {order.video_url && (
+              <Button
+                size={isMobile ? "lg" : "icon-xs"}
+                variant="outline"
+                title="Descargar Video"
+                onClick={() => handleDownloadVideo(order.video_url!, order.id)}
+                className={cn(
+                  isMobile
+                    ? "w-full flex items-center justify-center gap-2 font-black uppercase tracking-widest text-[10px] py-2.5 rounded-xl h-auto"
+                    : "h-7 w-7 text-muted-foreground hover:text-foreground flex items-center justify-center border border-border bg-card rounded-md shrink-0 animate-in fade-in duration-200"
+                )}
+              >
+                {downloadingId === order.id ? (
+                  <span className="w-3 h-3 rounded-full border border-muted-foreground/40 border-t-muted-foreground animate-spin" />
+                ) : (
+                  <>
+                    <Download size={12} />
+                    {isMobile && "Descargar Video"}
+                  </>
+                )}
+              </Button>
+            )}
+            <Button
+              size={isMobile ? "lg" : "icon-xs"}
+              variant="outline"
+              title={order.profile?.document_type === 'RUC' ? 'Ver factura' : 'Ver comprobante'}
+              onClick={() => window.open(`/dashboard/orders/${order.id}/nota`, '_blank')}
+              className={cn(
+                isMobile
+                  ? "w-full flex items-center justify-center gap-2 font-black uppercase tracking-widest text-[10px] py-2.5 rounded-xl h-auto"
+                  : "h-7 w-7 text-muted-foreground hover:text-foreground flex items-center justify-center border border-border bg-card rounded-md shrink-0"
+              )}
+            >
+              <FileText size={12} />
+              {isMobile && (order.profile?.document_type === 'RUC' ? 'Ver factura' : 'Ver comprobante')}
+            </Button>
+            <Button
+              size={isMobile ? "lg" : "sm"}
+              variant="secondary"
+              onClick={() => handleMarkSent(order.id)}
+              className={cn(
+                buttonClass,
+                isMobile ? "w-full" : "flex items-center gap-1"
+              )}
+            >
+              <Send size={10} /> Enviar
+            </Button>
+          </div>
+        )}
+        {order.status === 'SENT_TO_PROVIDER' && (
+          <Button
+            variant="default"
+            size={isMobile ? "lg" : "sm"}
+            onClick={() => setSelected(order)}
+            className={cn(
+              buttonClass,
+              isMobile ? "w-full" : "bg-upload hover:bg-upload-hover text-white flex items-center gap-1 border-transparent"
+            )}
+          >
+            <UploadCloud size={11} /> Evidencia
+          </Button>
+        )}
+        {order.status === 'CONFIRMED' && (
+          <Button
+            variant="outline"
+            size={isMobile ? "lg" : "sm"}
+            onClick={() => setSelected(order)}
+            className={cn(
+              buttonClass,
+              isMobile ? "w-full" : "flex items-center gap-1"
+            )}
+          >
+            <Eye size={11} /> Ver
+          </Button>
+        )}
+        {order.status === 'REJECTED' && (
+          <span className={cn(
+            "text-[9px] font-black text-red-600 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-lg text-center",
+            isMobile && "w-full text-center py-2 text-xs rounded-xl"
+          )}>
+            Rechazado
+          </span>
+        )}
+      </>
+    )
+  }
 
   return (
-    <div className="pb-24 relative">
+    <div className="pb-24 relative space-y-6">
 
       {/* Toast */}
       <AnimatePresence>
@@ -173,205 +286,191 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
         )}
       </AnimatePresence>
 
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      {/* TOOLBAR */}
+      <div className="flex flex-col gap-6">
+        <div className="relative w-full">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Buscar por ID, cliente o email..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-card border-border rounded-lg py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:border-primary/50 shadow-sm h-auto"
+            className="w-full bg-background border-border py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-muted/5 h-auto rounded-md"
           />
         </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {FILTERS.map(f => (
-            <Button
-              key={f.value}
-              variant={filter === f.value ? 'default' : 'outline'}
-              onClick={() => setFilter(f.value)}
-              className="px-3.5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap h-auto shadow-sm"
-            >
-              {f.label}
-            </Button>
-          ))}
+
+        {/* TABS */}
+        <div className="relative border-b border-border/50 flex items-center">
+          <div className="md:hidden text-muted-foreground/50 pr-2">
+            <ChevronLeft size={16} />
+          </div>
+          <div className="flex-1 flex items-center gap-6 md:gap-8 overflow-x-auto scrollbar-hide">
+            {FILTERS.map(f => (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                className={cn(
+                  "pb-3 text-xs md:text-sm font-medium whitespace-nowrap transition-colors relative",
+                  filter === f.value ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {f.label}
+                {filter === f.value && (
+                  <motion.div
+                    layoutId="activeTabGestor"
+                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary"
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+          <div className="md:hidden text-muted-foreground/50 pl-2">
+            <ChevronRight size={16} />
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      {filtered.length === 0 ? (
-        <div className="py-20 text-center border border-dashed border-border rounded-xl bg-card shadow-sm">
-          <Search size={28} className="text-muted-foreground/40 mx-auto mb-4" strokeWidth={1} />
-          <p className="text-sm font-black text-foreground uppercase tracking-tight mb-1">Sin resultados</p>
-          <Button
-            variant="link"
-            onClick={() => { setSearch(''); setFilter('ALL') }}
-            className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline mt-2 p-0 h-auto"
-          >
-            Limpiar filtros
-          </Button>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-border overflow-hidden bg-card shadow-sm">
-          {/* Header */}
-          <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 bg-muted/30 border-b border-border text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-            <div className="col-span-1">#</div>
-            <div className="col-span-5">Cliente</div>
-            <div className="col-span-2">Fecha</div>
-            <div className="col-span-2">Estado</div>
-            <div className="col-span-2 text-right">Acciones</div>
-          </div>
+      {/* TABLE HEADER — desktop only */}
+      <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 border-b border-border/50">
+        <p className="col-span-1 text-[10px] font-black text-muted-foreground uppercase tracking-widest">#</p>
+        <p className="col-span-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Cliente</p>
+        <p className="col-span-3 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Fecha</p>
+        <p className="col-span-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Estado</p>
+        <p className="col-span-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">Acciones</p>
+      </div>
 
-          {filtered.map((order, i) => {
-            const st = STATUS[order.status] ?? { label: order.status, color: 'text-muted-foreground', dot: 'bg-muted-foreground/40' }
-            const isPending = order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION'
+      {/* ROWS */}
+      <div className="space-y-2">
+        <AnimatePresence mode="popLayout">
+          {filtered.length > 0 ? (
+            filtered.map((order, i) => {
+              const st = STATUS[order.status] ?? { label: order.status, color: 'text-muted-foreground', dot: 'bg-muted-foreground/40' }
+              const isPending = order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION'
 
-            return (
-              <div
-                key={order.id}
-                onClick={() => setSelected(order)}
-                className={`w-full text-left grid grid-cols-2 md:grid-cols-12 gap-4 px-5 py-4 border-b border-border last:border-b-0 rounded-none h-auto transition-all cursor-pointer ${isPending ? 'bg-amber-500/5 hover:bg-amber-500/10 dark:bg-amber-500/10 dark:hover:bg-amber-500/20' : 'hover:bg-muted/40'} group`}
-              >
-                <div className="col-span-1 hidden md:flex items-center">
-                  <span className="font-mono text-[10px] text-muted-foreground/60">{i + 1}</span>
-                </div>
+              const dateText = (() => {
+                if (!order.bookings || order.bookings.length === 0) {
+                  return new Date(order.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).toUpperCase()
+                }
+                const starts = order.bookings.map(b => b.start_date).filter(Boolean).sort()
+                const ends = order.bookings.map(b => b.end_date).filter(Boolean).sort()
+                if (starts.length === 0 || ends.length === 0) {
+                  return new Date(order.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).toUpperCase()
+                }
+                const fmtDate = (dStr: string) => {
+                  const d = new Date(dStr + 'T00:00:00')
+                  return d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).toUpperCase().replace('.', '')
+                }
+                return `${fmtDate(starts[0])} - ${fmtDate(ends[ends.length - 1])}`
+              })()
 
-                <div className="col-span-2 md:col-span-5 flex flex-col justify-center gap-0.5">
-                  <p className="text-sm font-bold text-foreground truncate">
-                    {order.profile?.full_name || order.profile?.email || 'Sin nombre'}
-                  </p>
-                  {order.profile?.company_name && (
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <Building2 size={9} /> {order.profile.company_name}
-                    </p>
-                  )}
-                  <p className="text-[10px] font-mono text-muted-foreground/50">#{order.id.slice(0, 8).toUpperCase()}</p>
-                </div>
+              return (
+                <motion.div
+                  key={order.id}
+                  layout
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ delay: i * 0.03, duration: 0.25 }}
+                  className="rounded-lg border border-border bg-card hover:bg-muted/10 hover:border-primary transition-all overflow-hidden"
+                >
+                  {/* MAIN ROW */}
+                  <div
+                    className="w-full text-left block h-auto p-0 bg-transparent cursor-pointer relative"
+                    onClick={() => setSelected(order)}
+                  >
+                    <div className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 px-4 py-4 md:items-center">
 
-                <div className="hidden md:flex md:col-span-2 flex-col justify-center gap-0.5 text-xs text-muted-foreground">
-                  {(() => {
-                    if (!order.bookings || order.bookings.length === 0) {
-                      return (
+                      {/* MOBILE TOP ROW: Client & Status */}
+                      <div className="flex justify-between items-start md:hidden mb-1">
+                        <div className="flex flex-col min-w-0">
+                          <p className="text-[10px] text-muted-foreground mb-0.5">Cliente</p>
+                          <p className="text-xs font-bold text-foreground truncate">
+                            {order.profile?.full_name || order.profile?.email || 'Sin nombre'}
+                          </p>
+                        </div>
+
                         <div className="flex items-center gap-1.5">
-                          <Calendar size={11} className="text-primary/40" />
-                          <span>{new Date(order.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })}</span>
-                        </div>
-                      )
-                    }
-                    const starts = order.bookings.map(b => b.start_date).filter(Boolean).sort()
-                    const ends = order.bookings.map(b => b.end_date).filter(Boolean).sort()
-                    if (starts.length === 0 || ends.length === 0) {
-                      return (
-                        <div className="flex items-center gap-1.5">
-                          <Calendar size={11} className="text-primary/40" />
-                          <span>{new Date(order.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })}</span>
-                        </div>
-                      )
-                    }
-                    const fmtDate = (dStr: string) => {
-                      const d = new Date(dStr + 'T00:00:00')
-                      return d.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }).toUpperCase().replace('.', '')
-                    }
-                    return (
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider">Vigencia</span>
-                        </div>
-                        <div className="font-semibold text-foreground text-[10px] whitespace-nowrap">
-                          {fmtDate(starts[0])} - {fmtDate(ends[ends.length - 1])}
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${st.dot} ${isPending ? 'animate-pulse' : ''}`} />
+                          <span className={`text-[10px] font-black uppercase tracking-wide ${st.color}`}>
+                            {st.label}
+                          </span>
                         </div>
                       </div>
-                    )
-                  })()}
-                </div>
 
-                <div className="col-span-1 md:col-span-2 flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${st.dot} ${isPending ? 'animate-pulse' : ''}`} />
-                  <span className={`text-[10px] font-black uppercase tracking-wide ${st.color}`}>{st.label}</span>
-                </div>
+                      {/* MOBILE DETAILS ROW */}
+                      <div className="flex justify-between items-center md:hidden mb-2">
+                        <div className="flex flex-col">
+                          <p className="text-[10px] text-muted-foreground mb-0.5">Fecha</p>
+                          <p className="text-xs text-muted-foreground font-semibold">
+                            {dateText}
+                          </p>
+                        </div>
+                      </div>
 
-                <div className="col-span-1 md:col-span-2 flex items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
-                  {order.status === 'PENDING_UPLOAD' && (
-                    <UploadCloud size={14} className="text-muted-foreground/60 mr-2" />
-                  )}
-                  {isPending && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => setSelected(order)}
-                      className="text-[9px] font-black uppercase tracking-widest h-7 px-3 rounded-lg shadow-sm shadow-primary/20"
-                    >
-                      Revisar
-                    </Button>
-                  )}
-                  {order.status === 'APPROVED' && (
-                    <div className="flex items-center gap-1">
-                      {order.video_url && (
-                        <Button
-                          size="icon-xs"
-                          variant="outline"
-                          title="Descargar Video"
-                          onClick={() => handleDownloadVideo(order.video_url!, order.id)}
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground flex items-center justify-center border border-border bg-card rounded-md"
-                        >
-                          {downloadingId === order.id ? (
-                            <span className="w-3 h-3 rounded-full border border-muted-foreground/40 border-t-muted-foreground animate-spin" />
-                          ) : (
-                            <Download size={12} />
-                          )}
-                        </Button>
-                      )}
-                      <Button
-                        size="icon-xs"
-                        variant="outline"
-                        title={order.profile?.document_type === 'RUC' ? 'Ver factura' : 'Ver comprobante'}
-                        onClick={() => window.open(`/dashboard/orders/${order.id}/nota`, '_blank')}
-                        className="h-7 w-7 text-muted-foreground hover:text-foreground flex items-center justify-center border border-border bg-card rounded-md"
-                      >
-                        <FileText size={12} />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleMarkSent(order.id)}
-                        className="text-[9px] font-black uppercase tracking-widest h-7 px-3 rounded-lg shadow-sm flex items-center gap-1"
-                      >
-                        <Send size={10} /> Enviar
-                      </Button>
+                      {/* DESKTOP Index */}
+                      <div className="hidden md:block md:col-span-1">
+                        <span className="font-mono text-[10px] text-muted-foreground/60">{i + 1}</span>
+                      </div>
+
+                      {/* DESKTOP Client */}
+                      <div className="hidden md:flex md:col-span-4 flex-col justify-center gap-0.5">
+                        <p className="text-xs font-bold text-foreground truncate">
+                          {order.profile?.full_name || order.profile?.email || 'Sin nombre'}
+                        </p>
+                        {order.profile?.company_name && (
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
+                            <Building2 size={9} /> {order.profile.company_name}
+                          </p>
+                        )}
+                        <p className="text-[10px] font-mono text-muted-foreground/50">#{order.id.slice(0, 8).toUpperCase()}</p>
+                      </div>
+
+                      {/* DESKTOP Date */}
+                      <div className="hidden md:block md:col-span-3">
+                        <p className="text-xs text-muted-foreground font-medium">
+                          {dateText}
+                        </p>
+                      </div>
+
+                      {/* DESKTOP Status */}
+                      <div className="hidden md:flex md:col-span-2 items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${st.dot} ${isPending ? 'animate-pulse' : ''}`} />
+                        <span className={`text-[10px] font-black uppercase tracking-wide ${st.color}`}>
+                          {st.label}
+                        </span>
+                      </div>
+
+                      {/* DESKTOP Actions */}
+                      <div className="hidden md:flex md:col-span-2 items-center justify-end gap-1.5" onClick={e => e.stopPropagation()}>
+                        {actionButtons(order)}
+                      </div>
+
+                      {/* MOBILE CTAs */}
+                      <div className="flex flex-col gap-2 md:hidden cta-button w-full mt-2" onClick={e => e.stopPropagation()}>
+                        {actionButtons(order, true)}
+                      </div>
+
                     </div>
-                  )}
-                  {order.status === 'SENT_TO_PROVIDER' && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => setSelected(order)}
-                      className="text-[9px] font-black uppercase tracking-widest h-7 px-3 bg-upload hover:bg-upload-hover text-white rounded-lg shadow-sm flex items-center gap-1 border-transparent"
-                    >
-                      <UploadCloud size={11} /> Evidencia
-                    </Button>
-                  )}
-                  {order.status === 'CONFIRMED' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelected(order)}
-                      className="text-[9px] font-black uppercase tracking-widest h-7 px-3 rounded-lg flex items-center gap-1"
-                    >
-                      <Eye size={11} /> Ver
-                    </Button>
-                  )}
-                  {order.status === 'REJECTED' && (
-                    <span className="text-[9px] font-black text-red-600 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-lg">
-                      Rechazado
-                    </span>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+                  </div>
+                </motion.div>
+              )
+            })
+          ) : (
+            <div className="py-20 text-center border border-dashed border-border rounded-lg bg-muted/10">
+              <Search size={28} className="text-muted-foreground mx-auto mb-4" strokeWidth={1} />
+              <p className="text-sm font-black text-foreground uppercase tracking-tight mb-1">Sin resultados</p>
+              <p className="text-xs text-muted-foreground mb-5">No coinciden pedidos con tu búsqueda o filtro.</p>
+              <Button
+                variant="link"
+                onClick={() => { setSearch(''); setFilter('ALL') }}
+                className="text-[10px] font-black text-primary uppercase tracking-widest h-auto p-0"
+              >
+                Limpiar filtros
+              </Button>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Detail Modal */}
       <AnimatePresence>
