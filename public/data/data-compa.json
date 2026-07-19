@@ -1,0 +1,412 @@
+[
+    {
+        "CODIGO_PROVEEDOR": "AGS-006 A",
+        "ELEMENTO": "AGS-006",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ANT-001 B",
+        "ELEMENTO": "ANT-001",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ANT-004 A",
+        "ELEMENTO": "ANT-004",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ARQ-044 A",
+        "ELEMENTO": "ARQ-044",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ARQ-046 A",
+        "ELEMENTO": "ARQ-046",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ARQ-051 A",
+        "ELEMENTO": "ARQ-051",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ARQ-052 A",
+        "ELEMENTO": "ARQ-052",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ARQ-055 A",
+        "ELEMENTO": "ARQ-055",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ARQ-060 A",
+        "ELEMENTO": "ARQ-060",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ATE-032 A",
+        "ELEMENTO": "ATE-032",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ATE-039 B",
+        "ELEMENTO": "ATE-039",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "BCO-004 B",
+        "ELEMENTO": "BCO-004",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CAL-001 A",
+        "ELEMENTO": "CAL-001",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CAL-014 A",
+        "ELEMENTO": "CAL-014",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CAL-018 A",
+        "ELEMENTO": "CAL-018",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CAL-029 A",
+        "ELEMENTO": "CAL-029",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CHI-004 A",
+        "ELEMENTO": "CHI-004",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CHI-031 B",
+        "ELEMENTO": "CHI-031",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CHO-006 A",
+        "ELEMENTO": "CHO-006",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CHO-007 A",
+        "ELEMENTO": "CHO-007",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CHO-009 B",
+        "ELEMENTO": "CHO-009",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "COM-018 B",
+        "ELEMENTO": "COM-018",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CUS-019 B",
+        "ELEMENTO": "CUS-019",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CUS-021 A",
+        "ELEMENTO": "CUS-021",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "ICA-009 A",
+        "ELEMENTO": "ICA-009",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "IND-006 A",
+        "ELEMENTO": "IND-006",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "IND-022 A",
+        "ELEMENTO": "IND-022",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "JM-002 A",
+        "ELEMENTO": "JM-002",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "JM-007 A",
+        "ELEMENTO": "JM-007",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "JM-009 A",
+        "ELEMENTO": "JM-009",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "LAV-007 A",
+        "ELEMENTO": "LAV-007",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "LAV-008 A",
+        "ELEMENTO": "LAV-008",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "LAV-016 A",
+        "ELEMENTO": "LAV-016",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "LCE-004 A",
+        "ELEMENTO": "LCE-004",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "LMNA-001 B",
+        "ELEMENTO": "LMNA-001",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "LMNA-005 A",
+        "ELEMENTO": "LMNA-005",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "LMNA-019 B",
+        "ELEMENTO": "LMNA-019",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "LMNA-020 A",
+        "ELEMENTO": "LMNA-020",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "LMNA-024 U",
+        "ELEMENTO": "LMNA-024",
+        "CARA": "U"
+    },
+    {
+        "CODIGO_PROVEEDOR": "MIR-004 A",
+        "ELEMENTO": "MIR-004",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "MIR-004 B",
+        "ELEMENTO": "MIR-004",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "MIR-005 A",
+        "ELEMENTO": "MIR-005",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "MRN-004 A",
+        "ELEMENTO": "MRN-004",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "MRN-004 B",
+        "ELEMENTO": "MRN-004",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "OLI-014 B",
+        "ELEMENTO": "OLI-014",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "PIU-006 B",
+        "ELEMENTO": "PIU-006",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "PIU-027 A",
+        "ELEMENTO": "PIU-027",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "PIU-055 A",
+        "ELEMENTO": "PIU-055",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "PLB-003 A",
+        "ELEMENTO": "PLB-003",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SIN-001 A",
+        "ELEMENTO": "SIN-001",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SIN-004 A",
+        "ELEMENTO": "SIN-004",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SIN-004 B",
+        "ELEMENTO": "SIN-004",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SIN-008 A",
+        "ELEMENTO": "SIN-008",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SJL-009 A",
+        "ELEMENTO": "SJL-009",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SJL-021 A",
+        "ELEMENTO": "SJL-021",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SJM-002 A",
+        "ELEMENTO": "SJM-002",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SJM-004 A",
+        "ELEMENTO": "SJM-004",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SJM-010 A",
+        "ELEMENTO": "SJM-010",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SJM-020 A",
+        "ELEMENTO": "SJM-020",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SJM-020 B",
+        "ELEMENTO": "SJM-020",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SMP-010 A",
+        "ELEMENTO": "SMP-010",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SMP-010 B",
+        "ELEMENTO": "SMP-010",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SNM-009 A",
+        "ELEMENTO": "SNM-009",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SNM-013 A",
+        "ELEMENTO": "SNM-013",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SRQ-003 B",
+        "ELEMENTO": "SRQ-003",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SUR-010 A",
+        "ELEMENTO": "SUR-010",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SUR-026 B",
+        "ELEMENTO": "SUR-026",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SUR-027 B",
+        "ELEMENTO": "SUR-027",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SUR-028 A",
+        "ELEMENTO": "SUR-028",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SUR-036 A",
+        "ELEMENTO": "SUR-036",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SUR-036 B",
+        "ELEMENTO": "SUR-036",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SUR-037 A",
+        "ELEMENTO": "SUR-037",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SUR-042 B",
+        "ELEMENTO": "SUR-042",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "TRU-046 U",
+        "ELEMENTO": "TRU-046",
+        "CARA": "U"
+    },
+    {
+        "CODIGO_PROVEEDOR": "TRU-054 U",
+        "ELEMENTO": "TRU-054",
+        "CARA": "U"
+    },
+    {
+        "CODIGO_PROVEEDOR": "TRU-056 A",
+        "ELEMENTO": "TRU-056",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "VMT-017 A",
+        "ELEMENTO": "VMT-017",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "MIR-003 A",
+        "ELEMENTO": "MIR-003",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "HUA-018 U",
+        "ELEMENTO": "HUA-018",
+        "CARA": "U"
+    },
+    {
+        "CODIGO_PROVEEDOR": "SIN-011 A",
+        "ELEMENTO": "SIN-011",
+        "CARA": "A"
+    },
+    {
+        "CODIGO_PROVEEDOR": "CAL-031 B",
+        "ELEMENTO": "CAL-031",
+        "CARA": "B"
+    },
+    {
+        "CODIGO_PROVEEDOR": "MIR-006 U",
+        "ELEMENTO": "MIR-006",
+        "CARA": "U"
+    }
+]

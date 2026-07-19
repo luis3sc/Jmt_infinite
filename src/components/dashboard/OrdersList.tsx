@@ -31,6 +31,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string 
 }
 
 const FILTERS = [
+  { value: 'ALL', label: 'Todos' },
   { value: 'CONFIRMED', label: 'Activa' },
   { value: 'PENDING_UPLOAD', label: 'Falta subir' },
   { value: 'VIDEO_SENT', label: 'En revisión' },
@@ -40,7 +41,7 @@ const FILTERS = [
 export function OrdersList({ initialOrders }: OrdersListProps) {
   const [orders, setOrders] = useState(initialOrders)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('CONFIRMED')
+  const [filter, setFilter] = useState('ALL')
   const [expanded, setExpanded] = useState<string[]>([])
   const [selectedEvidenceOrder, setSelectedEvidenceOrder] = useState<any | null>(null)
   const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null)
@@ -90,7 +91,9 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
   const filtered = orders.filter(o => {
     const matchSearch = o.id.toLowerCase().includes(search.toLowerCase())
     let matchFilter = o.status === filter
-    if (filter === 'VIDEO_SENT') {
+    if (filter === 'ALL') {
+      matchFilter = ['CONFIRMED', 'PENDING_UPLOAD', 'VIDEO_SENT', 'PENDING_VALIDATION', 'APPROVED', 'SENT_TO_PROVIDER', 'REJECTED'].includes(o.status)
+    } else if (filter === 'VIDEO_SENT') {
       matchFilter = ['VIDEO_SENT', 'PENDING_VALIDATION', 'APPROVED', 'SENT_TO_PROVIDER'].includes(o.status)
     }
     return matchSearch && matchFilter

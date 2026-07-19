@@ -34,10 +34,17 @@ async function run() {
       CORSConfiguration: {
         CORSRules: [
           {
-            AllowedHeaders: ['*'],
+            AllowedHeaders: ['*', 'range', 'content-type'],
             AllowedMethods: ['GET', 'PUT', 'POST', 'DELETE', 'HEAD'],
-            AllowedOrigins: ['http://localhost:3000', 'https://localhost:3000'],
-            ExposeHeaders: ['ETag'],
+            AllowedOrigins: [
+              'http://localhost:3000',
+              'https://localhost:3000',
+              'http://localhost:3001',
+              'https://localhost:3001',
+              'https://www.aylluk.com',
+              'https://jmt-infinite.vercel.app'
+            ],
+            ExposeHeaders: ['content-range', 'content-length', 'accept-ranges', 'ETag'],
             MaxAgeSeconds: 3000,
           },
         ],

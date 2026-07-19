@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Search, CheckCircle2, XCircle, UploadCloud, Clock, Building2, Calendar, Download, FileText, Send, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
 import { GestorOrderDetail, type Order } from './GestorOrderDetail'
+import { createClient } from '@/lib/supabase/client'
 
 const STATUS: Record<string, { label: string; color: string; dot: string }> = {
   PENDING_UPLOAD: { label: 'Sin video', color: 'text-muted-foreground', dot: 'bg-muted-foreground/30' },
@@ -36,6 +37,159 @@ export function GestorReviewList({ initialOrders }: { initialOrders: Order[] }) 
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setOrders(initialOrders)
+  }, [initialOrders])
+
+  useEffect(() => {
+    const supabase = createClient()
+
+    const fetchFullOrder = async (orderId: string) => {
+      try {
+        const { data: fullOrder, error } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            status,
+            video_url,
+            total_amount,
+            rejection_reason,
+            evidence_urls,
+            created_at,
+            user_id,
+            profiles (
+              id,
+              full_name,
+              email,
+              company_name,
+              phone,
+              document_type,
+              receipt_type
+            ),
+            bookings (
+              id,
+              start_date,
+              end_date,
+              amount,
+              campaign_name,
+              panel_id,
+              panels (
+                id,
+                panel_code,
+                face,
+                media_type,
+                format,
+                width,
+                height,
+                resolution_width,
+                resolution_height,
+                traffic_view,
+                slot_duration_seconds,
+                structures (
+                  code,
+                  address,
+                  reference,
+                  district,
+                  city,
+                  latitude,
+                  longitude
+                )
+              )
+            )
+          `)
+          .eq('id', orderId)
+          .single()
+
+        if (error || !fullOrder) {
+          console.error('[realtime-gestor] Error fetching full order details:', error)
+          return null
+        }
+
+        // Transform bookings to flatten nested arrays from joins
+        const transformedBookings = (fullOrder.bookings as any[])?.map(b => {
+          const panelArray = b.panels;
+          const firstPanel = Array.isArray(panelArray) ? panelArray[0] : panelArray;
+
+          let transformedPanel = null;
+          if (firstPanel) {
+            const structureArray = firstPanel.structures;
+            transformedPanel = {
+              ...firstPanel,
+              structures: Array.isArray(structureArray) ? structureArray[0] : structureArray
+            };
+          }
+
+          return {
+            ...b,
+            panels: transformedPanel
+          };
+        }) ?? [];
+
+        return {
+          id: fullOrder.id,
+          status: fullOrder.status,
+          video_url: fullOrder.video_url,
+          total_amount: fullOrder.total_amount,
+          rejection_reason: fullOrder.rejection_reason,
+          evidence_urls: fullOrder.evidence_urls,
+          created_at: fullOrder.created_at,
+          user_id: fullOrder.user_id,
+          profile: fullOrder.profiles as any,
+          bookings: transformedBookings
+        } as Order
+      } catch (err) {
+        console.error('[realtime-gestor] Exception in fetchFullOrder:', err)
+        return null
+      }
+    }
+
+    const channel = supabase
+      .channel('gestor-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuchar INSERT, UPDATE y DELETE
+          schema: 'public',
+          table: 'orders',
+        },
+        async (payload) => {
+          console.log('[realtime-gestor] Evento recibido:', payload.eventType, payload)
+
+          if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id
+            setOrders(prev => prev.filter(o => o.id !== deletedId))
+            setSelected(prev => prev?.id === deletedId ? null : prev)
+          } else if (payload.eventType === 'INSERT') {
+            const newOrder = await fetchFullOrder(payload.new.id)
+            if (newOrder) {
+              setOrders(prev => {
+                if (prev.some(o => o.id === newOrder.id)) return prev
+                return [newOrder, ...prev]
+              })
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const newOrder = await fetchFullOrder(payload.new.id)
+            if (newOrder) {
+              setOrders(prev => {
+                const exists = prev.some(o => o.id === newOrder.id)
+                if (exists) {
+                  return prev.map(o => o.id === newOrder.id ? newOrder : o)
+                } else {
+                  return [newOrder, ...prev]
+                }
+              })
+              setSelected(prev => prev?.id === newOrder.id ? newOrder : prev)
+            }
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   const scrollTabs = (direction: 'left' | 'right') => {
     if (tabsRef.current) {
