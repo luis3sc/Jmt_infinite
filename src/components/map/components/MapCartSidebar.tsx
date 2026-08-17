@@ -39,6 +39,7 @@ export default function MapCartSidebar({
 }: MapCartSidebarProps) {
   const router = useRouter();
   const cartItems = useCartStore((state) => state.items);
+  const campaignName = useCartStore((state) => state.campaignName);
   const removeCartItem = useCartStore((state) => state.removeItem);
   const cartItemCount = useCartStore((state) => state.getTotalItems());
   const cartTotal = useCartStore((state) =>
@@ -125,12 +126,21 @@ export default function MapCartSidebar({
             <div className="p-2 bg-muted rounded-input">
               <ShoppingCart size={20} className="text-foreground" />
             </div>
-            <h2 className="text-fluid-lg font-bold text-foreground tracking-tight">
-              Tu Campaña
-            </h2>
-            <span className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-badge">
-              {cartItemCount}
-            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-fluid-lg font-bold text-foreground tracking-tight">
+                  Tu Campaña
+                </h2>
+                <span className="bg-primary text-white text-[10px] font-black px-2 py-0.5 rounded-badge">
+                  {cartItemCount}
+                </span>
+              </div>
+              {campaignName && (
+                <p className="text-xs text-muted-foreground font-semibold truncate max-w-[220px]">
+                  {campaignName}
+                </p>
+              )}
+            </div>
           </div>
           <Button
             variant="ghost"

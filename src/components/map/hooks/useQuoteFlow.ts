@@ -23,10 +23,27 @@ export function useQuoteFlow({ onOpenCart, onTriggerToast }: UseQuoteFlowProps) 
   const cartItems = useCartStore((state) => state.items);
   const cartTotal = useCartStore((state) => state.items.reduce((total, item) => total + item.totalPrice, 0));
 
+  const storeCampaignName = useCartStore((state) => state.campaignName);
+  const setStoreCampaignName = useCartStore((state) => state.setCampaignName);
+
   const [isCampaignLoading, setIsCampaignLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
-  const [quoteCampaignName, setQuoteCampaignName] = useState("");
+  const [quoteCampaignNameState, setQuoteCampaignNameState] = useState(storeCampaignName || "");
+
+  const quoteCampaignName = quoteCampaignNameState || storeCampaignName || "";
+
+  useEffect(() => {
+    if (storeCampaignName) {
+      setQuoteCampaignNameState(storeCampaignName);
+    }
+  }, [storeCampaignName]);
+
+  const setQuoteCampaignName = (val: string) => {
+    setQuoteCampaignNameState(val);
+    setStoreCampaignName(val);
+  };
+
   const [quoteClientName, setQuoteClientName] = useState("");
   const [quoteClientEmail, setQuoteClientEmail] = useState("");
   const [quoteClientPhone, setQuoteClientPhone] = useState("");

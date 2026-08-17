@@ -70,16 +70,16 @@ export default function QuoteDialog({
             Ingresa los datos para registrar tu campaña. Podrás descargar un PDF formal o generar un enlace para reanudar tu compra más tarde.
           </p>
 
-          <div className="space-y-1.5">
-            <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-wider">Nombre de la Campaña</label>
-            <Input
-              required
-              type="text"
-              value={quoteCampaignName}
-              onChange={(e) => setQuoteCampaignName(e.target.value)}
-              placeholder={`ej. Campaña JMT - ${format(new Date(), 'MMM yyyy')}`}
-              className="w-full text-sm font-semibold"
-            />
+          <div className="p-3 bg-muted/50 border border-border/80 rounded-input flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <span className="block text-[9px] font-black text-muted-foreground uppercase tracking-wider">Campaña</span>
+              <span className="text-xs font-bold text-foreground truncate block">
+                {quoteCampaignName || `Campaña JMT - ${format(new Date(), 'MMM yyyy')}`}
+              </span>
+            </div>
+            <span className="text-[10px] font-black uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-badge shrink-0">
+              Registrada
+            </span>
           </div>
 
           <div className="space-y-1.5">
@@ -96,7 +96,7 @@ export default function QuoteDialog({
           <div className="flex flex-col gap-2.5 mt-6">
             <Button
               type="button"
-              disabled={isSavingQuote || !quoteCampaignName.trim()}
+              disabled={isSavingQuote}
               size="xl"
               onClick={() => onSubmit(true)}
               className="w-full font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2"
@@ -117,7 +117,7 @@ export default function QuoteDialog({
             <Button
               type="button"
               variant="outline-primary"
-              disabled={isSavingQuote || !quoteCampaignName.trim()}
+              disabled={isSavingQuote}
               size="xl"
               onClick={() => onSubmit(false)}
               className="w-full font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2"

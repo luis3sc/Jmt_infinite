@@ -327,23 +327,28 @@ export async function POST(req: NextRequest) {
 
       let primaryVideoUrl = ''
       for (const item of processedVideos) {
-        if (!item.bookingId || !item.key) {
+        if (!item.bookingId || (!item.key && !item.existingUrl && !item.videoUrl)) {
           return NextResponse.json(
-            { error: 'Formato inválido en processedVideos. Cada objeto debe tener bookingId y key.' },
+            { error: 'Formato inválido en processedVideos. Cada objeto debe tener bookingId y key o url existente.' },
             { status: 400 }
           )
         }
 
-        const publicVideoUrl = buildPublicUrl(item.key)
-        if (!primaryVideoUrl) primaryVideoUrl = publicVideoUrl
+        const publicVideoUrl = item.key
+          ? buildPublicUrl(item.key)
+          : (item.existingUrl || item.videoUrl || '')
 
-        console.log(`[upload-video] Actualizando booking ${item.bookingId} con video procesado: ${publicVideoUrl}`)
-        const { error: bookingErr } = await adminSupabase
-          .from('bookings')
-          .update({ video_url: publicVideoUrl })
-          .eq('id', item.bookingId)
+        if (!primaryVideoUrl && publicVideoUrl) primaryVideoUrl = publicVideoUrl
 
-        if (bookingErr) throw bookingErr
+        if (publicVideoUrl) {
+          console.log(`[upload-video] Actualizando booking ${item.bookingId} con video: ${publicVideoUrl}`)
+          const { error: bookingErr } = await adminSupabase
+            .from('bookings')
+            .update({ video_url: publicVideoUrl })
+            .eq('id', item.bookingId)
+
+          if (bookingErr) throw bookingErr
+        }
       }
 
       if (primaryVideoUrl) {

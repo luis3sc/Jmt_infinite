@@ -6,7 +6,8 @@ import Link from 'next/link'
 import {
   Search, Upload, AlertCircle, CheckCircle2,
   Clock, XCircle, Info, ExternalLink, FileText,
-  MapPin, ChevronDown, ChevronUp, Calendar, Eye, X, ChevronLeft, ChevronRight
+  MapPin, ChevronDown, ChevronUp, Calendar, Eye, X, ChevronLeft, ChevronRight,
+  Pencil, RotateCcw
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { OrderTrackingStepper, type OrderStatus } from '@/components/ui/OrderTrackingStepper'
@@ -339,18 +340,34 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                             </Link>
                           ) : (
                             (order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
-                              <Link
-                                href={`/order-success/${order.id}`}
-                                className={cn(
-                                  buttonVariants.default,
-                                  buttonSizes.lg,
-                                  "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                              <div className="flex flex-col gap-2 w-full">
+                                <Link
+                                  href={`/order-success/${order.id}`}
+                                  className={cn(
+                                    buttonVariants.default,
+                                    buttonSizes.lg,
+                                    "w-full flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                  )}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink size={13} />
+                                  Ver mi Anuncio
+                                </Link>
+                                {(order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
+                                  <Link
+                                    href={`/order-success/${order.id}?edit=true`}
+                                    className={cn(
+                                      buttonVariants.outline,
+                                      buttonSizes.lg,
+                                      "w-full flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest border border-border/80 hover:border-primary/50 text-foreground shadow-sm"
+                                    )}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Pencil size={12} className="text-primary" />
+                                    Cambiar Video
+                                  </Link>
                                 )}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <ExternalLink size={13} />
-                                Ver mi Anuncio
-                              </Link>
+                              </div>
                             )
                           )}
                         </>
@@ -466,17 +483,32 @@ export function OrdersList({ initialOrders }: OrdersListProps) {
                                 </Link>
                               ) : (
                                 (order.status === 'CONFIRMED' || order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
-                                  <Link
-                                    href={`/order-success/${order.id}`}
-                                    className={cn(
-                                      buttonVariants.default,
-                                      buttonSizes.lg,
-                                      "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                  <>
+                                    <Link
+                                      href={`/order-success/${order.id}`}
+                                      className={cn(
+                                        buttonVariants.default,
+                                        buttonSizes.lg,
+                                        "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                      )}
+                                    >
+                                      <ExternalLink size={13} />
+                                      Ver mi Anuncio
+                                    </Link>
+                                    {(order.status === 'VIDEO_SENT' || order.status === 'PENDING_VALIDATION') && (
+                                      <Link
+                                        href={`/order-success/${order.id}?edit=true`}
+                                        className={cn(
+                                          buttonVariants.outline,
+                                          buttonSizes.lg,
+                                          "w-full sm:w-auto flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest border-border/80 hover:border-primary/50 hover:bg-primary/5 text-foreground shadow-sm"
+                                        )}
+                                      >
+                                        <Pencil size={12} className="text-primary" />
+                                        Cambiar Video
+                                      </Link>
                                     )}
-                                  >
-                                    <ExternalLink size={13} />
-                                    Ver mi Anuncio
-                                  </Link>
+                                  </>
                                 )
                               )}
                             </>

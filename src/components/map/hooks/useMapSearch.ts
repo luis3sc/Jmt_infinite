@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LIMA_CALLAO_DISTRICTS, getRelevanceScore, getActiveDepartments } from "../mapUtils";
 
@@ -12,7 +13,15 @@ interface UseMapSearchProps {
 }
 
 export function useMapSearch({ onSelectDistrict, onSelectLocation }: UseMapSearchProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+  const locationParam = searchParams?.get("location") || "";
+  const [searchQuery, setSearchQuery] = useState(locationParam);
+
+  useEffect(() => {
+    if (locationParam) {
+      setSearchQuery(locationParam);
+    }
+  }, [locationParam]);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [dbStructures, setDbStructures] = useState<any[]>([]);

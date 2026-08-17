@@ -33,6 +33,7 @@ import { useQuoteFlow } from "./hooks/useQuoteFlow";
 import MobileSearchBox from "./components/MobileSearchBox";
 import MapFiltersSidebar from "./components/MapFiltersSidebar";
 import MapCartSidebar from "./components/MapCartSidebar";
+import CampaignNameModal from "./components/CampaignNameModal";
 
 
 // Define Types
@@ -92,6 +93,29 @@ export function MapViewClient() {
   const [isInitialFitDone, setIsInitialFitDone] = useState(!activeDistrict);
 
   const isInitialLoadRef = useRef(true);
+
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+  const initCampaignParam = searchParams?.get("initCampaign");
+
+  useEffect(() => {
+    if (initCampaignParam === "true") {
+      setIsCampaignModalOpen(true);
+    }
+  }, [initCampaignParam]);
+
+  const handleConfirmCampaignName = useCallback((name: string) => {
+    useCartStore.getState().setCampaignName(name);
+    setIsCampaignModalOpen(false);
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("initCampaign");
+      const newSearch = params.toString();
+      router.replace(`${pathname}${newSearch ? `?${newSearch}` : ''}`, { scroll: false });
+    } catch (e) {
+      console.warn("Could not clean initCampaign URL param:", e);
+    }
+  }, [pathname, router]);
 
   // Load districts and departments GeoJSON on mount
   useEffect(() => {
@@ -1330,6 +1354,13 @@ export function MapViewClient() {
           filterOptions={filterOptions}
           onApply={handleApplyFilters}
           onReset={handleResetFilters}
+        />
+
+        {/* CAMPAIGN NAME MODAL */}
+        <CampaignNameModal
+          isOpen={isCampaignModalOpen}
+          onClose={() => handleConfirmCampaignName(useCartStore.getState().campaignName)}
+          onConfirm={handleConfirmCampaignName}
         />
 
         {/* SIDE PANEL / MODAL (Mobile full-screen, Desktop right-side) */}

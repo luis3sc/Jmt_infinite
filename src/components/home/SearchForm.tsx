@@ -311,6 +311,7 @@ export function SearchForm() {
     }
     if (dateFrom) query.append("from", dateFrom);
     if (dateTo) query.append("to", dateTo);
+    query.append("initCampaign", "true");
 
     router.push(`/map?${query.toString()}`);
   };

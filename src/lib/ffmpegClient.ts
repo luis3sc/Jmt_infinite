@@ -9,6 +9,7 @@
  * dentro de node_modules, pero sí acepta un URL absoluto ya conocido en build time.
  */
 import { FFmpeg } from '@ffmpeg/ffmpeg'
+import { analyzeVideoFile } from '@/lib/videoAnalyzer'
 
 // Implementación manual de fetchFile (sin @ffmpeg/util para evitar imports dinámicos)
 async function fetchFile(fileOrBlob: File | Blob | string): Promise<Uint8Array> {
@@ -65,10 +66,6 @@ export async function getFFmpeg(
 
       await ffmpegInstance.load({
         // classWorkerURL: apunta a los archivos ESM de @ffmpeg/ffmpeg copiados a public/ffmpeg/.
-        // Al ser una URL absoluta, new URL(classWorkerURL, import.meta.url) la devuelve
-        // tal cual — Turbopack nunca analiza estos archivos porque están en /public/.
-        // El worker.js original sí sabe manejar importScripts() Y import() dinámico
-        // sin que Turbopack interfiera.
         classWorkerURL: workerURL,
         coreURL,
         wasmURL,
@@ -138,21 +135,45 @@ export async function imageToVideo(
 }
 
 /**
- * Recorta y redimensiona un video a los specs del panel (7s, resolución del panel).
+ * Recorta y redimensiona un video a los specs del panel.
+ * Si el video es más largo que la duración objetivo (ej. 7s), acelera la velocidad (setpts)
+ * para comprimir todo el contenido en los segundos exactos sin cortar ninguna parte del video.
  */
 export async function processVideo(
   videoFile: File,
   panelWidth: number = 1280,
   panelHeight: number = 720,
+  targetDuration: number = 7,
   onProgress?: (progress: number) => void
 ): Promise<Blob> {
-  const durationSeconds = 7
+  // 1. Detectar duración original del video
+  let originalDuration = targetDuration
+  try {
+    const meta = await analyzeVideoFile(videoFile)
+    if (meta.duration && meta.duration > 0) {
+      originalDuration = meta.duration
+    }
+  } catch (e) {
+    console.warn('[processVideo] No se pudo obtener la duración previa del video:', e)
+  }
+
+  // 2. Construir filtro de video
+  // Si el video supera la duración objetivo por más de 0.2s, acelerar la reproducción con setpts
+  let filterChain = ''
+  if (originalDuration > targetDuration + 0.2) {
+    const speedRatio = (targetDuration / originalDuration).toFixed(4)
+    // setpts=(targetDuration / originalDuration)*PTS acelera el video
+    filterChain = `setpts=${speedRatio}*PTS,scale=${panelWidth}:${panelHeight}:force_original_aspect_ratio=decrease,pad=${panelWidth}:${panelHeight}:(ow-iw)/2:(oh-ih)/2`
+  } else {
+    filterChain = `scale=${panelWidth}:${panelHeight}:force_original_aspect_ratio=decrease,pad=${panelWidth}:${panelHeight}:(ow-iw)/2:(oh-ih)/2`
+  }
+
   const ffmpeg = await getFFmpeg((progress, time) => {
     if (onProgress) {
       if (progress > 0 && progress <= 1) {
         onProgress(Math.round(progress * 100))
       } else if (time && time > 0) {
-        const calculated = Math.min(100, Math.round((time / (durationSeconds * 1_000_000)) * 100))
+        const calculated = Math.min(100, Math.round((time / (targetDuration * 1_000_000)) * 100))
         onProgress(calculated)
       }
     }
@@ -163,8 +184,8 @@ export async function processVideo(
 
   await ffmpeg.exec([
     '-i', `input.${ext}`,
-    '-t', String(durationSeconds),
-    '-vf', `scale=${panelWidth}:${panelHeight}:force_original_aspect_ratio=decrease,pad=${panelWidth}:${panelHeight}:(ow-iw)/2:(oh-ih)/2`,
+    '-t', String(targetDuration),
+    '-vf', filterChain,
     '-c:v', 'libx264',
     '-preset', 'ultrafast',
     '-an', // REMOVE AUDIO channel (DOOH standards)

@@ -23,12 +23,14 @@ export type CartItem = {
 interface CartState {
   items: CartItem[];
   campaignId: string | null;
+  campaignName: string;
   isCartOpen: boolean;
   addItem: (item: CartItem) => void;
   updateItem: (panelId: string, updates: Partial<CartItem>) => void;
   removeItem: (panelId: string) => void;
   clearCart: () => void;
   setCampaignId: (id: string | null) => void;
+  setCampaignName: (name: string) => void;
   setIsCartOpen: (open: boolean) => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
@@ -39,6 +41,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       campaignId: null,
+      campaignName: '',
       isCartOpen: false,
       addItem: (item) => set((state) => {
         // Prevent adding duplicate panels
@@ -55,8 +58,9 @@ export const useCartStore = create<CartState>()(
       removeItem: (panelId) => set((state) => ({
         items: state.items.filter(item => item.panelId !== panelId)
       })),
-      clearCart: () => set({ items: [], campaignId: null }),
+      clearCart: () => set({ items: [], campaignId: null, campaignName: '' }),
       setCampaignId: (id) => set({ campaignId: id }),
+      setCampaignName: (name) => set({ campaignName: name }),
       setIsCartOpen: (open) => set({ isCartOpen: open }),
       getTotalItems: () => get().items.length,
       getTotalPrice: () => get().items.reduce((total, item) => total + item.totalPrice, 0),
@@ -66,6 +70,7 @@ export const useCartStore = create<CartState>()(
       partialize: (state) => ({
         items: state.items,
         campaignId: state.campaignId,
+        campaignName: state.campaignName,
       }),
     }
   )
